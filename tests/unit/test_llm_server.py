@@ -37,6 +37,11 @@ def test_assert_no_broker_keys_rejects_engine_vars() -> None:
         assert_no_broker_keys({"BROKER_API_KEY": "paper"})
 
 
+def test_assert_no_broker_keys_rejects_kraken_spot_key() -> None:
+    with pytest.raises(RuntimeError, match="KRAKEN_SPOT_API_KEY"):
+        assert_no_broker_keys({"KRAKEN_SPOT_API_KEY": "live"})
+
+
 def test_assert_no_broker_keys_allows_llm_env() -> None:
     assert_no_broker_keys(
         {

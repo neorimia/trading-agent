@@ -25,6 +25,7 @@ from src.execution.broker import BrokerClient, SimulatedBroker
 from src.execution.human_approval import ApprovalGate
 from src.execution.order_gateway import OrderGateway
 from src.execution.reconciliation import LocalPortfolioSnapshot, Reconciliation
+from src.execution.safety import HaltAndFlatten, PeriodicReconciler
 from src.execution.types import OrderRequest, OrderResult
 from src.monitor.heartbeat import Heartbeat
 from src.monitor.watchdog import Watchdog
@@ -104,9 +105,11 @@ class PaperTradingLoop:
         self._history: list[Bar] = []
         self._in_flight: list[str] = []
         self._last_price: Decimal | None = None
+        self._flatten = HaltAndFlatten(watchdog, gateway.cancel_all)
+        self._periodic = PeriodicReconciler(reconciliation, self._flatten)
 
     def reconcile_startup(self) -> None:
-        report = self._reconciliation.reconcile(
+        report = self._periodic.run(
             self._local_snapshot(),
             self._broker.snapshot(),
         )
@@ -120,7 +123,7 @@ class PaperTradingLoop:
             )
         )
         if not report.matched:
-            self._halt(correlation, "reconciliation_mismatch")
+            self._record_halt(correlation, "reconciliation_mismatch")
 
     def run_bars(self, bars: list[Bar], *, max_sessions: int | None = None) -> PaperRunResult:
         self.reconcile_startup()
@@ -145,6 +148,31 @@ class PaperTradingLoop:
             self._broker.set_last_price(bar.instrument, bar.close)
         self._write_last_bar(bar)
         self._persist_local_state()
+
+        drift = self._periodic.run(self._local_snapshot(), self._broker.snapshot())
+        if not drift.matched:
+            correlation = uuid4()
+            self._audit.record(
+                AuditEvent.now(
+                    correlation_id=correlation,
+                    event_type="reconciliation_mismatch",
+                    payload=_payload(drift),
+                )
+            )
+            self._record_halt(correlation, "reconciliation_mismatch")
+            return SessionRecord(
+                session_index=len(self._history),
+                correlation_id=correlation,
+                bar_timestamp=bar.timestamp,
+                instrument=bar.instrument,
+                proposal_direction=None,
+                rejected_reason=None,
+                risk_approved=None,
+                human_approved=None,
+                order_status=None,
+                halted=True,
+                notes="reconciliation_mismatch",
+            )
 
         if self._watchdog.check_stale_data(self._config.stale_data_threshold_s):
             correlation = uuid4()
@@ -274,7 +302,7 @@ class PaperTradingLoop:
         if self._kill.is_active():
             record.halted = True
         self._persist_local_state()
-        report = self._reconciliation.reconcile(
+        report = self._periodic.run(
             self._local_snapshot(),
             self._broker.snapshot(),
         )
@@ -286,7 +314,7 @@ class PaperTradingLoop:
                     payload=_payload(report),
                 )
             )
-            self._halt(correlation, "reconciliation_mismatch")
+            self._record_halt(correlation, "reconciliation_mismatch")
             record.halted = True
         return record
 
@@ -324,7 +352,12 @@ class PaperTradingLoop:
             self._breaker.record_event("success")
 
     def _halt(self, correlation: UUID, reason: str) -> None:
-        self._watchdog.set_halt(reason)
+        self._flatten.trigger(reason)
+        self._record_halt(correlation, reason)
+
+    def _record_halt(self, correlation: UUID, reason: str) -> None:
+        if not self._kill.is_active():
+            self._flatten.trigger(reason)
         self._audit.record(
             AuditEvent.now(
                 correlation_id=correlation,
@@ -332,7 +365,6 @@ class PaperTradingLoop:
                 payload={"reason": reason},
             )
         )
-        self._gateway.cancel_all(reason)
         self._in_flight.clear()
 
     def _write_last_bar(self, bar: Bar) -> None:

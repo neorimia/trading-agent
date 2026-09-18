@@ -12,8 +12,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.data.cache import MarketDataCache
-from src.data.sources import BinanceKlinesSource, CsvBarDataSource
+from src.data.historical import make_cached_historical
 from src.engine.backtest_runner import write_json, run_backtest, REPO_ROOT
 from src.engine.cost_models import VenueCostConfig
 from src.engine.proposal_cache import CachingLLMProposalClient
@@ -96,7 +95,13 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--timeframe", default="1d")
     parser.add_argument("--start", default=DEFAULT_START.isoformat())
     parser.add_argument("--end", default=DEFAULT_END.isoformat())
-    parser.add_argument("--csv", default="", help="Optional local CSV instead of Binance")
+    parser.add_argument("--csv", default="", help="Optional local CSV instead of network history")
+    parser.add_argument(
+        "--history-source",
+        choices=("binance", "kraken"),
+        default="binance",
+        help="Public OHLC vendor. Execution venue remains KRAKEN; binance is long-window backfill.",
+    )
     parser.add_argument("--llm-url", default="http://127.0.0.1:8765")
     parser.add_argument("--skip-llm", action="store_true")
     parser.add_argument("--direct-ollama", action="store_true")
@@ -146,10 +151,9 @@ def main() -> None:
     now = datetime.now(timezone.utc)
 
     if args.csv:
-        source = CsvBarDataSource(Path(args.csv))
+        market = make_cached_historical(cache_dir, csv_path=Path(args.csv))
     else:
-        source = BinanceKlinesSource()
-    market = MarketDataCache(cache_dir, source)
+        market = make_cached_historical(cache_dir, args.history_source)
     bars, dataset_hash = market.get_or_fetch(
         args.instrument, start, end, args.timeframe, now=now
     )

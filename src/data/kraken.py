@@ -1,4 +1,4 @@
-"""OHLC public Kraken — fără autentificare, doar date de piață."""
+"""OHLC public Kraken — DataSource fără autentificare, doar date de piață."""
 
 from __future__ import annotations
 
@@ -8,13 +8,9 @@ from decimal import Decimal
 import httpx
 
 from src.data.sources import Bar, require_utc, timeframe_delta
+from src.data.venue_registry import UNIVERSE_TO_KRAKEN
 
 KRAKEN_OHLC_URL = "https://api.kraken.com/0/public/OHLC"
-
-UNIVERSE_TO_KRAKEN = {
-    "ETHUSD": "ETHUSD",
-    "BTCUSD": "BTCUSD",
-}
 
 TIMEFRAME_TO_KRAKEN = {
     "1m": 1,

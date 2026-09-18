@@ -1,4 +1,4 @@
-"""Costuri de venue: comision maker/taker, spread bid/ask, slippage + fills parțiale.
+"""Costuri de venue KRAKEN: comision maker/taker, spread bid/ask, slippage + fills parțiale.
 
 Multiplicatorul 1×/2×/3× scalează comisionul, spread-ul și tick-urile de slippage.
 Fill-ul e determinist (seed fix, fără RNG la 1.0/0.0 probabilities pe limit).
@@ -18,10 +18,12 @@ from nautilus_trader.model.instruments import Instrument
 from nautilus_trader.model.objects import Price, Quantity
 from nautilus_trader.model.orders import Order
 
-# Spot crypto tipic fără discount BNB: 10 bps taker. Spread conservator 10 bps.
-BASE_MAKER_FEE = Decimal("0.001")
-BASE_TAKER_FEE = Decimal("0.001")
-BASE_SPREAD_BPS = Decimal("10")
+# Kraken Pro spot, conservator pentru volum mic (starter). Nu Binance 10/10 bps.
+# Articol oficial Kraken (5 sep 2026): la ~125k USD/30z, BTC/USD maker 0.12% / taker 0.25%.
+# Pentru buget redus folosim taker 0.26% / maker 0.16% (între starter și acel exemplu).
+BASE_MAKER_FEE = Decimal("0.0016")
+BASE_TAKER_FEE = Decimal("0.0026")
+BASE_SPREAD_BPS = Decimal("15")
 FILL_RANDOM_SEED = 42
 TOP_OF_BOOK_FRACTION = 0.4
 

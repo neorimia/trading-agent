@@ -1,8 +1,7 @@
-"""Surse de bare: Binance public klines (fără auth) și CSV local pentru teste.
+"""Surse de bare: Binance public klines (backfill opțional) și CSV local.
 
-`venue: KRAKEN` din universe.yaml rămâne ruta de execuție (Faza 5). Istoricul
-de backtest e luat de pe Binance public API pentru că paginarea pe intervale
-lungi e posibilă; Kraken OHLC public întoarce ~720 lumânări.
+Execuția e KRAKEN (`venue_registry.EXECUTION_VENUE`). Binance klines rămân
+sursă istorică opțională pentru ferestre lungi; Kraken OHLC public e limitat.
 """
 
 from __future__ import annotations
@@ -15,14 +14,10 @@ from typing import Iterable, Protocol
 
 import httpx
 
+from src.data.venue_registry import UNIVERSE_TO_BINANCE
+
 BINANCE_KLINES_URL = "https://api.binance.com/api/v3/klines"
 BINANCE_MAX_LIMIT = 1000
-
-# Simbolul din universe.yaml → perechea spot Binance folosită doar ca istoric.
-UNIVERSE_TO_BINANCE = {
-    "ETHUSD": "ETHUSDT",
-    "BTCUSD": "BTCUSDT",
-}
 
 TIMEFRAME_TO_BINANCE = {
     "1m": "1m",

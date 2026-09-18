@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from decimal import Decimal
 
 from nautilus_trader.adapters.kraken.config import KrakenDataClientConfig
@@ -10,27 +9,7 @@ from nautilus_trader.adapters.sandbox.config import SandboxExecutionClientConfig
 from nautilus_trader.live.config import TradingNodeConfig
 
 from src.engine.paper_config import PaperTradingConfig
-
-# Chei pe care clientul Nautilus Kraken le-ar citi din mediu dacă api_key e None.
-# Calea B le interzice explicit — doar date publice, fără autentificare de trading.
-_FORBIDDEN_KRAKEN_KEYS = (
-    "KRAKEN_SPOT_API_KEY",
-    "KRAKEN_SPOT_API_SECRET",
-    "KRAKEN_FUTURES_API_KEY",
-    "KRAKEN_FUTURES_API_SECRET",
-    "KRAKEN_FUTURES_DEMO_API_KEY",
-    "KRAKEN_FUTURES_DEMO_API_SECRET",
-)
-
-
-def assert_no_kraken_trading_keys(environ: dict[str, str] | None = None) -> None:
-    env = environ if environ is not None else os.environ
-    present = [key for key in _FORBIDDEN_KRAKEN_KEYS if env.get(key)]
-    if present:
-        raise RuntimeError(
-            "Path B dry_run forbids Kraken API keys in the environment: "
-            + ", ".join(present)
-        )
+from src.execution.key_policy import assert_no_kraken_trading_keys
 
 
 def build_kraken_data_client_config() -> KrakenDataClientConfig:
