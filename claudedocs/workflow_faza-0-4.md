@@ -194,39 +194,21 @@ Faza 0 (mediu)
 
 ---
 
-## 6. Faza 5 — Paper trading
+## 6. Faza 5 — Paper trading ✅ COD + 30 SESIUNI (2026-09-18); revizuire PO/Risk owner deschisă
 
 **Corespunde:** Task 5 (instrucțiuni §7).
 
 **Dependențe:** Faza 4 completă.
 
-**⚠️ Punct de decizie umană obligatoriu, înainte de start:** alegerea clasei de active — Cale A (acțiuni, IBKR paper) sau Cale B (crypto, Kraken dry-run/Nautilus sandbox). Claude Code nu alege singur; semnalează opțiunile și așteaptă decizia PO, sau urmează calea deja stabilită în config.
+**Decizii umane (2026-09-18):** Cale B (crypto / Kraken, `dry_run: true`). `monitor/` flag-only — fără client de broker separat; HALT prin `runtime/control/halt.flag`.
 
-**⚠️ Decizie de design deschisă (design §2), de tranșat înainte de Faza 5:** dacă `monitor/` are nevoie de propriul client de broker (doar citire poziții + cancel-all) pentru cazul în care procesul principal e blocat. Recomandarea design-ului: implementează întâi varianta cu flag de control (suficientă pentru paper trading), reevaluează clientul de broker separat înainte de Faza 5 — deci decizia trebuie luată explicit acum, nu implicit.
-
-**Livrabile:**
-- `src/execution/order_gateway.py`, `idempotency_store.py`, `reconciliation.py`, `human_approval.py`
-- `src/monitor/heartbeat.py`, `watchdog.py`
-- `src/audit/events.py`, `audit_log.py`
-- Raport final de paper trading
-
-**Pași de execuție:**
-1. Implementează `IdempotencyStore.reserve(client_order_id)` — scris **înainte** de submit.
-2. Implementează `OrderGateway.submit()` (idempotent) și `cancel_all()`.
-3. Implementează `Reconciliation.reconcile()` — la pornire + periodic.
-4. Implementează `ApprovalGate.request()` — identic în paper și live, obligatoriu pentru orice acțiune care crește riscul.
-5. Implementează `Heartbeat` + `Watchdog` (`monitor/`, proces separat) — `check_stale_data()`, `check_unreconciled_positions()`, `set_halt()`.
-6. Implementează `AuditLog.record()` — singurul verb public, fără update/delete.
-7. Configurează calea aleasă (A: adapter IBKR paper: cont aprobat/finanțat de om; B: `dry_run: true` obligatoriu, doar date publice).
-8. Rulează minimum 30 sesiuni relevante, jurnal complet per decizie.
-9. Verifică explicit: reconectare după disconnect, date stale, ordine respinse/parțiale, timeout post-submit, duplicate.
-10. Generează raportul final: zero ordine neautorizate/duplicate/peste limită, reconciliere completă după restart, rată citări nesusținute, rată JSON invalid, latență.
+**Livrabile efective:** `src/audit/{events,audit_log}.py`, `src/execution/{types,broker,idempotency_store,order_gateway,human_approval,reconciliation}.py`, `src/monitor/{heartbeat,watchdog}.py`, `src/engine/{paper_config,strategy_paper}.py`, `src/engine/adapters/kraken_paper.py`, `src/data/kraken.py`, `config/paper_trading.yaml`, `scripts/paper_trading/run_paper_session.py`, `docs/paper-trading-report.md`. Spike Kraken public OHLC: HTTP 200, zero chei.
 
 **Checkpoint de validare (DoD Task 5):**
-- [ ] Minim 30 sesiuni paper, fără incident critic nereportat.
-- [ ] Zero chei live folosite.
-- [ ] Reconciliere completă demonstrată după minim un restart simulat.
-- [ ] Raport final revizuit de PO/Risk owner **înainte** de orice discuție despre Faza 5+ (live).
+- [x] Minim 30 sesiuni paper, fără incident critic nereportat. Run `20260918T143445Z`, 30 sesiuni ETHUSD pe OHLC public Kraken, `halted=false`.
+- [x] Zero chei live folosite. `assert_no_kraken_trading_keys`; `KrakenDataClientConfig(api_key=None)`; execuție `SimulatedBroker` / sandbox.
+- [x] Reconciliere completă demonstrată după minim un restart simulat. Broker snapshot restaurat pe instanță nouă; `restart_reconciled=true`.
+- [ ] Raport final revizuit de PO/Risk owner **înainte** de orice discuție despre Faza 5+ (live). `docs/paper-trading-report.md` scris, așteaptă revizuire.
 
 ---
 

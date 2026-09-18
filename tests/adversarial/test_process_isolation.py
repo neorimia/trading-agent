@@ -112,7 +112,7 @@ def test_llm_has_no_known_broker_client_imports() -> None:
 def test_engine_risk_execution_have_no_imports_from_llm() -> None:
     """Pașii 4–5 din design §6 — zero excepții, inclusiv src.llm.schema."""
     offenders: list[str] = []
-    for folder in ("risk", "execution", "engine"):
+    for folder in ("risk", "execution", "engine", "monitor", "audit"):
         for path in _iter_py_files(SRC_ROOT / folder):
             imported = _collect_imported_modules(path)
             hits = _forbidden_hits(imported, FORBIDDEN_FROM_ENGINE_SIDE)

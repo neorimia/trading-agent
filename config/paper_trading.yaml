@@ -1,0 +1,19 @@
+# Paper trading — Cale B (crypto / Kraken dry_run).
+# Lipsă sau dry_run != true → aplicația refuză pornirea (fără fallback live).
+#
+# Nicio cheie de tranzacționare Kraken. Datele de piață sunt publice
+# (OHLC REST); execuția e SimulatedBroker / Nautilus SandboxExecutionClient.
+
+path: B
+dry_run: true
+venue: KRAKEN
+instrument: ETHUSD
+timeframe: 1d
+starting_cash: "10000"
+lookback_bars: 20
+fast_ema_period: 10
+slow_ema_period: 20
+approval_timeout_s: 3600
+stale_data_threshold_s: 172800
+heartbeat_threshold_s: 30
+session_count_target: 30
