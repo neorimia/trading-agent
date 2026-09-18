@@ -1,0 +1,44 @@
+# Registry de surse pentru serviciul de research (Faza R0, workflow_research-financiar.md §3).
+#
+# REGULĂ ABSOLUTĂ (workflow_research-financiar.md §1, regula 1): nicio sursă nu devine
+# utilizabilă fără `tos_reviewed_at` completat MANUAL, după o verificare reală a
+# robots.txt și a Termenilor de Serviciu ale sursei respective — niciodată implicit,
+# niciodată presupus. `load_source_registry()` respinge (ValueError) orice intrare
+# fără `tos_reviewed_at` valid, deci acest fișier rămâne cu `sources: []` până când
+# cineva face acea revizuire și completează datele de mai jos cu mâna.
+#
+# Surse candidate pentru MVP (design-research-financiar.md §9): FRED, SEC EDGAR,
+# 1 RSS de presă financiară. Niciuna nu a fost revizuită încă — exemplul de mai jos
+# e comentat intenționat, NU se încarcă. Necesar per sursă înainte de a-l activa:
+#   1. Citește robots.txt + ToS reale ale sursei (nu presupune).
+#   2. Confirmă rate limit-ul documentat oficial (rate_limit_per_min).
+#   3. Completează tos_reviewed_at cu data (ISO8601) la care s-a făcut chiar acea
+#      verificare — nu data de azi „din oficiu".
+#
+# sources:
+#   - source_id: fred
+#     name: "FRED (Federal Reserve Economic Data)"
+#     kind: api
+#     base_url: "https://api.stlouisfed.org/fred"
+#     credibility_score: 0.95
+#     robots_txt_status: not_applicable_api
+#     tos_reviewed_at: "<ISO8601 — data revizuirii reale>"
+#     rate_limit_per_min: 120
+#   - source_id: sec_edgar
+#     name: "SEC EDGAR full-text search"
+#     kind: api
+#     base_url: "https://www.sec.gov/cgi-bin/srqsb"
+#     credibility_score: 0.98
+#     robots_txt_status: not_applicable_api
+#     tos_reviewed_at: "<ISO8601 — data revizuirii reale>"
+#     rate_limit_per_min: 10
+#   - source_id: <rss-de-presa>
+#     name: "<nume sursă RSS>"
+#     kind: rss
+#     base_url: "<url feed>"
+#     credibility_score: <0.0-1.0>
+#     robots_txt_status: allowed
+#     tos_reviewed_at: "<ISO8601 — data revizuirii reale>"
+#     rate_limit_per_min: null
+
+sources: []

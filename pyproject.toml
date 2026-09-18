@@ -14,6 +14,8 @@ dependencies = [
     "fastapi==0.141.1",
     "uvicorn==0.53.0",
     "httpx==0.28.1",
+    "feedparser==6.0.14",
+    "trafilatura>=2.2.0",
 ]
 
 [dependency-groups]

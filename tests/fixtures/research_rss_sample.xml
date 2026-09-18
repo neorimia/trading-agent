@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Sample Financial Press Feed</title>
+    <link>https://example-press.test/</link>
+    <description>Fixture feed for RssConnector tests — no network involved.</description>
+
+    <item>
+      <title>Old news, published before the cutoff</title>
+      <link>https://example-press.test/articles/old-news</link>
+      <guid>https://example-press.test/articles/old-news</guid>
+      <pubDate>Tue, 15 Sep 2026 08:00:00 GMT</pubDate>
+      <description>Should be filtered out by the `since` cutoff.</description>
+    </item>
+
+    <item>
+      <title>Fresh macro update</title>
+      <link>https://example-press.test/articles/fresh-macro-update</link>
+      <guid>https://example-press.test/articles/fresh-macro-update</guid>
+      <pubDate>Wed, 17 Sep 2026 12:00:00 GMT</pubDate>
+      <description>Should be included — published after the cutoff.</description>
+    </item>
+
+    <item>
+      <title>Latest earnings commentary</title>
+      <link>https://example-press.test/articles/latest-earnings-commentary</link>
+      <guid>https://example-press.test/articles/latest-earnings-commentary</guid>
+      <pubDate>Thu, 18 Sep 2026 09:00:00 GMT</pubDate>
+      <description>Should be included — published after the cutoff.</description>
+    </item>
+
+    <item>
+      <title>Undated wire item</title>
+      <link>https://example-press.test/articles/undated-wire-item</link>
+      <guid>https://example-press.test/articles/undated-wire-item</guid>
+      <description>No pubDate at all — connector cannot judge recency, so it is included.</description>
+    </item>
+  </channel>
+</rss>

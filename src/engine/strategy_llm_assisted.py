@@ -23,6 +23,7 @@ from src.data.sources import Bar
 from src.engine.portfolio_tracker import PortfolioTracker
 from src.engine.proposal_cache import ProposalClient
 from src.engine.proposal_types import ParsedProposal, RejectedProposal
+from src.engine.research_client import ResearchClient
 from src.engine.signals import proposal_context_at
 from src.risk.circuit_breaker import CircuitBreaker
 from src.risk.risk_engine import RiskEngine
@@ -47,12 +48,14 @@ class LLMAssistedStrategy(Strategy):
         circuit_breaker: CircuitBreaker,
         tracker: PortfolioTracker,
         proposal_client: ProposalClient,
+        research_client: ResearchClient | None = None,
     ) -> None:
         super().__init__(config)
         self._risk_engine = risk_engine
         self._circuit_breaker = circuit_breaker
         self._tracker = tracker
         self._proposal_client = proposal_client
+        self._research_client = research_client
         self._source_bars: list[Bar] = []
         self._bar_index = 0
         self._history: list[Bar] = []
@@ -87,6 +90,10 @@ class LLMAssistedStrategy(Strategy):
             slow_period=int(self.config.slow_ema_period),
             lookback=int(self.config.lookback_bars),
         )
+        if self._research_client is not None:
+            external_context = self._research_client.get_context(context.instrument, context.as_of)
+            if external_context is not None:
+                context = context.model_copy(update={"external_context": external_context})
         result = self._proposal_client.request_proposal(context)
         if isinstance(result, RejectedProposal):
             self.decisions.append(f"{our_bar.timestamp.isoformat()}|rejected|{result.reason}")

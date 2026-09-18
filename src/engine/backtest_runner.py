@@ -16,10 +16,10 @@ from nautilus_trader.backtest.config import BacktestEngineConfig
 from nautilus_trader.backtest.engine import BacktestEngine
 from nautilus_trader.config import LoggingConfig
 from nautilus_trader.core.datetime import dt_to_unix_nanos
-from nautilus_trader.model.currencies import USDT
+from nautilus_trader.model.currencies import USD
 from nautilus_trader.model.data import BarType
 from nautilus_trader.model.enums import AccountType, OmsType
-from nautilus_trader.model.identifiers import TraderId, Venue
+from nautilus_trader.model.identifiers import TraderId
 from nautilus_trader.model.objects import Money
 from nautilus_trader.persistence.wranglers import BarDataWrangler, QuoteTickDataWrangler
 
@@ -28,6 +28,7 @@ from src.engine.cost_models import VenueCostConfig, build_fee_model, build_fill_
 from src.engine.instruments import NAUTILUS_VENUE, make_spot_instrument, nautilus_symbol
 from src.engine.portfolio_tracker import PortfolioTracker
 from src.engine.proposal_cache import ProposalClient
+from src.engine.research_client import ResearchClient
 from src.engine.strategy_baseline import BaselineEMACross, BaselineEMACrossConfig
 from src.engine.strategy_llm_assisted import LLMAssistedStrategy, LLMAssistedStrategyConfig
 from src.risk.circuit_breaker import CircuitBreaker
@@ -85,7 +86,9 @@ def _bar_type(universe_symbol: str, timeframe: str) -> BarType:
     spec = BAR_SPEC.get(timeframe)
     if spec is None:
         raise ValueError(f"unsupported timeframe: {timeframe}")
-    return BarType.from_str(f"{nautilus_symbol(universe_symbol)}.BINANCE-{spec}-LAST-EXTERNAL")
+    return BarType.from_str(
+        f"{nautilus_symbol(universe_symbol)}.{NAUTILUS_VENUE.value}-{spec}-LAST-EXTERNAL"
+    )
 
 
 def _writable_frame(data: dict[str, list[float]], index: pd.DatetimeIndex) -> pd.DataFrame:
@@ -148,6 +151,7 @@ def run_backtest(
     log_level: str = "ERROR",
     trade_start: datetime | None = None,
     proposal_client: ProposalClient | None = None,
+    research_client: ResearchClient | None = None,
     starting_usdt: Decimal = DEFAULT_STARTING_USDT,
     fast_ema_period: int = DEFAULT_FAST_EMA,
     slow_ema_period: int = DEFAULT_SLOW_EMA,
@@ -172,7 +176,7 @@ def run_backtest(
         venue=NAUTILUS_VENUE,
         oms_type=OmsType.NETTING,
         account_type=AccountType.CASH,
-        starting_balances=[Money(float(starting_usdt), USDT)],
+        starting_balances=[Money(float(starting_usdt), USD)],
         base_currency=None,
         fill_model=build_fill_model(costs),
         fee_model=build_fee_model(),
@@ -221,13 +225,14 @@ def run_backtest(
             circuit_breaker=breaker,
             tracker=tracker,
             proposal_client=proposal_client,
+            research_client=research_client,
         )
         strategy.set_source_bars(bars)
     engine.add_strategy(strategy)
     engine.run()
 
     fills = engine.trader.generate_order_fills_report()
-    account = engine.trader.generate_account_report(Venue("BINANCE"))
+    account = engine.trader.generate_account_report(NAUTILUS_VENUE)
     n_fills = 0 if fills is None or fills.empty else len(fills)
     commissions = Decimal("0")
     if fills is not None and not fills.empty and "commissions" in fills.columns:
@@ -257,7 +262,7 @@ def _ending_usdt(account: pd.DataFrame, fallback: Decimal) -> Decimal:
     if account is None or account.empty:
         return fallback
     if "currency" in account.columns and "total" in account.columns:
-        usdt = account[account["currency"].astype(str).str.upper() == "USDT"]
+        usdt = account[account["currency"].astype(str).str.upper().isin({"USD", "USDT"})]
         if not usdt.empty:
             return Decimal(str(usdt.iloc[-1]["total"]))
     return fallback
