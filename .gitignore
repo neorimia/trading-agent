@@ -24,5 +24,9 @@ __pycache__/
 backtests/reports/*
 !backtests/reports/.gitkeep
 
+# Date de test vendor descărcate de scripts/nautilus_qualification/fetch_test_data.py
+# (pinned prin hash de commit + verificare sha256, nu trebuie ținute în git)
+.cache/
+
 # OS
 .DS_Store
