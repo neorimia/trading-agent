@@ -2,7 +2,7 @@
 
 Agent local de analiză și trading care combină un **motor determinist** de execuție/risc/portofoliu (NautilusTrader) cu un **strat de raționament LLM** (Qwen3-8B, local, via Ollama) ținut strict în afara autorității de execuție. LLM-ul propune, codul determinist decide.
 
-**Status actual:** Faza 0 (Configurare mediu local) — completă. Structura de directoare, dependențele fixate și scanner-ul de secrete sunt în place; nu există încă logică de business (`src/*` conține doar scaffolding gol). Nicio conexiune la broker/exchange live, niciun secret sau credențial real.
+**Status actual:** Fazele 0–2 complete. Mediul local, calificarea NautilusTrader v1.231.0 și stratul LLM izolat (Qwen3-8B via Ollama, HTTP loopback) sunt în place. LLM-ul produce doar propuneri JSON; nu are import sau acces către `risk/`/`execution/`/`engine/`. Nicio conexiune la broker/exchange live, niciun secret sau credențial real.
 
 ## Documente
 
@@ -22,6 +22,7 @@ Verificat pe o clonă curată, macOS Apple Silicon (arm64), Python 3.12.
 - Python 3.12 (`brew install python@3.12`)
 - [`uv`](https://docs.astral.sh/uv/) (`brew install uv` sau `pipx install uv`) — gestionează venv-ul și dependențele fixate din `pyproject.toml`/`uv.lock`
 - [`gitleaks`](https://github.com/gitleaks/gitleaks) (`brew install gitleaks`) — scanner de secrete, rulat ca pre-commit hook
+- [`Ollama`](https://ollama.com) cu modelul `qwen3:8b` (cuantizare Q4_K_M) — necesar doar pentru procesul LLM și pentru testele marcate `llm_live`
 
 **Pași:**
 
@@ -49,6 +50,20 @@ uv run pytest --collect-only
 - Toate pachetele critice (`nautilus_trader==1.231.0`, `pydantic`/`pydantic-core`, `numpy`, `pandas`, `pyarrow`, `msgspec`) instalează wheel-uri **native arm64** — verificat cu `lipo -info` pe fiecare `.so` compilat. Zero emulare Rosetta.
 - `uvloop` instalează un wheel **universal2** (conține și slice arm64, și x86_64) — pe Apple Silicon rulează nativ pe slice-ul arm64, nu e o rulare prin Rosetta.
 - Dacă un pachet nou adăugat ulterior nu are wheel arm64 și se instalează doar prin build din sursă/emulare, documentează explicit acest fapt aici înainte de a-l fixa în `pyproject.toml`.
+
+**Strat LLM izolat (Faza 2):** proces separat, bind obligatoriu pe loopback (`127.0.0.1`). Nu încarcă `.env.engine`.
+
+```bash
+# Ollama trebuie să ruleze deja (ollama serve) cu qwen3:8b disponibil
+uv run python -m src.llm.server
+```
+
+Testele de izolare AST și contractul de schemă rulează în suita standard. Testul live contra modelului real se skip-uiește singur dacă Ollama nu răspunde:
+
+```bash
+uv run pytest
+uv run pytest -m llm_live    # doar apelul real către Qwen3-8B
+```
 
 **Scanner de secrete:** `gitleaks` rulează automat la fiecare `git commit` (hook local din `.pre-commit-config.yaml`, scanează doar diff-ul staged). Poate fi rulat manual oricând cu:
 

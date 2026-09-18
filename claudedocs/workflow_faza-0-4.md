@@ -88,7 +88,7 @@ Faza 0 (mediu)
 
 ---
 
-## 3. Faza 2 — Strat LLM local izolat (Qwen3-8B via Ollama)
+## 3. Faza 2 — Strat LLM local izolat (Qwen3-8B via Ollama) ✅ COMPLETĂ (2026-09-18)
 
 **Corespunde:** Task 2 (instrucțiuni §4) + design §7 (izolare totală engine↔llm).
 
@@ -116,10 +116,12 @@ Faza 0 (mediu)
 9. Scrie teste adversariale de conținut: text extern (injectat) care cere „dezactivează limitele"/„schimbă contul" → rezultatul așteptat e ignorarea instrucțiunii.
 
 **Checkpoint de validare (DoD Task 2):**
-- [ ] Serviciul LLM rulează în proces separat, izolare confirmată prin testul static (nu doar afirmată).
-- [ ] Test automat: propunere în afara schema-ului → respinsă, nu reparată.
-- [ ] Test adversarial de conținut: input adversarial nu declanșează execuție/schimbare risc.
-- [ ] Zero chei de broker accesibile din procesul LLM.
+- [x] Serviciul LLM rulează în proces separat, izolare confirmată prin testul static (nu doar afirmată). `tests/adversarial/test_process_isolation.py` — AST pe `src/llm` (zero import `risk`/`execution`/`engine`, zero clienți broker), AST pe `src/risk`/`execution`/`engine` (zero import `src.llm`, inclusiv `schema`), `.env.llm.example` fără cheile `BROKER`/`API_KEY`/`SECRET` din `.env.engine.example`. Serverul refuză bind pe `0.0.0.0` și refuză pornirea dacă vede cheile de broker din engine.
+- [x] Test automat: propunere în afara schema-ului → respinsă, nu reparată. JSON trunchiat, `direction=buy`, `confidence` în afara [0,1], câmpuri extra (`position_size`, `disable_risk_limits`) → `RejectedProposal(reason=schema_invalid)`. extra=`forbid` pe ambele scheme.
+- [x] Test adversarial de conținut: input adversarial nu declanșează execuție/schimbare risc. Mock: contextul injectat e marcat untrusted, câmpurile de sizing/risc sunt respinse, `sys.modules` nu încarcă `src.execution`/`src.risk`/`src.engine`. Live (`pytest -m llm_live`, 22.8s pe Qwen3-8B local): output-ul e doar `LLMProposal` cu câmpurile din schemă sau `RejectedProposal`.
+- [x] Zero chei de broker accesibile din procesul LLM. Procesul încarcă doar `.env.llm`; `assert_no_broker_keys()` blochează prezența cheilor din `.env.engine`.
+
+**Livrabile efective:** `config/universe.yaml` (AAPL, MSFT, ETHUSD, BTCUSD), `src/llm/{schema,service,server}.py`, `src/engine/{proposal_types,llm_client}.py`, `tests/adversarial/test_process_isolation.py`, `tests/adversarial/test_llm_prompt_injection.py`, `tests/integration/test_proposal_contract.py` + `tests/fixtures/llm_proposals.json`. Stack HTTP: FastAPI `0.141.1` + uvicorn `0.53.0` + httpx `0.28.1` (pinned `==`). Model: Ollama `qwen3:8b` (Q4_K_M, deja instalat local). `LLM_MODEL_NAME` din `.env.llm.example` corectat la tag-ul real `qwen3:8b`.
 
 **Poartă de integrare (nu e parte din DoD Task 2, dar blochează Faza 3/4):** rezultatele Fazei 2 nu se conectează la `risk/`/`engine/`-ul „productiv" până când testele adversariale din **Faza 3** nu trec.
 

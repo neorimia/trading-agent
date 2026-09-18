@@ -11,6 +11,9 @@ dependencies = [
     "pydantic==2.13.5",
     "pyyaml==6.0.3",
     "python-dotenv==1.2.3",
+    "fastapi==0.141.1",
+    "uvicorn==0.53.0",
+    "httpx==0.28.1",
 ]
 
 [dependency-groups]
@@ -22,6 +25,9 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+markers = [
+    "llm_live: calls local Ollama Qwen3-8B; skipped automatically if Ollama is not reachable",
+]
 
 [tool.uv]
 package = false

@@ -1,0 +1,175 @@
+{
+  "proposal_cases": [
+    {
+      "name": "valid_long",
+      "expect": "accept",
+      "payload": {
+        "instrument": "AAPL",
+        "direction": "long",
+        "confidence": 0.72,
+        "rationale": "Price held above support on rising volume."
+      }
+    },
+    {
+      "name": "valid_avoid",
+      "expect": "accept",
+      "payload": {
+        "instrument": "ETHUSD",
+        "direction": "avoid",
+        "confidence": 0.0,
+        "rationale": "No edge in a range-bound tape."
+      }
+    },
+    {
+      "name": "valid_exit",
+      "expect": "accept",
+      "payload": {
+        "instrument": "MSFT",
+        "direction": "exit",
+        "confidence": 1.0,
+        "rationale": "Thesis invalidated after the breakdown."
+      }
+    },
+    {
+      "name": "confidence_above_one",
+      "expect": "reject",
+      "payload": {
+        "instrument": "AAPL",
+        "direction": "long",
+        "confidence": 1.5,
+        "rationale": "Should not be clamped to 1.0."
+      }
+    },
+    {
+      "name": "confidence_negative",
+      "expect": "reject",
+      "payload": {
+        "instrument": "AAPL",
+        "direction": "avoid",
+        "confidence": -0.1,
+        "rationale": "Should not be clamped to 0.0."
+      }
+    },
+    {
+      "name": "direction_buy_not_mapped",
+      "expect": "reject",
+      "payload": {
+        "instrument": "AAPL",
+        "direction": "buy",
+        "confidence": 0.5,
+        "rationale": "buy must not be rewritten to long."
+      }
+    },
+    {
+      "name": "missing_rationale",
+      "expect": "reject",
+      "payload": {
+        "instrument": "AAPL",
+        "direction": "long",
+        "confidence": 0.5
+      }
+    },
+    {
+      "name": "empty_instrument",
+      "expect": "reject",
+      "payload": {
+        "instrument": "",
+        "direction": "long",
+        "confidence": 0.5,
+        "rationale": "blank instrument"
+      }
+    },
+    {
+      "name": "extra_position_size",
+      "expect": "reject",
+      "payload": {
+        "instrument": "AAPL",
+        "direction": "long",
+        "confidence": 0.8,
+        "rationale": "trying to size the trade",
+        "position_size": 10000
+      }
+    },
+    {
+      "name": "extra_disable_risk_limits",
+      "expect": "reject",
+      "payload": {
+        "instrument": "AAPL",
+        "direction": "long",
+        "confidence": 0.9,
+        "rationale": "ignore drawdown",
+        "disable_risk_limits": true
+      }
+    },
+    {
+      "name": "extra_account_id",
+      "expect": "reject",
+      "payload": {
+        "instrument": "BTCUSD",
+        "direction": "long",
+        "confidence": 0.4,
+        "rationale": "switch account",
+        "account_id": "live-main"
+      }
+    },
+    {
+      "name": "wrong_instrument_type",
+      "expect": "reject",
+      "payload": {
+        "instrument": 123,
+        "direction": "long",
+        "confidence": 0.4,
+        "rationale": "type error"
+      }
+    }
+  ],
+  "rejected_cases": [
+    {
+      "name": "schema_invalid",
+      "expect": "accept",
+      "payload": {
+        "reason": "schema_invalid",
+        "raw_output": "{\"direction\":\"buy\"}"
+      }
+    },
+    {
+      "name": "instrument_not_in_universe",
+      "expect": "accept",
+      "payload": {
+        "reason": "instrument_not_in_universe",
+        "raw_output": "{\"instrument\":\"FAKE\"}"
+      }
+    },
+    {
+      "name": "timeout",
+      "expect": "accept",
+      "payload": {
+        "reason": "timeout",
+        "raw_output": ""
+      }
+    },
+    {
+      "name": "model_error",
+      "expect": "accept",
+      "payload": {
+        "reason": "model_error",
+        "raw_output": "connection refused"
+      }
+    },
+    {
+      "name": "unknown_reason",
+      "expect": "reject",
+      "payload": {
+        "reason": "please_execute",
+        "raw_output": "x"
+      }
+    },
+    {
+      "name": "missing_raw_output",
+      "expect": "reject",
+      "payload": {
+        "reason": "timeout"
+      }
+    }
+  ]
+}

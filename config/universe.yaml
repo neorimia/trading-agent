@@ -1,0 +1,21 @@
+# Allowlist de instrumente pe care stratul LLM le poate propune.
+# Un simbol absent din această listă e respins (instrument_not_in_universe),
+# nu „reparat" și nu executat. Schema: design-componente-faza-0-4.md §4.7.
+#
+# Placeholder-uri pentru Faza 2 (teste + paper ulterior):
+#   Cale A — acțiuni (IBKR paper)
+#   Cale B — crypto (Kraken)
+
+instruments:
+  - symbol: AAPL
+    venue: NASDAQ
+    asset_class: equity
+  - symbol: MSFT
+    venue: NASDAQ
+    asset_class: equity
+  - symbol: ETHUSD
+    venue: KRAKEN
+    asset_class: crypto
+  - symbol: BTCUSD
+    venue: KRAKEN
+    asset_class: crypto
