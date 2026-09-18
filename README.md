@@ -2,7 +2,7 @@
 
 Agent local de analiză și trading care combină un **motor determinist** de execuție/risc/portofoliu (NautilusTrader) cu un **strat de raționament LLM** (Qwen3-8B, local, via Ollama) ținut strict în afara autorității de execuție. LLM-ul propune, codul determinist decide.
 
-**Status actual:** Faza 0 (Cercetare/selectare) — proiect în stadiu de documentare/planificare. Nu există încă cod sursă. Nicio conexiune la broker/exchange live, niciun secret sau credențial real.
+**Status actual:** Faza 0 (Configurare mediu local) — completă. Structura de directoare, dependențele fixate și scanner-ul de secrete sunt în place; nu există încă logică de business (`src/*` conține doar scaffolding gol). Nicio conexiune la broker/exchange live, niciun secret sau credențial real.
 
 ## Documente
 
@@ -13,6 +13,49 @@ Agent local de analiză și trading care combină un **motor determinist** de ex
 | [`design-componente-faza-0-4.md`](design-componente-faza-0-4.md) | Design tehnic la nivel de componentă: frontiere de proces (izolare LLM), interfețe pe modul, contracte de date (JSON), diagrame de secvență pentru fluxurile principale. Punct de plecare pentru `/sc:implement`. |
 | [`Raport-agentic-trading-2026-09-18.md`](Raport-agentic-trading-2026-09-18.md) | Evaluare tehnică comparativă a proiectelor open-source de agentic trading (licențe, activitate, fișe tehnice), arhitectura propusă, controale tehnice obligatorii, plan 30/60/90 zile. |
 | [`research_agentic_trading_bots.md`](research_agentic_trading_bots.md) | Research tehnic independent asupra acelorași proiecte open-source, cu analiză de compatibilitate Robinhood și plan etapizat Faza 0–6. Folosit ca verificare încrucișată pentru raportul de mai sus. |
+
+## Instalare (mediu local)
+
+Verificat pe o clonă curată, macOS Apple Silicon (arm64), Python 3.12.
+
+**Cerințe:**
+- Python 3.12 (`brew install python@3.12`)
+- [`uv`](https://docs.astral.sh/uv/) (`brew install uv` sau `pipx install uv`) — gestionează venv-ul și dependențele fixate din `pyproject.toml`/`uv.lock`
+- [`gitleaks`](https://github.com/gitleaks/gitleaks) (`brew install gitleaks`) — scanner de secrete, rulat ca pre-commit hook
+
+**Pași:**
+
+```bash
+git clone <url-repo> trading-agent
+cd trading-agent
+
+# Instalează dependențele fixate (creează .venv/ automat)
+uv sync --group dev
+
+# Activează pre-commit hook-ul de scanare a secretelor
+uv run pre-commit install
+
+# Copiază șabloanele de mediu (fișierele reale NU intră niciodată în git)
+cp .env.engine.example .env.engine
+cp .env.llm.example .env.llm
+# apoi completează manual valorile relevante în fiecare fișier
+
+# Verifică instalarea
+uv run python -c "import nautilus_trader; print(nautilus_trader.__version__)"
+uv run pytest --collect-only
+```
+
+**Note de compatibilitate ARM64 (verificat 2026-09-18, macOS 26 / Darwin 25.6.0, Python 3.12.13):**
+- Toate pachetele critice (`nautilus_trader==1.231.0`, `pydantic`/`pydantic-core`, `numpy`, `pandas`, `pyarrow`, `msgspec`) instalează wheel-uri **native arm64** — verificat cu `lipo -info` pe fiecare `.so` compilat. Zero emulare Rosetta.
+- `uvloop` instalează un wheel **universal2** (conține și slice arm64, și x86_64) — pe Apple Silicon rulează nativ pe slice-ul arm64, nu e o rulare prin Rosetta.
+- Dacă un pachet nou adăugat ulterior nu are wheel arm64 și se instalează doar prin build din sursă/emulare, documentează explicit acest fapt aici înainte de a-l fixa în `pyproject.toml`.
+
+**Scanner de secrete:** `gitleaks` rulează automat la fiecare `git commit` (hook local din `.pre-commit-config.yaml`, scanează doar diff-ul staged). Poate fi rulat manual oricând cu:
+
+```bash
+gitleaks protect --staged --verbose --redact   # doar modificările staged
+gitleaks detect --source . -v                  # întreg istoricul git
+```
 
 ## Decizii tehnice cheie
 
@@ -35,13 +78,18 @@ Detalii complete și justificare: [`brief-proiect-agent-trading-local.md`](brief
 
 Lista completă: [`CLAUDE-instructiuni-faza-0-4.md`](CLAUDE-instructiuni-faza-0-4.md#0-reguli-absolute--citește-înainte-de-orice-task).
 
-## Structura de repository (planificată)
+## Structura de repository
+
+Scaffolding-ul de mai jos există deja în repo (Faza 0); fișierele `.py`/`.yaml` din interior se adaugă pe măsură ce avansează Fazele 1–5.
 
 ```
 trading-agent/
+├── .env.example / .env.engine.example / .env.llm.example
+├── .gitignore / .pre-commit-config.yaml
+├── pyproject.toml / uv.lock / requirements*.txt
 ├── config/
-│   ├── risk_limits.yaml           # limite deterministe, validate la pornire
-│   └── universe.yaml              # allowlist de instrumente
+│   ├── risk_limits.yaml           # limite deterministe, validate la pornire (Faza 3)
+│   └── universe.yaml              # allowlist de instrumente (Faza 2)
 ├── src/
 │   ├── data/                      # ingestie și validare date
 │   ├── engine/                    # integrare NautilusTrader

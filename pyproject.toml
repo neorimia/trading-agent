@@ -1,0 +1,27 @@
+[project]
+name = "trading-agent"
+version = "0.1.0"
+description = "Agent local de analiza si trading (multi-asset) — motor determinist + strat LLM izolat"
+requires-python = "==3.12.*"
+readme = "README.md"
+
+# Versiuni fixate exact (==), nu ranges — Task 0, DoD "Toate dependentele fixate".
+dependencies = [
+    "nautilus_trader==1.231.0",
+    "pydantic==2.13.5",
+    "pyyaml==6.0.3",
+    "python-dotenv==1.2.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "pre-commit==4.6.2",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.uv]
+package = false

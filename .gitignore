@@ -1,6 +1,14 @@
-# Secrets
+# Secrets — .env* real, niciodată în git (doar *.example intră)
 .env
+.env.*
+!.env.example
+!.env.engine.example
+!.env.llm.example
 *.key
+*.pem
+
+# Stare locală runtime (halt flag, idempotency store, heartbeat) — niciodată în git
+runtime/
 
 # Python
 venv/
@@ -8,6 +16,13 @@ venv/
 __pycache__/
 *.pyc
 *.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Rapoarte de backtest generate local
+backtests/reports/*
+!backtests/reports/.gitkeep
 
 # OS
 .DS_Store
