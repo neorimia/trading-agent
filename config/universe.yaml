@@ -2,6 +2,10 @@
 # Un simbol absent din această listă e respins (instrument_not_in_universe),
 # nu „reparat" și nu executat. Schema: design-componente-faza-0-4.md §4.7.
 #
+# min_notional / lot_size / tick_size sunt opționale pentru load_universe()
+# din llm/ (Faza 2 citește doar symbol/venue/asset_class). Risk-ul le folosește
+# la rotunjirea cantității (Faza 3).
+#
 # Placeholder-uri pentru Faza 2 (teste + paper ulterior):
 #   Cale A — acțiuni (IBKR paper)
 #   Cale B — crypto (Kraken)
@@ -10,12 +14,24 @@ instruments:
   - symbol: AAPL
     venue: NASDAQ
     asset_class: equity
+    min_notional: 1
+    lot_size: 1
+    tick_size: 0.01
   - symbol: MSFT
     venue: NASDAQ
     asset_class: equity
+    min_notional: 1
+    lot_size: 1
+    tick_size: 0.01
   - symbol: ETHUSD
     venue: KRAKEN
     asset_class: crypto
+    min_notional: 10
+    lot_size: 0.0001
+    tick_size: 0.01
   - symbol: BTCUSD
     venue: KRAKEN
     asset_class: crypto
+    min_notional: 10
+    lot_size: 0.0001
+    tick_size: 0.01

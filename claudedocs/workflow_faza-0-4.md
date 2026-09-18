@@ -127,7 +127,7 @@ Faza 0 (mediu)
 
 ---
 
-## 4. Faza 3 — Reguli de risc deterministe
+## 4. Faza 3 — Reguli de risc deterministe ✅ COMPLETĂ (2026-09-18)
 
 **Corespunde:** Task 3 (instrucțiuni §5).
 
@@ -153,10 +153,12 @@ Faza 0 (mediu)
 9. Testează manual kill switch-ul; documentează timpul de răspuns și starea pozițiilor deschise după activare.
 
 **Checkpoint de validare (DoD Task 3):**
-- [ ] `risk_engine.py` nu importă/depinde de niciun modul din `llm/` (verificat de testul static al Fazei 2, extins să acopere și `risk/`).
-- [ ] Teste unitare acoperă fiecare limită + cazuri limită.
-- [ ] Minim 3 teste adversariale trec.
-- [ ] Kill switch testat manual, rezultat documentat.
+- [x] `risk_engine.py` nu importă/depinde de niciun modul din `llm/` (verificat de testul static al Fazei 2, extins să acopere și `risk/`). `tests/adversarial/test_process_isolation.py` iterează deja `src/risk/**/*.py` — zero import `src.llm` (inclusiv `schema`). `RiskEngine.evaluate` primește `ParsedProposal` din `src.engine.proposal_types`.
+- [x] Teste unitare acoperă fiecare limită + cazuri limită. `tests/unit/test_risk_engine.py` (notional la cap, expunere instrument/clasă la prag și peste, pierdere zilnică, drawdown, ordine/zi, sub min notional, instrument necunoscut, `avoid`/`exit`/`long`, HALT) + suite per componentă (`test_risk_config_schema`, `test_position_sizing`, `test_portfolio_state`, `test_kill_switch`, `test_circuit_breaker`). `halt_on_unknown_order_result: false` eșuează la încărcare.
+- [x] Minim 3 teste adversariale trec. `tests/adversarial/test_risk_bypass.py`: câmpuri extra de sizing respinse de `extra=forbid`; rationale „ignoră limitele" nu crește notionalul peste cap; `exit` la expunere maximă nu o mărește; rationale „ignoră drawdown-ul" e respins; HALT respinge propunerea „urgentă" cu `confidence=1.0`.
+- [x] Kill switch testat manual, rezultat documentat. `KillSwitch.trigger("manual kill-switch verification (Faza 3)")` + `is_active()`: flag scris, `triggered=True`, timp de răspuns **0.430 ms** (`time.perf_counter`, 2026-09-18T13:38:58Z). `reset()` șterge flag-ul. Starea pozițiilor deschise după activare: **parțială** — `execution/` (cancel-all / broker) nu există încă (Faza 5); la HALT, `RiskEngine.evaluate` respinge orice propunere nouă (inclusiv `exit`) cu `reject_reason="halted"`, `quantity=0`. Nu există poziții live de anulat în această fază.
+
+**Livrabile efective:** `config/risk_limits.yaml` (sume absolute, `halt_on_unknown_order_result: true`), `config/universe.yaml` extins cu `min_notional`/`lot_size`/`tick_size` (opționale pentru `llm/`), `src/risk/{config_schema,portfolio_state,position_sizing,kill_switch,circuit_breaker,risk_engine}.py`. `pytest -m "not llm_live"` → 105 passed.
 
 ---
 
@@ -245,10 +247,10 @@ Sincronizarea `llm.schema` ↔ `engine.proposal_types` se verifică separat prin
 
 - [ ] Toate DoD-urile individuale (Faza 0–5) bifate.
 - [ ] Zero chei/credențiale live în cod, config sau istoric git.
-- [ ] Toate limitele de risc în config validat, niciodată în prompt/cod LLM.
+- [x] Toate limitele de risc în config validat, niciodată în prompt/cod LLM. `config/risk_limits.yaml` + `load_risk_limits()` (Faza 3); `ParsedProposal` nu are câmpuri de sizing/risc.
 - [ ] Suite unit + adversarial rulează în CI la fiecare commit relevant.
 - [ ] Rapoartele de calificare NautilusTrader, backtest și paper trading există, revizuite de PO/Risk owner.
-- [ ] Kill switch testat manual, rezultat documentat.
+- [x] Kill switch testat manual, rezultat documentat. Vezi DoD Task 3 (0.430 ms, HALT respinge propuneri noi; cancel-all așteaptă Faza 5).
 - [ ] Zero cod care presupune/pregătește silențios trecerea la live.
 
 ---
@@ -257,4 +259,4 @@ Sincronizarea `llm.schema` ↔ `engine.proposal_types` se verifică separat prin
 
 - Alegerea mecanismului concret de transport HTTP pentru `llm/server.py` — decizie de implementare (Faza 2).
 - Schema exactă SQLite pentru `audit/`/`idempotency_store` — DDL la implementare (Faza 5), pe baza contractelor design §4.
-- Cod. Pasul următor este `/sc:implement` pe Faza 2 (poate rula în paralel cu integrarea ulterioară a Fazei 1 în `engine/`, conform graf de dependențe §0).
+- Cod. Pasul următor este `/sc:implement` pe Faza 4 (backtesting realist), după Faza 3.

@@ -1,0 +1,18 @@
+# Limite de risc deterministe — sursa unică de adevăr (Faza 3).
+# Validate hard la pornire: fișier lipsă/invalid → aplicația refuză să pornească.
+# Niciun output LLM nu poate modifica aceste valori (regula absolută #3).
+#
+# Placeholder-uri conservatoare pentru paper/backtest. max_daily_loss și
+# max_drawdown sunt sume absolute (aceeași unitate ca notional), nu procente.
+
+max_notional_per_order: 1000
+max_exposure_per_instrument: 2000
+max_exposure_per_asset_class: 5000
+max_daily_loss: 200
+max_drawdown: 500
+max_orders_per_day: 10
+
+circuit_breaker:
+  max_consecutive_errors: 3
+  max_consecutive_losses: 3
+  halt_on_unknown_order_result: true

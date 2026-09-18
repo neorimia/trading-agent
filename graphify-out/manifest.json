@@ -130,13 +130,13 @@
     "semantic_hash": ""
   },
   "claudedocs/workflow_faza-0-4.md": {
-    "mtime": 1789737823.7582877,
-    "ast_hash": "f93b9fc71696af12635818e3994a3fa5",
+    "mtime": 1789738773.5923843,
+    "ast_hash": "173cd388293b339689c756eeef04d521",
     "semantic_hash": ""
   },
   "config/universe.yaml": {
-    "mtime": 1789737523.3377466,
-    "ast_hash": "ac1d250f0893eed44b2256770d8030ee",
+    "mtime": 1789738527.4720442,
+    "ast_hash": "e5f4f4a2e33ba51a7cf4e22d04cbbb24",
     "semantic_hash": ""
   },
   "design-componente-faza-0-4.md": {
@@ -162,6 +162,81 @@
   "research_agentic_trading_bots.md": {
     "mtime": 1789733407.9442234,
     "ast_hash": "2cf86e9a0896bdd7abc0e0a3d928852a",
+    "semantic_hash": ""
+  },
+  "src/risk/__init__.py": {
+    "mtime": 1789738537.3150973,
+    "ast_hash": "962520924389a2d6add337481c494b89",
+    "semantic_hash": ""
+  },
+  "src/risk/circuit_breaker.py": {
+    "mtime": 1789738591.4039888,
+    "ast_hash": "acbe4eb5d511cba33c0106c13a8d68ed",
+    "semantic_hash": ""
+  },
+  "src/risk/config_schema.py": {
+    "mtime": 1789738537.3150973,
+    "ast_hash": "8e981723b6ea367b11bce7a76db88dec",
+    "semantic_hash": ""
+  },
+  "src/risk/kill_switch.py": {
+    "mtime": 1789738573.3519464,
+    "ast_hash": "8a3875dac5c0a65434c38fcc9c7c6eec",
+    "semantic_hash": ""
+  },
+  "src/risk/portfolio_state.py": {
+    "mtime": 1789738560.1608531,
+    "ast_hash": "f629496cff63ab8e1d6f0583cb945ea9",
+    "semantic_hash": ""
+  },
+  "src/risk/position_sizing.py": {
+    "mtime": 1789738567.7067366,
+    "ast_hash": "1538202c720c16e657333f24a132cb49",
+    "semantic_hash": ""
+  },
+  "src/risk/risk_engine.py": {
+    "mtime": 1789738591.6717162,
+    "ast_hash": "c7d1840979fba7199b9fad0cac3f557a",
+    "semantic_hash": ""
+  },
+  "tests/adversarial/test_risk_bypass.py": {
+    "mtime": 1789738713.7503033,
+    "ast_hash": "1a15e1abca40c179e5a20530f627933e",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_circuit_breaker.py": {
+    "mtime": 1789738697.781979,
+    "ast_hash": "ed2e6196cf784019f5a3f7e7e45a618d",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_kill_switch.py": {
+    "mtime": 1789738674.7250073,
+    "ast_hash": "debe963bff422a95c839b1cd8c0825b3",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_portfolio_state.py": {
+    "mtime": 1789738668.1893563,
+    "ast_hash": "6fab59683dde24c18c6630f0fd4f67ff",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_position_sizing.py": {
+    "mtime": 1789738662.1658852,
+    "ast_hash": "e86565a633bc8fed1f52486bbdcdc51d",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_risk_config_schema.py": {
+    "mtime": 1789738653.6851535,
+    "ast_hash": "e51658964c834fe0c0a0dbd86c07cb1e",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_risk_engine.py": {
+    "mtime": 1789738713.750303,
+    "ast_hash": "aa9b980996b66d98038e26c7ad506ee8",
+    "semantic_hash": ""
+  },
+  "config/risk_limits.yaml": {
+    "mtime": 1789738526.8049114,
+    "ast_hash": "539cde77f4aaffa4ba076772ecc7ebf6",
     "semantic_hash": ""
   }
 }
