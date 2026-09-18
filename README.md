@@ -10,6 +10,7 @@ Agent local de analiză și trading care combină un **motor determinist** de ex
 |---|---|
 | [`brief-proiect-agent-trading-local.md`](brief-proiect-agent-trading-local.md) | Brief de proiect (v1.0): obiectiv, scope, arhitectură propusă, stack tehnic, fazele și gate criteria, buget, riscuri, constrângeri legale. Punct de plecare recomandat. |
 | [`CLAUDE-instructiuni-faza-0-4.md`](CLAUDE-instructiuni-faza-0-4.md) | Instrucțiuni de execuție pentru Claude Code: reguli absolute de siguranță, structura de repository recomandată, task-uri detaliate (0–5) cu criterii de acceptare pentru Fazele 0–4. |
+| [`design-componente-faza-0-4.md`](design-componente-faza-0-4.md) | Design tehnic la nivel de componentă: frontiere de proces (izolare LLM), interfețe pe modul, contracte de date (JSON), diagrame de secvență pentru fluxurile principale. Punct de plecare pentru `/sc:implement`. |
 | [`Raport-agentic-trading-2026-09-18.md`](Raport-agentic-trading-2026-09-18.md) | Evaluare tehnică comparativă a proiectelor open-source de agentic trading (licențe, activitate, fișe tehnice), arhitectura propusă, controale tehnice obligatorii, plan 30/60/90 zile. |
 | [`research_agentic_trading_bots.md`](research_agentic_trading_bots.md) | Research tehnic independent asupra acelorași proiecte open-source, cu analiză de compatibilitate Robinhood și plan etapizat Faza 0–6. Folosit ca verificare încrucișată pentru raportul de mai sus. |
 
