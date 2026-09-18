@@ -1,7 +1,7 @@
 {
   "pyproject.toml": {
-    "mtime": 1789737535.6400886,
-    "ast_hash": "440f347878c7776406da81f70a05b13c",
+    "mtime": 1789739754.5444798,
+    "ast_hash": "b0e5b23d65f268cf5ff28a23622c91cf",
     "semantic_hash": ""
   },
   "scripts/__init__.py": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "claudedocs/workflow_faza-0-4.md": {
-    "mtime": 1789738773.5923843,
-    "ast_hash": "173cd388293b339689c756eeef04d521",
+    "mtime": 1789740510.228911,
+    "ast_hash": "eec6e048d26353ae3b0ef9147e5cba9d",
     "semantic_hash": ""
   },
   "config/universe.yaml": {
@@ -237,6 +237,126 @@
   "config/risk_limits.yaml": {
     "mtime": 1789738526.8049114,
     "ast_hash": "539cde77f4aaffa4ba076772ecc7ebf6",
+    "semantic_hash": ""
+  },
+  "scripts/backtest/__init__.py": {
+    "mtime": 1789740032.0888417,
+    "ast_hash": "c60ea116c7785c90c371712df862f7de",
+    "semantic_hash": ""
+  },
+  "scripts/backtest/run_backtest.py": {
+    "mtime": 1789740253.1642466,
+    "ast_hash": "253353b4b14580f8b66a6a8a5a00c137",
+    "semantic_hash": ""
+  },
+  "src/data/__init__.py": {
+    "mtime": 1789739641.0593727,
+    "ast_hash": "6ff3277e8a3e75d15c25a2a91e996e45",
+    "semantic_hash": ""
+  },
+  "src/data/cache.py": {
+    "mtime": 1789739692.023615,
+    "ast_hash": "fa8df8ad9f2b8246ade26ce647d7f985",
+    "semantic_hash": ""
+  },
+  "src/data/sources.py": {
+    "mtime": 1789739641.059378,
+    "ast_hash": "9abdc9ea9782aa60db9599ec548af45b",
+    "semantic_hash": ""
+  },
+  "src/data/validation.py": {
+    "mtime": 1789739668.9191208,
+    "ast_hash": "28f43f30e47498fcdcfa384593f9546d",
+    "semantic_hash": ""
+  },
+  "src/engine/backtest_runner.py": {
+    "mtime": 1789740396.8386006,
+    "ast_hash": "1ee979742ce14ef8ef6adb7b92ce3d25",
+    "semantic_hash": ""
+  },
+  "src/engine/cost_models.py": {
+    "mtime": 1789740152.1928802,
+    "ast_hash": "42af1d611c4a5776141f846aeadf6e1d",
+    "semantic_hash": ""
+  },
+  "src/engine/instruments.py": {
+    "mtime": 1789739852.256196,
+    "ast_hash": "7a6ec31216ca914ed8ed07bba78d58a4",
+    "semantic_hash": ""
+  },
+  "src/engine/portfolio_tracker.py": {
+    "mtime": 1789739835.8029091,
+    "ast_hash": "43dc328953770e97110782a1d32738b4",
+    "semantic_hash": ""
+  },
+  "src/engine/proposal_cache.py": {
+    "mtime": 1789739764.7626712,
+    "ast_hash": "0aba8f5b16895c273520185c7f0c898d",
+    "semantic_hash": ""
+  },
+  "src/engine/signals.py": {
+    "mtime": 1789739789.0770903,
+    "ast_hash": "9b5a0d20df3798ed4ddf451de295446e",
+    "semantic_hash": ""
+  },
+  "src/engine/splits.py": {
+    "mtime": 1789739806.0337298,
+    "ast_hash": "21a06d5d0e27c0e422292007dc833291",
+    "semantic_hash": ""
+  },
+  "src/engine/strategy_baseline.py": {
+    "mtime": 1789740393.0533915,
+    "ast_hash": "84107e8339b371355cf6a3c3bd59e263",
+    "semantic_hash": ""
+  },
+  "src/engine/strategy_llm_assisted.py": {
+    "mtime": 1789740389.9866533,
+    "ast_hash": "e7480b653065ecd2765ae060412f1e6c",
+    "semantic_hash": ""
+  },
+  "tests/adversarial/test_lookahead_bias.py": {
+    "mtime": 1789739998.9440062,
+    "ast_hash": "63727f0ba1f2c9523427bd83b62c84b3",
+    "semantic_hash": ""
+  },
+  "tests/integration/test_backtest_reproducibility.py": {
+    "mtime": 1789740031.0408766,
+    "ast_hash": "af046221ba9d337894ccd14d3e58a8ce",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_data_cache.py": {
+    "mtime": 1789739730.9195752,
+    "ast_hash": "dadd3bdb816cf19ab91d661b2851c031",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_data_sources.py": {
+    "mtime": 1789739722.645914,
+    "ast_hash": "c4935409429c33729426a07b304e26a7",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_data_validation.py": {
+    "mtime": 1789739730.7213326,
+    "ast_hash": "23641206c1ee06a80cb12edafc47eaa5",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_proposal_cache.py": {
+    "mtime": 1789739780.5663033,
+    "ast_hash": "2c7e36571b53b37145ec7793f025d4d5",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_splits.py": {
+    "mtime": 1789739978.462216,
+    "ast_hash": "c4cf54454d9d81a978d428977b84b81e",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_strategy_baseline.py": {
+    "mtime": 1789740222.5673263,
+    "ast_hash": "f2e47ad89086dd894810c6a3ec388bc5",
+    "semantic_hash": ""
+  },
+  "docs/backtest-report.md": {
+    "mtime": 1789740507.990535,
+    "ast_hash": "603ff5be4bb9ce138a30698e6d2814de",
     "semantic_hash": ""
   }
 }

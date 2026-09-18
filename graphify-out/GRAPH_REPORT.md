@@ -1,16 +1,16 @@
 # Graph Report - trading-agent  (2026-09-18)
 
 ## Corpus Check
-- 43 files · ~38,008 words
+- 67 files · ~46,221 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 472 nodes · 904 edges · 23 communities (19 shown, 4 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 22 edges (avg confidence: 0.5)
+- 738 nodes · 1695 edges · 28 communities (22 shown, 6 thin omitted)
+- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 96 edges (avg confidence: 0.51)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `067bf644`
+- Built from commit: `75c3119d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -34,43 +34,48 @@
 - [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 21|Community 21]]
 - [[_COMMUNITY_Community 22|Community 22]]
+- [[_COMMUNITY_Community 23|Community 23]]
+- [[_COMMUNITY_Community 24|Community 24]]
+- [[_COMMUNITY_Community 25|Community 25]]
+- [[_COMMUNITY_Community 26|Community 26]]
+- [[_COMMUNITY_Community 27|Community 27]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `KillSwitch` - 26 edges
-2. `_engine()` - 25 edges
-3. `generate_proposal()` - 21 edges
-4. `_proposal()` - 21 edges
-5. `_state()` - 21 edges
-6. `LLMProposal` - 20 edges
-7. `Brief de proiect — Agent local de analiză și trading (multi-asset)` - 18 edges
-8. `load_risk_limits()` - 17 edges
-9. `size_position()` - 17 edges
-10. `ParsedProposal` - 16 edges
+1. `Bar` - 54 edges
+2. `ParsedProposal` - 37 edges
+3. `run_backtest()` - 32 edges
+4. `KillSwitch` - 29 edges
+5. `ProposalContext` - 27 edges
+6. `RiskEngine` - 26 edges
+7. `_engine()` - 25 edges
+8. `CsvBarDataSource` - 23 edges
+9. `generate_proposal()` - 23 edges
+10. `LLMProposal` - 22 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `_proposal()` --references--> `ParsedProposal`  [EXTRACTED]
-  tests/adversarial/test_risk_bypass.py → src/engine/proposal_types.py
-- `_proposal()` --references--> `ParsedProposal`  [EXTRACTED]
-  tests/unit/test_risk_engine.py → src/engine/proposal_types.py
-- `test_validate_bind_host_accepts_loopback()` --calls--> `validate_bind_host()`  [EXTRACTED]
-  tests/unit/test_llm_server.py → src/llm/server.py
-- `test_validate_bind_host_rejects_wildcard()` --calls--> `validate_bind_host()`  [EXTRACTED]
-  tests/unit/test_llm_server.py → src/llm/server.py
-- `test_assert_no_broker_keys_allows_llm_env()` --calls--> `assert_no_broker_keys()`  [EXTRACTED]
-  tests/unit/test_llm_server.py → src/llm/server.py
+- `DirectOllamaClient` --uses--> `MarketDataCache`  [INFERRED]
+  scripts/backtest/run_backtest.py → src/data/cache.py
+- `DirectOllamaClient` --uses--> `BinanceKlinesSource`  [INFERRED]
+  scripts/backtest/run_backtest.py → src/data/sources.py
+- `DirectOllamaClient` --uses--> `CsvBarDataSource`  [INFERRED]
+  scripts/backtest/run_backtest.py → src/data/sources.py
+- `DirectOllamaClient` --uses--> `VenueCostConfig`  [INFERRED]
+  scripts/backtest/run_backtest.py → src/engine/cost_models.py
+- `DirectOllamaClient` --uses--> `LLMProposal`  [INFERRED]
+  scripts/backtest/run_backtest.py → src/llm/schema.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (23 total, 4 thin omitted)
+## Communities (28 total, 6 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.07
-Nodes (70): MonkeyPatch, Response, LLMProposal, Contractul JSON al procesului LLM — modele pure, zero I/O.  Fără câmp de mărime, Ieșirea validă a stratului LLM. extra=forbid: câmpuri necunoscute → invalid., Output invalid sau în afara universului — păstrat brut, niciodată reparat., RejectedProposal, assert_no_broker_keys() (+62 more)
+Cohesion: 0.06
+Nodes (75): MonkeyPatch, Response, RejectedProposal, LLMProposal, Contractul JSON al procesului LLM — modele pure, zero I/O.  Fără câmp de mărime, Ieșirea validă a stratului LLM. extra=forbid: câmpuri necunoscute → invalid., Output invalid sau în afara universului — păstrat brut, niciodată reparat., RejectedProposal (+67 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.12
-Nodes (23): LLMProposalClient, Client, RejectedProposal, Client HTTP către procesul LLM — zero import din src.llm.  Deserializează JSON-u, ParsedProposal, ProposalContext, Tipuri de propunere pe partea engine/ — duplicat structural al llm.schema.  Defi, Deserializare locală a JSON-ului HTTP — identic structural cu LLMProposal. (+15 more)
+Cohesion: 0.07
+Nodes (57): DirectOllamaClient, Umple cache-ul din script (nu din engine/). Același generate_proposal ca llm/ser, BacktestMetrics, Any, Câmpuri stabile între rulări (fără UUID/wall-clock)., LLMProposalClient, Client, RejectedProposal (+49 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.06
@@ -101,12 +106,12 @@ Cohesion: 0.09
 Nodes (29): CircuitBreakerOutcome, CircuitBreakerState, CircuitBreaker, Circuit breaker — stare RUNNING/HALTED, reluare doar prin kill switch manual., Contoare consecutive în memorie; tranziția spre HALTED scrie flag-ul de control., CircuitBreakerLimits, KillSwitch, KillSwitchResult (+21 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.14
-Nodes (26): BaseModel, Limite imutabile pe durata rulării. Extra fields interzise., RiskLimits, InstrumentRules, PortfolioState, Reguli de lot/notional pentru rotunjirea cantității. extra=forbid., Expunere și metrici de risc deja realizate — niciun câmp nu vine din LLM., _floor_to_lot() (+18 more)
+Cohesion: 0.07
+Nodes (54): BaseModel, _decimal_from_yaml(), Any, Decimal, Schema RiskLimits — validare hard la pornire, fără fallback silențios., YAML încarcă numere ca float; trecem prin str ca să nu pierdem precizie., Limite imutabile pe durata rulării. Extra fields interzise., RiskLimits (+46 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.12
-Nodes (28): _decimal_from_yaml(), Any, Decimal, Schema RiskLimits — validare hard la pornire, fără fallback silențios., YAML încarcă numere ca float; trecem prin str ca să nu pierdem precizie., load_instrument_rules(), _optional_positive_decimal(), Any (+20 more)
+Cohesion: 0.08
+Nodes (52): Protocol, _bar_from_json(), _bar_to_json(), _cache_key(), canonical_dataset_hash(), _format_report(), MarketDataCache, datetime (+44 more)
 
 ### Community 11 - "Community 11"
 Cohesion: 0.17
@@ -117,32 +122,44 @@ Cohesion: 0.33
 Nodes (24): _engine(), _proposal(), Path, RiskEngine.evaluate — fiecare limită din risk_limits.yaml, inclusiv cazuri la pr, _state(), test_avoid_is_no_action(), test_daily_loss_at_threshold_rejected(), test_daily_loss_over_threshold_rejected() (+16 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.29
-Nodes (8): BacktestEngine, fetch_test_data(), Path, Descarcă datele istorice folosite de exemplul oficial NautilusTrader de backtest, Return the local path to the pinned test data, downloading it if absent/corrupt., _sha256(), Reproduce oficială — NautilusTrader "Backtest (Low-Level API)".  Sursă: docs/get, run()
+Cohesion: 0.08
+Nodes (41): BacktestEngine, BarType, CurrencyPair, DataFrame, DatetimeIndex, FillModel, Instrument, MakerTakerFeeModel (+33 more)
 
 ### Community 21 - "Community 21"
 Cohesion: 0.33
 Nodes (15): load_risk_limits(), Path, Încarcă și validează config/risk_limits.yaml. Lipsă/invalid → ValueError, fără d, Path, Validare hard a config/risk_limits.yaml — fără fallback la valori implicite., test_empty_file_raises(), test_extra_field_is_rejected(), test_halt_on_unknown_false_raises() (+7 more)
 
+### Community 23 - "Community 23"
+Cohesion: 0.07
+Nodes (54): Namespace, _dt(), _file_hash(), fill_proposal_cache(), _git_commit(), json_dumps_brief(), main(), _parse_args() (+46 more)
+
+### Community 24 - "Community 24"
+Cohesion: 0.12
+Nodes (14): PortfolioTracker, datetime, Decimal, Tracker de portofoliu determinist — input pentru RiskEngine în timpul backtestul, BaselineEMACross, BaselineEMACrossConfig, _from_nautilus(), _from_ns() (+6 more)
+
+### Community 25 - "Community 25"
+Cohesion: 0.20
+Nodes (9): 1. Sursă de date (deviere față de `universe.yaml`), 2. Costuri (nu preț mid), 3. Split cronologic + walk-forward, 4. Holdout — baseline vs LLM, costuri 1× / 2× / 3×, 5. Look-ahead bias, 6. Reproductibilitate, 7. Cum se re-rulează, 8. Fișiere (+1 more)
+
 ## Knowledge Gaps
-- **145 isolated node(s):** `trading-agent`, `0. Reguli absolute — citește ÎNAINTE de orice task`, `1. Structura recomandată a repository-ului`, `2. Task 0 — Configurare mediu local`, `3. Task 1 — Instalare și calificare NautilusTrader (v1 stabil)` (+140 more)
+- **153 isolated node(s):** `trading-agent`, `0. Reguli absolute — citește ÎNAINTE de orice task`, `1. Structura recomandată a repository-ului`, `2. Task 0 — Configurare mediu local`, `3. Task 1 — Instalare și calificare NautilusTrader (v1 stabil)` (+148 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `LLMProposal` connect `Community 0` to `Community 9`, `Community 1`?**
-  _High betweenness centrality (0.062) - this node is a cross-community bridge._
-- **Why does `Research tehnic: proiecte open-source de AI agentic trading bots (GitHub/Hugging Face)` connect `Community 3` to `Community 5`?**
-  _High betweenness centrality (0.052) - this node is a cross-community bridge._
-- **Why does `RejectedProposal` connect `Community 0` to `Community 9`, `Community 1`?**
-  _High betweenness centrality (0.051) - this node is a cross-community bridge._
-- **Are the 3 inferred relationships involving `KillSwitch` (e.g. with `CircuitBreaker` and `RiskDecision`) actually correct?**
-  _`KillSwitch` has 3 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `trading-agent`, `Descarcă datele istorice folosite de exemplul oficial NautilusTrader de backtest`, `Return the local path to the pinned test data, downloading it if absent/corrupt.` to the rest of the system?**
-  _203 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.06736842105263158 - nodes in this community are weakly interconnected._
-- **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.125 - nodes in this community are weakly interconnected._
+- **Why does `ParsedProposal` connect `Community 1` to `Community 0`, `Community 9`, `Community 12`, `Community 23`?**
+  _High betweenness centrality (0.066) - this node is a cross-community bridge._
+- **Why does `Bar` connect `Community 10` to `Community 24`, `Community 1`, `Community 13`, `Community 23`?**
+  _High betweenness centrality (0.063) - this node is a cross-community bridge._
+- **Why does `run_backtest()` connect `Community 13` to `Community 24`, `Community 1`, `Community 10`, `Community 23`?**
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
+- **Are the 11 inferred relationships involving `Bar` (e.g. with `MarketDataCache` and `DataValidator`) actually correct?**
+  _`Bar` has 11 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 10 inferred relationships involving `ParsedProposal` (e.g. with `DirectOllamaClient` and `LLMProposalClient`) actually correct?**
+  _`ParsedProposal` has 10 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 4 inferred relationships involving `KillSwitch` (e.g. with `BacktestMetrics` and `CircuitBreaker`) actually correct?**
+  _`KillSwitch` has 4 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 6 inferred relationships involving `ProposalContext` (e.g. with `DirectOllamaClient` and `LLMProposalClient`) actually correct?**
+  _`ProposalContext` has 6 INFERRED edges - model-reasoned connections that need verification._

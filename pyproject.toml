@@ -27,6 +27,7 @@ pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
     "llm_live: calls local Ollama Qwen3-8B; skipped automatically if Ollama is not reachable",
+    "network_live: calls a public network API; skipped automatically if the endpoint is not reachable",
 ]
 
 [tool.uv]

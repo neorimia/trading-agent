@@ -162,7 +162,7 @@ Faza 0 (mediu)
 
 ---
 
-## 5. Faza 4 — Backtesting realist
+## 5. Faza 4 — Backtesting realist ✅ COMPLETĂ (2026-09-18)
 
 **Corespunde:** Task 4 (instrucțiuni §6).
 
@@ -184,11 +184,13 @@ Faza 0 (mediu)
 7. Arhivează per rulare: inputuri exacte, seed-uri, hash date, output complet.
 
 **Checkpoint de validare (DoD Task 4):**
-- [ ] Backtestul include comisioane + slippage (nu doar preț mid).
-- [ ] Test automat de look-ahead bias există și ar eșua dacă bias-ul ar fi introdus.
-- [ ] Raport arată explicit rezultate la 1×/2×/3× costuri.
-- [ ] Comparație documentată LLM vs. baseline determinist.
-- [ ] Rulare repetată → rezultate identice.
+- [x] Backtestul include comisioane + slippage (nu doar preț mid). `MakerTakerFeeModel` (10 bps taker, scalat 1×/2×/3×) + quote bid/ask (10 bps spread) + `PartialSlippageFillModel` (1–3 tick-uri + 40% top-of-book). Holdout baseline: 2 fill-uri, comisioane 1.97678512 / 3.95357023 / 5.93035536 USDT.
+- [x] Test automat de look-ahead bias există și ar eșua dacă bias-ul ar fi introdus. `tests/adversarial/test_lookahead_bias.py` — EMA și `ProposalContext` la T identice pe seria trunchiată vs. seria cu barele viitoare corupte.
+- [x] Raport arată explicit rezultate la 1×/2×/3× costuri. `docs/backtest-report.md` + `backtests/reports/faza4-ethusd-1d-202411-202412/holdout_comparison.json`.
+- [x] Comparație documentată LLM vs. baseline determinist. Holdout 2024-12-19…31: baseline EMA-cross round-trip pierzător; Qwen3-8B a propus `avoid` pe toate cele 13 zile (capital 10.000 neschimbat la toate multiplicatoarele).
+- [x] Rulare repetată → rezultate identice. `tests/integration/test_backtest_reproducibility.py`; re-rulare documentată cu același `dataset_hash` `c9ddad6021ec43d59e37a79db4a5b341b01d7e8f9fa290b3e378c157b68ba7c7` și cache de propuneri → aceleași metrici.
+
+**Livrabile efective:** `src/data/{sources,validation,cache}.py` (Binance public klines + CSV fixture; `venue: KRAKEN` rămâne ruta de execuție, nu vendor-ul de istoric), `src/engine/{signals,splits,cost_models,instruments,portfolio_tracker,proposal_cache,strategy_baseline,strategy_llm_assisted,backtest_runner}.py`, `scripts/backtest/run_backtest.py`, `tests/adversarial/test_lookahead_bias.py`, `tests/integration/test_backtest_reproducibility.py`, `docs/backtest-report.md`. Run: `faza4-ethusd-1d-202411-202412` (61 bare ETHUSDT 1d, 2024-11-01…12-31). `pytest -m "not llm_live and not network_live"` → 138 passed.
 
 ---
 
@@ -259,4 +261,4 @@ Sincronizarea `llm.schema` ↔ `engine.proposal_types` se verifică separat prin
 
 - Alegerea mecanismului concret de transport HTTP pentru `llm/server.py` — decizie de implementare (Faza 2).
 - Schema exactă SQLite pentru `audit/`/`idempotency_store` — DDL la implementare (Faza 5), pe baza contractelor design §4.
-- Cod. Pasul următor este `/sc:implement` pe Faza 4 (backtesting realist), după Faza 3.
+- Cod. Pasul următor este `/sc:implement` pe Faza 5 (paper trading), după punctul de decizie umană Cale A vs. Cale B.
