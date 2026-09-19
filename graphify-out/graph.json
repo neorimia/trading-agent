@@ -54,10 +54,20 @@
       "norm_label": "packagemanager"
     },
     {
+      "label": "analytics",
+      "file_type": "code",
+      "source_file": "apps/console/angular.json",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "apps_console_angular_cli_analytics",
+      "community": 110,
+      "norm_label": "analytics"
+    },
+    {
       "label": "newProjectRoot",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L7",
+      "source_location": "L8",
       "_origin": "ast",
       "id": "apps_console_angular_newprojectroot",
       "community": 110,
@@ -67,7 +77,7 @@
       "label": "projects",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L8",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "apps_console_angular_projects",
       "community": 110,
@@ -77,7 +87,7 @@
       "label": "console",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L9",
+      "source_location": "L10",
       "_origin": "ast",
       "id": "apps_console_angular_projects_console",
       "community": 104,
@@ -87,7 +97,7 @@
       "label": "projectType",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L10",
+      "source_location": "L11",
       "_origin": "ast",
       "id": "apps_console_angular_console_projecttype",
       "community": 104,
@@ -97,7 +107,7 @@
       "label": "schematics",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L11",
+      "source_location": "L12",
       "_origin": "ast",
       "id": "apps_console_angular_console_schematics",
       "community": 104,
@@ -107,7 +117,7 @@
       "label": "@schematics/angular:component",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L12",
+      "source_location": "L13",
       "_origin": "ast",
       "id": "apps_console_angular_schematics_schematics_angular_component",
       "community": 104,
@@ -117,7 +127,7 @@
       "label": "style",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L13",
+      "source_location": "L14",
       "_origin": "ast",
       "id": "apps_console_angular_schematics_angular_component_style",
       "community": 104,
@@ -127,7 +137,7 @@
       "label": "root",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L16",
+      "source_location": "L17",
       "_origin": "ast",
       "id": "apps_console_angular_console_root",
       "community": 104,
@@ -137,7 +147,7 @@
       "label": "sourceRoot",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L17",
+      "source_location": "L18",
       "_origin": "ast",
       "id": "apps_console_angular_console_sourceroot",
       "community": 104,
@@ -147,7 +157,7 @@
       "label": "prefix",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L18",
+      "source_location": "L19",
       "_origin": "ast",
       "id": "apps_console_angular_console_prefix",
       "community": 104,
@@ -157,7 +167,7 @@
       "label": "architect",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L19",
+      "source_location": "L20",
       "_origin": "ast",
       "id": "apps_console_angular_console_architect",
       "community": 104,
@@ -167,7 +177,7 @@
       "label": "build",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L20",
+      "source_location": "L21",
       "_origin": "ast",
       "id": "apps_console_angular_architect_build",
       "community": 111,
@@ -177,7 +187,7 @@
       "label": "builder",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L21",
+      "source_location": "L22",
       "_origin": "ast",
       "id": "apps_console_angular_build_builder",
       "community": 111,
@@ -187,7 +197,7 @@
       "label": "options",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L22",
+      "source_location": "L23",
       "_origin": "ast",
       "id": "apps_console_angular_build_options",
       "community": 114,
@@ -197,7 +207,7 @@
       "label": "browser",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L23",
+      "source_location": "L24",
       "_origin": "ast",
       "id": "apps_console_angular_options_browser",
       "community": 114,
@@ -207,7 +217,7 @@
       "label": "tsConfig",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L24",
+      "source_location": "L25",
       "_origin": "ast",
       "id": "apps_console_angular_options_tsconfig",
       "community": 114,
@@ -217,7 +227,7 @@
       "label": "inlineStyleLanguage",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L25",
+      "source_location": "L26",
       "_origin": "ast",
       "id": "apps_console_angular_options_inlinestylelanguage",
       "community": 114,
@@ -227,7 +237,7 @@
       "label": "assets",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L26",
+      "source_location": "L27",
       "_origin": "ast",
       "id": "apps_console_angular_options_assets",
       "community": 114,
@@ -237,7 +247,7 @@
       "label": "styles",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L32",
+      "source_location": "L33",
       "_origin": "ast",
       "id": "apps_console_angular_options_styles",
       "community": 114,
@@ -247,7 +257,7 @@
       "label": "configurations",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L36",
+      "source_location": "L37",
       "_origin": "ast",
       "id": "apps_console_angular_build_configurations",
       "community": 111,
@@ -257,77 +267,77 @@
       "label": "production",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L37",
+      "source_location": "L38",
       "_origin": "ast",
       "id": "apps_console_angular_configurations_production",
-      "community": 111,
+      "community": 103,
       "norm_label": "production"
     },
     {
       "label": "budgets",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L38",
+      "source_location": "L39",
       "_origin": "ast",
       "id": "apps_console_angular_production_budgets",
-      "community": 111,
+      "community": 103,
       "norm_label": "budgets"
     },
     {
       "label": "outputHashing",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L50",
+      "source_location": "L51",
       "_origin": "ast",
       "id": "apps_console_angular_production_outputhashing",
-      "community": 111,
+      "community": 103,
       "norm_label": "outputhashing"
     },
     {
       "label": "development",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L52",
+      "source_location": "L53",
       "_origin": "ast",
       "id": "apps_console_angular_configurations_development",
-      "community": 103,
+      "community": 111,
       "norm_label": "development"
     },
     {
       "label": "optimization",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L53",
+      "source_location": "L54",
       "_origin": "ast",
       "id": "apps_console_angular_development_optimization",
-      "community": 103,
+      "community": 111,
       "norm_label": "optimization"
     },
     {
       "label": "extractLicenses",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L54",
+      "source_location": "L55",
       "_origin": "ast",
       "id": "apps_console_angular_development_extractlicenses",
-      "community": 103,
+      "community": 111,
       "norm_label": "extractlicenses"
     },
     {
       "label": "sourceMap",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L55",
+      "source_location": "L56",
       "_origin": "ast",
       "id": "apps_console_angular_development_sourcemap",
-      "community": 103,
+      "community": 111,
       "norm_label": "sourcemap"
     },
     {
       "label": "defaultConfiguration",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L58",
+      "source_location": "L59",
       "_origin": "ast",
       "id": "apps_console_angular_build_defaultconfiguration",
       "community": 111,
@@ -337,7 +347,7 @@
       "label": "serve",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L60",
+      "source_location": "L61",
       "_origin": "ast",
       "id": "apps_console_angular_architect_serve",
       "community": 103,
@@ -347,7 +357,7 @@
       "label": "builder",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L61",
+      "source_location": "L62",
       "_origin": "ast",
       "id": "apps_console_angular_serve_builder",
       "community": 103,
@@ -357,7 +367,7 @@
       "label": "options",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L62",
+      "source_location": "L63",
       "_origin": "ast",
       "id": "apps_console_angular_serve_options",
       "community": 103,
@@ -367,7 +377,7 @@
       "label": "proxyConfig",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L63",
+      "source_location": "L64",
       "_origin": "ast",
       "id": "apps_console_angular_options_proxyconfig",
       "community": 103,
@@ -377,7 +387,7 @@
       "label": "configurations",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L65",
+      "source_location": "L66",
       "_origin": "ast",
       "id": "apps_console_angular_serve_configurations",
       "community": 103,
@@ -387,27 +397,27 @@
       "label": "buildTarget",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L67",
+      "source_location": "L68",
       "_origin": "ast",
       "id": "apps_console_angular_production_buildtarget",
-      "community": 111,
+      "community": 103,
       "norm_label": "buildtarget"
     },
     {
       "label": "buildTarget",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L70",
+      "source_location": "L71",
       "_origin": "ast",
       "id": "apps_console_angular_development_buildtarget",
-      "community": 103,
+      "community": 111,
       "norm_label": "buildtarget"
     },
     {
       "label": "defaultConfiguration",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L73",
+      "source_location": "L74",
       "_origin": "ast",
       "id": "apps_console_angular_serve_defaultconfiguration",
       "community": 103,
@@ -417,7 +427,7 @@
       "label": "test",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L75",
+      "source_location": "L76",
       "_origin": "ast",
       "id": "apps_console_angular_architect_test",
       "community": 104,
@@ -427,7 +437,7 @@
       "label": "builder",
       "file_type": "code",
       "source_file": "apps/console/angular.json",
-      "source_location": "L76",
+      "source_location": "L77",
       "_origin": "ast",
       "id": "apps_console_angular_test_builder",
       "community": 104,
@@ -790,7 +800,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "apps_console_src_app_app_routes",
-      "community": 94,
+      "community": 97,
       "norm_label": "app.routes.ts"
     },
     {
@@ -924,10 +934,20 @@
       "norm_label": "empty_health"
     },
     {
+      "label": "eventsSocketUrl()",
+      "file_type": "code",
+      "source_file": "apps/console/src/app/core/agent-state.service.ts",
+      "source_location": "L29",
+      "_origin": "ast",
+      "id": "apps_console_src_app_core_agent_state_service_eventssocketurl",
+      "community": 95,
+      "norm_label": "eventssocketurl()"
+    },
+    {
       "label": "AgentStateService",
       "file_type": "code",
       "source_file": "apps/console/src/app/core/agent-state.service.ts",
-      "source_location": "L27",
+      "source_location": "L38",
       "_origin": "ast",
       "id": "apps_console_src_app_core_agent_state_service_agentstateservice",
       "community": 95,
@@ -937,7 +957,7 @@
       "label": ".start()",
       "file_type": "code",
       "source_file": "apps/console/src/app/core/agent-state.service.ts",
-      "source_location": "L41",
+      "source_location": "L55",
       "_origin": "ast",
       "id": "apps_console_src_app_core_agent_state_service_agentstateservice_start",
       "community": 95,
@@ -947,7 +967,7 @@
       "label": ".stop()",
       "file_type": "code",
       "source_file": "apps/console/src/app/core/agent-state.service.ts",
-      "source_location": "L47",
+      "source_location": "L62",
       "_origin": "ast",
       "id": "apps_console_src_app_core_agent_state_service_agentstateservice_stop",
       "community": 95,
@@ -957,7 +977,7 @@
       "label": ".refresh()",
       "file_type": "code",
       "source_file": "apps/console/src/app/core/agent-state.service.ts",
-      "source_location": "L54",
+      "source_location": "L76",
       "_origin": "ast",
       "id": "apps_console_src_app_core_agent_state_service_agentstateservice_refresh",
       "community": 95,
@@ -967,11 +987,21 @@
       "label": ".connectSocket()",
       "file_type": "code",
       "source_file": "apps/console/src/app/core/agent-state.service.ts",
-      "source_location": "L67",
+      "source_location": "L89",
       "_origin": "ast",
       "id": "apps_console_src_app_core_agent_state_service_agentstateservice_connectsocket",
       "community": 95,
       "norm_label": ".connectsocket()"
+    },
+    {
+      "label": ".scheduleReconnect()",
+      "file_type": "code",
+      "source_file": "apps/console/src/app/core/agent-state.service.ts",
+      "source_location": "L124",
+      "_origin": "ast",
+      "id": "apps_console_src_app_core_agent_state_service_agentstateservice_schedulereconnect",
+      "community": 95,
+      "norm_label": ".schedulereconnect()"
     },
     {
       "label": "api.service.ts",
@@ -980,7 +1010,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "apps_console_src_app_core_api_service",
-      "community": 85,
+      "community": 98,
       "norm_label": "api.service.ts"
     },
     {
@@ -1010,7 +1040,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "apps_console_src_app_core_api_service_apiservice_health",
-      "community": 95,
+      "community": 98,
       "norm_label": ".health()"
     },
     {
@@ -1020,7 +1050,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "apps_console_src_app_core_api_service_apiservice_portfolio",
-      "community": 97,
+      "community": 98,
       "norm_label": ".portfolio()"
     },
     {
@@ -1030,7 +1060,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "apps_console_src_app_core_api_service_apiservice_alerts",
-      "community": 95,
+      "community": 98,
       "norm_label": ".alerts()"
     },
     {
@@ -1060,7 +1090,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "apps_console_src_app_core_api_service_apiservice_signal",
-      "community": 98,
+      "community": 85,
       "norm_label": ".signal()"
     },
     {
@@ -1070,7 +1100,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "apps_console_src_app_core_api_service_apiservice_positions",
-      "community": 98,
+      "community": 85,
       "norm_label": ".positions()"
     },
     {
@@ -1080,7 +1110,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "apps_console_src_app_core_api_service_apiservice_orders",
-      "community": 98,
+      "community": 85,
       "norm_label": ".orders()"
     },
     {
@@ -1110,7 +1140,7 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "apps_console_src_app_core_api_service_apiservice_risklimits",
-      "community": 97,
+      "community": 98,
       "norm_label": ".risklimits()"
     },
     {
@@ -1150,7 +1180,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "apps_console_src_app_core_api_service_apiservice_agentevents",
-      "community": 98,
+      "community": 122,
       "norm_label": ".agentevents()"
     },
     {
@@ -1180,7 +1210,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "apps_console_src_app_core_api_service_apiservice_research",
-      "community": 98,
+      "community": 85,
       "norm_label": ".research()"
     },
     {
@@ -1320,7 +1350,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "apps_console_src_app_core_models_healthresponse",
-      "community": 95,
+      "community": 98,
       "norm_label": "healthresponse"
     },
     {
@@ -1330,7 +1360,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "apps_console_src_app_core_models_portfolioresponse",
-      "community": 97,
+      "community": 98,
       "norm_label": "portfolioresponse"
     },
     {
@@ -1360,7 +1390,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "apps_console_src_app_core_models_barsresponse",
-      "community": 85,
+      "community": 98,
       "norm_label": "barsresponse"
     },
     {
@@ -1420,7 +1450,7 @@
       "source_location": "L129",
       "_origin": "ast",
       "id": "apps_console_src_app_core_models_risklimitsview",
-      "community": 97,
+      "community": 98,
       "norm_label": "risklimitsview"
     },
     {
@@ -1430,7 +1460,7 @@
       "source_location": "L146",
       "_origin": "ast",
       "id": "apps_console_src_app_core_models_agenteventrow",
-      "community": 85,
+      "community": 122,
       "norm_label": "agenteventrow"
     },
     {
@@ -1470,7 +1500,7 @@
       "source_location": "L201",
       "_origin": "ast",
       "id": "apps_console_src_app_core_models_alertrow",
-      "community": 95,
+      "community": 98,
       "norm_label": "alertrow"
     },
     {
@@ -1500,7 +1530,7 @@
       "source_location": "L221",
       "_origin": "ast",
       "id": "apps_console_src_app_core_models_pnlclass",
-      "community": 85,
+      "community": 97,
       "norm_label": "pnlclass()"
     },
     {
@@ -1520,7 +1550,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "apps_console_src_app_core_permission_guard",
-      "community": 94,
+      "community": 97,
       "norm_label": "permission.guard.ts"
     },
     {
@@ -1530,7 +1560,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "apps_console_src_app_core_permission_guard_permissionguard",
-      "community": 94,
+      "community": 97,
       "norm_label": "permissionguard()"
     },
     {
@@ -1550,7 +1580,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "apps_console_src_app_features_agent_page",
-      "community": 85,
+      "community": 97,
       "norm_label": "agent.page.ts"
     },
     {
@@ -1560,7 +1590,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "apps_console_src_app_features_agent_page_agentpage",
-      "community": 85,
+      "community": 122,
       "norm_label": "agentpage"
     },
     {
@@ -1570,7 +1600,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "apps_console_src_app_features_agent_page_agentpage_ngoninit",
-      "community": 85,
+      "community": 122,
       "norm_label": ".ngoninit()"
     },
     {
@@ -1580,7 +1610,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "apps_console_src_app_features_agent_page_agentpage_payload",
-      "community": 85,
+      "community": 122,
       "norm_label": ".payload()"
     },
     {
@@ -1600,7 +1630,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "apps_console_src_app_features_asset_page_assetpage",
-      "community": 94,
+      "community": 85,
       "norm_label": "assetpage"
     },
     {
@@ -1610,7 +1640,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "apps_console_src_app_features_asset_page_assetpage_ngoninit",
-      "community": 94,
+      "community": 85,
       "norm_label": ".ngoninit()"
     },
     {
@@ -1660,7 +1690,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "apps_console_src_app_features_market_page",
-      "community": 85,
+      "community": 115,
       "norm_label": "market.page.ts"
     },
     {
@@ -1710,7 +1740,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "apps_console_src_app_features_orders_page",
-      "community": 94,
+      "community": 97,
       "norm_label": "orders.page.ts"
     },
     {
@@ -1790,7 +1820,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "apps_console_src_app_features_research_page",
-      "community": 85,
+      "community": 115,
       "norm_label": "research.page.ts"
     },
     {
@@ -1800,7 +1830,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "apps_console_src_app_features_research_page_researchpage",
-      "community": 94,
+      "community": 115,
       "norm_label": "researchpage"
     },
     {
@@ -1810,7 +1840,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "apps_console_src_app_features_research_page_researchpage_ngoninit",
-      "community": 94,
+      "community": 115,
       "norm_label": ".ngoninit()"
     },
     {
@@ -1820,7 +1850,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "apps_console_src_app_features_research_page_researchpage_load",
-      "community": 94,
+      "community": 115,
       "norm_label": ".load()"
     },
     {
@@ -1840,7 +1870,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "apps_console_src_app_features_risk_page_riskpage",
-      "community": 97,
+      "community": 121,
       "norm_label": "riskpage"
     },
     {
@@ -1850,7 +1880,7 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "apps_console_src_app_features_risk_page_riskpage_ngoninit",
-      "community": 97,
+      "community": 121,
       "norm_label": ".ngoninit()"
     },
     {
@@ -1860,7 +1890,7 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "apps_console_src_app_features_risk_page_riskpage_asksave",
-      "community": 97,
+      "community": 121,
       "norm_label": ".asksave()"
     },
     {
@@ -1870,7 +1900,7 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "apps_console_src_app_features_risk_page_riskpage_askreset",
-      "community": 97,
+      "community": 121,
       "norm_label": ".askreset()"
     },
     {
@@ -1880,7 +1910,7 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "apps_console_src_app_features_risk_page_riskpage_resethalt",
-      "community": 97,
+      "community": 121,
       "norm_label": ".resethalt()"
     },
     {
@@ -1890,7 +1920,7 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "apps_console_src_app_features_risk_page_riskpage_save",
-      "community": 97,
+      "community": 121,
       "norm_label": ".save()"
     },
     {
@@ -1940,7 +1970,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "apps_console_src_app_features_strategies_page",
-      "community": 100,
+      "community": 97,
       "norm_label": "strategies.page.ts"
     },
     {
@@ -2020,7 +2050,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_candle_chart_candlechart",
-      "community": 116,
+      "community": 85,
       "norm_label": "candlechart"
     },
     {
@@ -2030,7 +2060,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_candle_chart_candlechart_constructor",
-      "community": 116,
+      "community": 85,
       "norm_label": ".constructor()"
     },
     {
@@ -2040,7 +2070,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_candle_chart_candlechart_ngafterviewinit",
-      "community": 116,
+      "community": 85,
       "norm_label": ".ngafterviewinit()"
     },
     {
@@ -2050,7 +2080,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_candle_chart_candlechart_ngondestroy",
-      "community": 116,
+      "community": 85,
       "norm_label": ".ngondestroy()"
     },
     {
@@ -2060,7 +2090,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_candle_chart_candlechart_render",
-      "community": 116,
+      "community": 85,
       "norm_label": ".render()"
     },
     {
@@ -2070,7 +2100,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_confirm_danger",
-      "community": 100,
+      "community": 97,
       "norm_label": "confirm-danger.ts"
     },
     {
@@ -2080,7 +2110,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_confirm_danger_confirmdanger",
-      "community": 100,
+      "community": 97,
       "norm_label": "confirmdanger"
     },
     {
@@ -2090,7 +2120,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_confirm_danger_confirmdanger_open",
-      "community": 100,
+      "community": 97,
       "norm_label": ".open()"
     },
     {
@@ -2100,7 +2130,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_confirm_danger_confirmdanger_canconfirm",
-      "community": 100,
+      "community": 97,
       "norm_label": ".canconfirm()"
     },
     {
@@ -2110,7 +2140,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_confirm_danger_confirmdanger_confirm",
-      "community": 100,
+      "community": 97,
       "norm_label": ".confirm()"
     },
     {
@@ -2120,7 +2150,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_empty_state",
-      "community": 85,
+      "community": 97,
       "norm_label": "empty-state.ts"
     },
     {
@@ -2130,7 +2160,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_empty_state_emptystate",
-      "community": 85,
+      "community": 97,
       "norm_label": "emptystate"
     },
     {
@@ -2160,7 +2190,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_stale_badge",
-      "community": 85,
+      "community": 115,
       "norm_label": "stale-badge.ts"
     },
     {
@@ -2170,7 +2200,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "apps_console_src_app_shared_stale_badge_stalebadge",
-      "community": 85,
+      "community": 115,
       "norm_label": "stalebadge"
     },
     {
@@ -2573,7 +2603,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "scripts_paper_trading_run_paper_session_baselineproposalclient_request_proposal",
-      "community": 1,
+      "community": 43,
       "norm_label": ".request_proposal()"
     },
     {
@@ -2583,7 +2613,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "scripts_paper_trading_run_paper_session_py_rejectedproposal",
-      "community": 1,
+      "community": 43,
       "norm_label": "rejectedproposal"
     },
     {
@@ -2973,7 +3003,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "protocol",
-      "community": 69,
+      "community": 30,
       "norm_label": "protocol"
     },
     {
@@ -3333,7 +3363,7 @@
       "source_location": "L309",
       "_origin": "ast",
       "id": "src_control_models_wsenvelope",
-      "community": 49,
+      "community": 96,
       "norm_label": "wsenvelope"
     },
     {
@@ -3343,7 +3373,7 @@
       "source_location": "L317",
       "_origin": "ast",
       "id": "src_control_models_ackresponse",
-      "community": 49,
+      "community": 96,
       "norm_label": "ackresponse"
     },
     {
@@ -3453,7 +3483,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "src_control_runtime_state_trading_mode",
-      "community": 69,
+      "community": 41,
       "norm_label": "trading_mode()"
     },
     {
@@ -3623,7 +3653,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "fetchbarsfn",
-      "community": 41,
+      "community": 59,
       "norm_label": "fetchbarsfn"
     },
     {
@@ -3643,7 +3673,7 @@
       "source_location": "L365",
       "_origin": "ast",
       "id": "src_control_runtime_state_build_bars",
-      "community": 41,
+      "community": 59,
       "norm_label": "build_bars()"
     },
     {
@@ -3653,7 +3683,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "barsresponse",
-      "community": 41,
+      "community": 59,
       "norm_label": "barsresponse"
     },
     {
@@ -3663,7 +3693,7 @@
       "source_location": "L404",
       "_origin": "ast",
       "id": "src_control_runtime_state_build_signal",
-      "community": 41,
+      "community": 59,
       "norm_label": "build_signal()"
     },
     {
@@ -3673,7 +3703,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "signalresponse",
-      "community": 41,
+      "community": 59,
       "norm_label": "signalresponse"
     },
     {
@@ -3793,7 +3823,7 @@
       "source_location": "L706",
       "_origin": "ast",
       "id": "src_control_runtime_state_trigger_halt",
-      "community": 108,
+      "community": 96,
       "norm_label": "trigger_halt()"
     },
     {
@@ -3803,7 +3833,7 @@
       "source_location": "L717",
       "_origin": "ast",
       "id": "src_control_runtime_state_reset_halt",
-      "community": 108,
+      "community": 96,
       "norm_label": "reset_halt()"
     },
     {
@@ -3853,7 +3883,7 @@
       "source_location": "L795",
       "_origin": "ast",
       "id": "src_control_runtime_state_build_security",
-      "community": 69,
+      "community": 96,
       "norm_label": "build_security()"
     },
     {
@@ -3863,7 +3893,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "securitysettings",
-      "community": 69,
+      "community": 96,
       "norm_label": "securitysettings"
     },
     {
@@ -3913,7 +3943,7 @@
       "source_location": "L887",
       "_origin": "ast",
       "id": "src_control_runtime_state_set_strategy_enabled",
-      "community": 69,
+      "community": 108,
       "norm_label": "set_strategy_enabled()"
     },
     {
@@ -3933,7 +3963,7 @@
       "source_location": "L922",
       "_origin": "ast",
       "id": "src_control_runtime_state_build_alerts",
-      "community": 41,
+      "community": 96,
       "norm_label": "build_alerts()"
     },
     {
@@ -3943,7 +3973,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "alertrow",
-      "community": 41,
+      "community": 96,
       "norm_label": "alertrow"
     },
     {
@@ -3970,7 +4000,7 @@
       "label": "_fetch_kraken_bars()",
       "file_type": "code",
       "source_file": "src/control/server.py",
-      "source_location": "L79",
+      "source_location": "L80",
       "_origin": "ast",
       "id": "src_control_server_fetch_kraken_bars",
       "community": 96,
@@ -3990,17 +4020,27 @@
       "label": "ControlContext",
       "file_type": "code",
       "source_file": "src/control/server.py",
-      "source_location": "L90",
+      "source_location": "L91",
       "_origin": "ast",
       "id": "src_control_server_controlcontext",
-      "community": 49,
+      "community": 96,
       "norm_label": "controlcontext"
+    },
+    {
+      "label": "_ws_snapshot()",
+      "file_type": "code",
+      "source_file": "src/control/server.py",
+      "source_location": "L102",
+      "_origin": "ast",
+      "id": "src_control_server_ws_snapshot",
+      "community": 96,
+      "norm_label": "_ws_snapshot()"
     },
     {
       "label": "_load_dotenv_control()",
       "file_type": "code",
       "source_file": "src/control/server.py",
-      "source_location": "L101",
+      "source_location": "L109",
       "_origin": "ast",
       "id": "src_control_server_load_dotenv_control",
       "community": 96,
@@ -4010,10 +4050,10 @@
       "label": "create_app()",
       "file_type": "code",
       "source_file": "src/control/server.py",
-      "source_location": "L110",
+      "source_location": "L118",
       "_origin": "ast",
       "id": "src_control_server_create_app",
-      "community": 41,
+      "community": 96,
       "norm_label": "create_app()"
     },
     {
@@ -4030,7 +4070,7 @@
       "label": "main()",
       "file_type": "code",
       "source_file": "src/control/server.py",
-      "source_location": "L476",
+      "source_location": "L478",
       "_origin": "ast",
       "id": "src_control_server_main",
       "community": 96,
@@ -4183,7 +4223,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_data_cache_canonical_dataset_hash",
-      "community": 10,
+      "community": 101,
       "norm_label": "canonical_dataset_hash()"
     },
     {
@@ -4233,7 +4273,7 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "src_data_cache_marketdatacache",
-      "community": 10,
+      "community": 101,
       "norm_label": "marketdatacache"
     },
     {
@@ -4313,7 +4353,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_data_cache_rationale_15",
-      "community": 10,
+      "community": 101,
       "norm_label": "sha256 peste serializarea canonica (instrument|ts|ohlcv). ordinea conteaza."
     },
     {
@@ -4493,7 +4533,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_sources",
-      "community": 24,
+      "community": 43,
       "norm_label": "sources.py"
     },
     {
@@ -4503,7 +4543,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_data_sources_bar",
-      "community": 58,
+      "community": 43,
       "norm_label": "bar"
     },
     {
@@ -4523,7 +4563,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_data_sources_datasource_fetch_bars",
-      "community": 101,
+      "community": 10,
       "norm_label": ".fetch_bars()"
     },
     {
@@ -4533,7 +4573,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_data_sources_py_datetime",
-      "community": 24,
+      "community": 10,
       "norm_label": "datetime"
     },
     {
@@ -4563,7 +4603,7 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "src_data_sources_require_utc",
-      "community": 24,
+      "community": 10,
       "norm_label": "require_utc()"
     },
     {
@@ -4573,7 +4613,7 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "src_data_sources_decimal",
-      "community": 24,
+      "community": 43,
       "norm_label": "_decimal()"
     },
     {
@@ -4583,7 +4623,7 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "src_data_sources_ms",
-      "community": 24,
+      "community": 10,
       "norm_label": "_ms()"
     },
     {
@@ -4593,7 +4633,7 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "src_data_sources_close_time_utc",
-      "community": 24,
+      "community": 10,
       "norm_label": "_close_time_utc()"
     },
     {
@@ -4653,7 +4693,7 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "src_data_sources_binanceklinessource_fetch_bars",
-      "community": 24,
+      "community": 10,
       "norm_label": ".fetch_bars()"
     },
     {
@@ -4663,7 +4703,7 @@
       "source_location": "L177",
       "_origin": "ast",
       "id": "src_data_sources_csvbardatasource",
-      "community": 23,
+      "community": 89,
       "norm_label": "csvbardatasource"
     },
     {
@@ -4673,7 +4713,7 @@
       "source_location": "L180",
       "_origin": "ast",
       "id": "src_data_sources_csvbardatasource_init",
-      "community": 23,
+      "community": 89,
       "norm_label": ".__init__()"
     },
     {
@@ -4683,7 +4723,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_data_sources_py_path",
-      "community": 23,
+      "community": 89,
       "norm_label": "path"
     },
     {
@@ -4693,7 +4733,7 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "src_data_sources_csvbardatasource_fetch_bars",
-      "community": 24,
+      "community": 43,
       "norm_label": ".fetch_bars()"
     },
     {
@@ -4703,7 +4743,7 @@
       "source_location": "L226",
       "_origin": "ast",
       "id": "src_data_sources_bars_to_iterable",
-      "community": 24,
+      "community": 43,
       "norm_label": "bars_to_iterable()"
     },
     {
@@ -4713,7 +4753,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_sources_rationale_1",
-      "community": 24,
+      "community": 43,
       "norm_label": "surse de bare: binance public klines (backfill optional) si csv local.  executia"
     },
     {
@@ -4723,7 +4763,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_data_sources_rationale_43",
-      "community": 58,
+      "community": 43,
       "norm_label": "bara ohlcv. `timestamp` e close-time utc (lookahead-safe: bara e cunoscuta la in"
     },
     {
@@ -4743,7 +4783,7 @@
       "source_location": "L178",
       "_origin": "ast",
       "id": "src_data_sources_rationale_178",
-      "community": 23,
+      "community": 89,
       "norm_label": "sursa locala, zero retea \u2014 pentru teste si fixtures pinned."
     },
     {
@@ -4823,7 +4863,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_venue_registry",
-      "community": 61,
+      "community": 66,
       "norm_label": "venue_registry.py"
     },
     {
@@ -4833,7 +4873,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_data_venue_registry_instrumentconstraints",
-      "community": 61,
+      "community": 60,
       "norm_label": "instrumentconstraints"
     },
     {
@@ -4843,7 +4883,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_data_venue_registry_venueinstrument",
-      "community": 61,
+      "community": 66,
       "norm_label": "venueinstrument"
     },
     {
@@ -4853,7 +4893,7 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "src_data_venue_registry_get_instrument",
-      "community": 61,
+      "community": 66,
       "norm_label": "get_instrument()"
     },
     {
@@ -4863,7 +4903,7 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "src_data_venue_registry_execution_pair",
-      "community": 61,
+      "community": 66,
       "norm_label": "execution_pair()"
     },
     {
@@ -4873,7 +4913,7 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "src_data_venue_registry_historical_symbol",
-      "community": 61,
+      "community": 66,
       "norm_label": "historical_symbol()"
     },
     {
@@ -4883,7 +4923,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_data_venue_registry_py_historicalsource",
-      "community": 61,
+      "community": 66,
       "norm_label": "historicalsource"
     },
     {
@@ -4893,7 +4933,7 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "src_data_venue_registry_nautilus_symbol",
-      "community": 61,
+      "community": 66,
       "norm_label": "nautilus_symbol()"
     },
     {
@@ -4903,7 +4943,7 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "src_data_venue_registry_constraints_for",
-      "community": 61,
+      "community": 60,
       "norm_label": "constraints_for()"
     },
     {
@@ -4913,7 +4953,7 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "src_data_venue_registry_listed_crypto_symbols",
-      "community": 61,
+      "community": 66,
       "norm_label": "listed_crypto_symbols()"
     },
     {
@@ -4923,7 +4963,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_venue_registry_rationale_1",
-      "community": 61,
+      "community": 66,
       "norm_label": "registru unic de venue: simboluri, constraints, sursa istorica vs executie.  exe"
     },
     {
@@ -4963,7 +5003,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_adapters_kraken_paper",
-      "community": 42,
+      "community": 24,
       "norm_label": "kraken_paper.py"
     },
     {
@@ -4973,7 +5013,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_engine_adapters_kraken_paper_build_kraken_data_client_config",
-      "community": 42,
+      "community": 24,
       "norm_label": "build_kraken_data_client_config()"
     },
     {
@@ -4983,7 +5023,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "krakendataclientconfig",
-      "community": 42,
+      "community": 24,
       "norm_label": "krakendataclientconfig"
     },
     {
@@ -4993,7 +5033,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_engine_adapters_kraken_paper_build_sandbox_exec_client_config",
-      "community": 42,
+      "community": 24,
       "norm_label": "build_sandbox_exec_client_config()"
     },
     {
@@ -5003,7 +5043,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_engine_adapters_kraken_paper_py_decimal",
-      "community": 42,
+      "community": 24,
       "norm_label": "decimal"
     },
     {
@@ -5013,7 +5053,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "sandboxexecutionclientconfig",
-      "community": 42,
+      "community": 24,
       "norm_label": "sandboxexecutionclientconfig"
     },
     {
@@ -5023,7 +5063,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_engine_adapters_kraken_paper_build_paper_node_config",
-      "community": 81,
+      "community": 24,
       "norm_label": "build_paper_node_config()"
     },
     {
@@ -5033,7 +5073,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tradingnodeconfig",
-      "community": 81,
+      "community": 24,
       "norm_label": "tradingnodeconfig"
     },
     {
@@ -5043,7 +5083,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_adapters_kraken_paper_rationale_1",
-      "community": 42,
+      "community": 24,
       "norm_label": "cale b: date publice kraken + executie sandbox nautilus. zero chei de trading."
     },
     {
@@ -5053,7 +5093,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_engine_adapters_kraken_paper_rationale_16",
-      "community": 42,
+      "community": 24,
       "norm_label": "client de date spot, fara credentiale \u2014 feed public."
     },
     {
@@ -5063,7 +5103,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_engine_adapters_kraken_paper_rationale_22",
-      "community": 42,
+      "community": 24,
       "norm_label": "executie simulata locala. niciun ordin nu ajunge la kraken."
     },
     {
@@ -5083,7 +5123,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "src_engine_backtest_runner_backtestmetrics",
-      "community": 33,
+      "community": 13,
       "norm_label": "backtestmetrics"
     },
     {
@@ -5093,7 +5133,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "src_engine_backtest_runner_backtestmetrics_comparable",
-      "community": 33,
+      "community": 13,
       "norm_label": ".comparable()"
     },
     {
@@ -5103,7 +5143,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_engine_backtest_runner_py_any",
-      "community": 33,
+      "community": 13,
       "norm_label": "any"
     },
     {
@@ -5293,7 +5333,7 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "src_engine_backtest_runner_rationale_71",
-      "community": 33,
+      "community": 13,
       "norm_label": "campuri stabile intre rulari (fara uuid/wall-clock)."
     },
     {
@@ -5333,7 +5373,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_engine_cost_models_partialslippagefillmodel",
-      "community": 13,
+      "community": 120,
       "norm_label": "partialslippagefillmodel"
     },
     {
@@ -5343,7 +5383,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "fillmodel",
-      "community": 13,
+      "community": 120,
       "norm_label": "fillmodel"
     },
     {
@@ -5353,7 +5393,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_engine_cost_models_partialslippagefillmodel_init",
-      "community": 13,
+      "community": 120,
       "norm_label": ".__init__()"
     },
     {
@@ -5363,7 +5403,7 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "src_engine_cost_models_partialslippagefillmodel_get_orderbook_for_fill_simulation",
-      "community": 13,
+      "community": 120,
       "norm_label": ".get_orderbook_for_fill_simulation()"
     },
     {
@@ -5373,7 +5413,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "instrument",
-      "community": 13,
+      "community": 120,
       "norm_label": "instrument"
     },
     {
@@ -5383,7 +5423,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "order",
-      "community": 13,
+      "community": 120,
       "norm_label": "order"
     },
     {
@@ -5393,7 +5433,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "price",
-      "community": 13,
+      "community": 120,
       "norm_label": "price"
     },
     {
@@ -5403,7 +5443,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "orderbook",
-      "community": 13,
+      "community": 120,
       "norm_label": "orderbook"
     },
     {
@@ -5453,7 +5493,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_engine_cost_models_rationale_56",
-      "community": 13,
+      "community": 120,
       "norm_label": "40% din cantitate la best bid/ask, restul la n tick-uri mai rau (n = cost_multip"
     },
     {
@@ -5513,7 +5553,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_llm_client",
-      "community": 1,
+      "community": 33,
       "norm_label": "llm_client.py"
     },
     {
@@ -5593,7 +5633,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_llm_client_rationale_1",
-      "community": 1,
+      "community": 33,
       "norm_label": "client http catre procesul llm \u2014 zero import din src.llm.  deserializeaza json-u"
     },
     {
@@ -5603,7 +5643,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_paper_config",
-      "community": 42,
+      "community": 59,
       "norm_label": "paper_config.py"
     },
     {
@@ -5613,7 +5653,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_engine_paper_config_papertradingconfig",
-      "community": 59,
+      "community": 33,
       "norm_label": "papertradingconfig"
     },
     {
@@ -5623,7 +5663,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_engine_paper_config_papertradingconfig_dry_run_must_be_true",
-      "community": 59,
+      "community": 33,
       "norm_label": "._dry_run_must_be_true()"
     },
     {
@@ -5633,7 +5673,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_engine_paper_config_papertradingconfig_slow_gt_fast",
-      "community": 59,
+      "community": 33,
       "norm_label": "._slow_gt_fast()"
     },
     {
@@ -5643,7 +5683,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_engine_paper_config_load_paper_trading_config",
-      "community": 42,
+      "community": 59,
       "norm_label": "load_paper_trading_config()"
     },
     {
@@ -5653,7 +5693,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_engine_paper_config_py_path",
-      "community": 42,
+      "community": 59,
       "norm_label": "path"
     },
     {
@@ -5663,7 +5703,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_paper_config_rationale_1",
-      "community": 42,
+      "community": 59,
       "norm_label": "config paper trading \u2014 validare hard, fara fallback live."
     },
     {
@@ -5673,7 +5713,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_portfolio_tracker",
-      "community": 33,
+      "community": 21,
       "norm_label": "portfolio_tracker.py"
     },
     {
@@ -5683,7 +5723,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_engine_portfolio_tracker_portfoliotracker",
-      "community": 33,
+      "community": 21,
       "norm_label": "portfoliotracker"
     },
     {
@@ -5693,7 +5733,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_engine_portfolio_tracker_portfoliotracker_init",
-      "community": 33,
+      "community": 21,
       "norm_label": ".__init__()"
     },
     {
@@ -5703,7 +5743,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_engine_portfolio_tracker_py_decimal",
-      "community": 33,
+      "community": 21,
       "norm_label": "decimal"
     },
     {
@@ -5713,7 +5753,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_engine_portfolio_tracker_portfoliotracker_on_bar",
-      "community": 33,
+      "community": 21,
       "norm_label": ".on_bar()"
     },
     {
@@ -5723,7 +5763,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_engine_portfolio_tracker_py_datetime",
-      "community": 33,
+      "community": 21,
       "norm_label": "datetime"
     },
     {
@@ -5733,7 +5773,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_engine_portfolio_tracker_portfoliotracker_record_order_submit",
-      "community": 33,
+      "community": 21,
       "norm_label": ".record_order_submit()"
     },
     {
@@ -5743,7 +5783,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_engine_portfolio_tracker_portfoliotracker_on_fill",
-      "community": 33,
+      "community": 21,
       "norm_label": ".on_fill()"
     },
     {
@@ -5753,7 +5793,7 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "src_engine_portfolio_tracker_portfoliotracker_snapshot",
-      "community": 33,
+      "community": 21,
       "norm_label": ".snapshot()"
     },
     {
@@ -5763,7 +5803,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "src_engine_portfolio_tracker_portfoliotracker_equity",
-      "community": 33,
+      "community": 21,
       "norm_label": "._equity()"
     },
     {
@@ -5773,7 +5813,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_portfolio_tracker_rationale_1",
-      "community": 33,
+      "community": 21,
       "norm_label": "tracker de portofoliu determinist \u2014 input pentru riskengine in timpul backtestul"
     },
     {
@@ -5803,7 +5843,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_engine_proposal_cache_proposalclient_request_proposal",
-      "community": 1,
+      "community": 33,
       "norm_label": ".request_proposal()"
     },
     {
@@ -5843,7 +5883,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_engine_proposal_cache_cachingllmproposalclient_init",
-      "community": 33,
+      "community": 1,
       "norm_label": ".__init__()"
     },
     {
@@ -5903,7 +5943,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_proposal_types",
-      "community": 1,
+      "community": 33,
       "norm_label": "proposal_types.py"
     },
     {
@@ -5913,7 +5953,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_engine_proposal_types_parsedproposal",
-      "community": 1,
+      "community": 33,
       "norm_label": "parsedproposal"
     },
     {
@@ -5923,7 +5963,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_engine_proposal_types_rejectedproposal",
-      "community": 1,
+      "community": 33,
       "norm_label": "rejectedproposal"
     },
     {
@@ -5943,7 +5983,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_proposal_types_rationale_1",
-      "community": 1,
+      "community": 33,
       "norm_label": "tipuri de propunere pe partea engine/ \u2014 duplicat structural al llm.schema.  defi"
     },
     {
@@ -5953,7 +5993,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_engine_proposal_types_rationale_26",
-      "community": 1,
+      "community": 33,
       "norm_label": "deserializare locala a json-ului http \u2014 identic structural cu llmproposal."
     },
     {
@@ -5963,7 +6003,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_engine_proposal_types_rationale_37",
-      "community": 1,
+      "community": 33,
       "norm_label": "respingere primita pe http sau produsa de client (timeout/erori de transport)."
     },
     {
@@ -6263,7 +6303,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_strategy_baseline",
-      "community": 58,
+      "community": 21,
       "norm_label": "strategy_baseline.py"
     },
     {
@@ -6273,7 +6313,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_engine_strategy_baseline_baselineemacrossconfig",
-      "community": 33,
+      "community": 13,
       "norm_label": "baselineemacrossconfig"
     },
     {
@@ -6283,7 +6323,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "strategyconfig",
-      "community": 33,
+      "community": 13,
       "norm_label": "strategyconfig"
     },
     {
@@ -6293,7 +6333,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_engine_strategy_baseline_baselineemacross",
-      "community": 33,
+      "community": 21,
       "norm_label": "baselineemacross"
     },
     {
@@ -6303,7 +6343,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "strategy",
-      "community": 33,
+      "community": 21,
       "norm_label": "strategy"
     },
     {
@@ -6323,7 +6363,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_engine_strategy_baseline_baselineemacross_set_source_bars",
-      "community": 33,
+      "community": 21,
       "norm_label": ".set_source_bars()"
     },
     {
@@ -6333,7 +6373,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_engine_strategy_baseline_baselineemacross_on_start",
-      "community": 33,
+      "community": 21,
       "norm_label": ".on_start()"
     },
     {
@@ -6343,7 +6383,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_engine_strategy_baseline_baselineemacross_on_bar",
-      "community": 58,
+      "community": 21,
       "norm_label": ".on_bar()"
     },
     {
@@ -6353,7 +6393,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_engine_strategy_baseline_py_nautilusbar",
-      "community": 58,
+      "community": 21,
       "norm_label": "nautilusbar"
     },
     {
@@ -6363,7 +6403,7 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "src_engine_strategy_baseline_baselineemacross_on_event",
-      "community": 33,
+      "community": 21,
       "norm_label": ".on_event()"
     },
     {
@@ -6373,7 +6413,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "src_engine_strategy_baseline_from_ns",
-      "community": 58,
+      "community": 21,
       "norm_label": "_from_ns()"
     },
     {
@@ -6383,7 +6423,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_engine_strategy_baseline_py_datetime",
-      "community": 58,
+      "community": 21,
       "norm_label": "datetime"
     },
     {
@@ -6393,7 +6433,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "src_engine_strategy_baseline_from_nautilus",
-      "community": 58,
+      "community": 21,
       "norm_label": "_from_nautilus()"
     },
     {
@@ -6403,7 +6443,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_strategy_baseline_rationale_1",
-      "community": 58,
+      "community": 21,
       "norm_label": "strategie baseline ema-cross, long-only, fara llm \u2014 trece prin riskengine."
     },
     {
@@ -6413,7 +6453,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_engine_strategy_baseline_rationale_34",
-      "community": 33,
+      "community": 21,
       "norm_label": "ema-cross determinist. marimea pozitiei vine exclusiv din riskengine."
     },
     {
@@ -6463,7 +6503,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_engine_strategy_llm_assisted_llmassistedstrategy_set_source_bars",
-      "community": 33,
+      "community": 43,
       "norm_label": ".set_source_bars()"
     },
     {
@@ -6553,7 +6593,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_strategy_paper",
-      "community": 59,
+      "community": 33,
       "norm_label": "strategy_paper.py"
     },
     {
@@ -6583,7 +6623,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_engine_strategy_paper_sessionrecord",
-      "community": 59,
+      "community": 33,
       "norm_label": "sessionrecord"
     },
     {
@@ -6593,7 +6633,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_engine_strategy_paper_paperrunresult",
-      "community": 59,
+      "community": 33,
       "norm_label": "paperrunresult"
     },
     {
@@ -6613,7 +6653,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_engine_strategy_paper_papertradingloop_init",
-      "community": 59,
+      "community": 40,
       "norm_label": ".__init__()"
     },
     {
@@ -6623,7 +6663,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_engine_strategy_paper_py_path",
-      "community": 59,
+      "community": 40,
       "norm_label": "path"
     },
     {
@@ -6733,7 +6773,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_engine_strategy_paper_rationale_1",
-      "community": 59,
+      "community": 33,
       "norm_label": "paper trading loop \u2014 faza 5. nu modifica calea de backtest.  flux: bar \u2192 llm_cli"
     },
     {
@@ -6763,7 +6803,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_execution_broker",
-      "community": 59,
+      "community": 39,
       "norm_label": "broker.py"
     },
     {
@@ -6783,7 +6823,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_execution_broker_brokerclient",
-      "community": 59,
+      "community": 39,
       "norm_label": "brokerclient"
     },
     {
@@ -6793,7 +6833,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_execution_broker_brokerclient_submit",
-      "community": 59,
+      "community": 39,
       "norm_label": ".submit()"
     },
     {
@@ -6803,7 +6843,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_execution_broker_brokerclient_cancel_all",
-      "community": 59,
+      "community": 39,
       "norm_label": ".cancel_all()"
     },
     {
@@ -6813,7 +6853,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_execution_broker_brokerclient_snapshot",
-      "community": 59,
+      "community": 39,
       "norm_label": ".snapshot()"
     },
     {
@@ -6933,7 +6973,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_execution_broker_rationale_1",
-      "community": 59,
+      "community": 39,
       "norm_label": "brokerclient protocol + simulatedbroker (dry_run local, zero chei de exchange)."
     },
     {
@@ -7043,7 +7083,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_execution_human_approval_scriptedapprovaloperator",
-      "community": 91,
+      "community": 81,
       "norm_label": "scriptedapprovaloperator"
     },
     {
@@ -7053,7 +7093,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_execution_human_approval_scriptedapprovaloperator_init",
-      "community": 91,
+      "community": 81,
       "norm_label": ".__init__()"
     },
     {
@@ -7153,7 +7193,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_execution_human_approval_rationale_43",
-      "community": 91,
+      "community": 81,
       "norm_label": "simuleaza po-ul scriind acelasi fisier de decizie ca un om. nu e bypass intern."
     },
     {
@@ -7453,7 +7493,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_execution_kraken_live",
-      "community": 59,
+      "community": 61,
       "norm_label": "kraken_live.py"
     },
     {
@@ -7493,7 +7533,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "src_execution_kraken_live_kraken_errors",
-      "community": 59,
+      "community": 61,
       "norm_label": "_kraken_errors()"
     },
     {
@@ -7533,7 +7573,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_execution_kraken_live_py_decimal",
-      "community": 59,
+      "community": 61,
       "norm_label": "decimal"
     },
     {
@@ -7613,7 +7653,7 @@
       "source_location": "L173",
       "_origin": "ast",
       "id": "src_execution_kraken_live_krakenlivebroker_submit",
-      "community": 59,
+      "community": 61,
       "norm_label": ".submit()"
     },
     {
@@ -7673,7 +7713,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_execution_kraken_live_rationale_1",
-      "community": 59,
+      "community": 61,
       "norm_label": "krakenlivebroker \u2014 brokerclient rest spot. zero nautilus live exec.  mod implici"
     },
     {
@@ -7713,7 +7753,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_execution_order_gateway",
-      "community": 59,
+      "community": 39,
       "norm_label": "order_gateway.py"
     },
     {
@@ -7723,7 +7763,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_execution_order_gateway_ordergateway",
-      "community": 59,
+      "community": 91,
       "norm_label": "ordergateway"
     },
     {
@@ -7733,7 +7773,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_execution_order_gateway_ordergateway_init",
-      "community": 59,
+      "community": 39,
       "norm_label": ".__init__()"
     },
     {
@@ -7743,7 +7783,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_execution_order_gateway_ordergateway_submit",
-      "community": 59,
+      "community": 91,
       "norm_label": ".submit()"
     },
     {
@@ -7753,7 +7793,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_execution_order_gateway_ordergateway_cancel_all",
-      "community": 59,
+      "community": 91,
       "norm_label": ".cancel_all()"
     },
     {
@@ -7763,7 +7803,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_execution_order_gateway_rationale_1",
-      "community": 59,
+      "community": 39,
       "norm_label": "ordergateway \u2014 submit idempotent + cancel_all. nu importa src.llm."
     },
     {
@@ -7773,7 +7813,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_execution_order_validation",
-      "community": 61,
+      "community": 60,
       "norm_label": "order_validation.py"
     },
     {
@@ -7783,7 +7823,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_execution_order_validation_quantize",
-      "community": 61,
+      "community": 60,
       "norm_label": "_quantize()"
     },
     {
@@ -7793,7 +7833,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_execution_order_validation_py_decimal",
-      "community": 61,
+      "community": 60,
       "norm_label": "decimal"
     },
     {
@@ -7803,7 +7843,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_execution_order_validation_validate_order_constraints",
-      "community": 61,
+      "community": 60,
       "norm_label": "validate_order_constraints()"
     },
     {
@@ -7813,7 +7853,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_execution_order_validation_rationale_1",
-      "community": 61,
+      "community": 60,
       "norm_label": "validare determinista a ordinului fata de constraints (universe + assetpairs)."
     },
     {
@@ -7823,7 +7863,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_execution_order_validation_rationale_24",
-      "community": 61,
+      "community": 60,
       "norm_label": "intoarce un motiv de reject sau none daca ordinul e valid."
     },
     {
@@ -7953,7 +7993,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_execution_safety_haltandflatten_init",
-      "community": 8,
+      "community": 40,
       "norm_label": ".__init__()"
     },
     {
@@ -8033,7 +8073,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_execution_types",
-      "community": 59,
+      "community": 39,
       "norm_label": "types.py"
     },
     {
@@ -8043,7 +8083,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_execution_types_orderrequest",
-      "community": 59,
+      "community": 91,
       "norm_label": "orderrequest"
     },
     {
@@ -8053,7 +8093,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_execution_types_orderresult",
-      "community": 59,
+      "community": 39,
       "norm_label": "orderresult"
     },
     {
@@ -8063,7 +8103,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_execution_types_rationale_1",
-      "community": 59,
+      "community": 39,
       "norm_label": "orderrequest / orderresult \u2014 design \u00a74.4."
     },
     {
@@ -8103,7 +8143,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_llm_schema_llmproposal",
-      "community": 68,
+      "community": 62,
       "norm_label": "llmproposal"
     },
     {
@@ -8133,7 +8173,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_llm_schema_rationale_25",
-      "community": 68,
+      "community": 62,
       "norm_label": "iesirea valida a stratului llm. extra=forbid: campuri necunoscute \u2192 invalid."
     },
     {
@@ -8153,7 +8193,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_llm_server",
-      "community": 0,
+      "community": 62,
       "norm_label": "server.py"
     },
     {
@@ -8163,7 +8203,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_llm_server_proposerequest",
-      "community": 68,
+      "community": 62,
       "norm_label": "proposerequest"
     },
     {
@@ -8193,7 +8233,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "src_llm_server_load_dotenv_llm",
-      "community": 0,
+      "community": 62,
       "norm_label": "_load_dotenv_llm()"
     },
     {
@@ -8203,7 +8243,7 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "src_llm_server_propose",
-      "community": 68,
+      "community": 62,
       "norm_label": "propose()"
     },
     {
@@ -8213,7 +8253,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_llm_server_py_rejectedproposal",
-      "community": 68,
+      "community": 62,
       "norm_label": "rejectedproposal"
     },
     {
@@ -8223,7 +8263,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_llm_server_main",
-      "community": 0,
+      "community": 62,
       "norm_label": "main()"
     },
     {
@@ -8233,7 +8273,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_llm_server_rationale_1",
-      "community": 0,
+      "community": 62,
       "norm_label": "http loopback \u2014 singurul punct de intrare extern al procesului llm.  host-ul e f"
     },
     {
@@ -8243,7 +8283,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_llm_server_rationale_44",
-      "community": 68,
+      "community": 62,
       "norm_label": "corpul post /propose \u2014 independent de engine.proposalcontext."
     },
     {
@@ -8293,7 +8333,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_llm_service_load_llm_settings",
-      "community": 73,
+      "community": 62,
       "norm_label": "load_llm_settings()"
     },
     {
@@ -8303,7 +8343,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_llm_service_py_path",
-      "community": 73,
+      "community": 62,
       "norm_label": "path"
     },
     {
@@ -8333,7 +8373,7 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "src_llm_service_validate_against_universe",
-      "community": 68,
+      "community": 62,
       "norm_label": "validate_against_universe()"
     },
     {
@@ -8423,7 +8463,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "src_llm_service_rationale_58",
-      "community": 73,
+      "community": 62,
       "norm_label": "citeste exclusiv variabilele din .env.llm / environ-ul procesului llm."
     },
     {
@@ -8583,7 +8623,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_monitor_watchdog_watchdog",
-      "community": 8,
+      "community": 40,
       "norm_label": "watchdog"
     },
     {
@@ -8633,7 +8673,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_monitor_watchdog_watchdog_check_unreconciled_positions",
-      "community": 8,
+      "community": 40,
       "norm_label": ".check_unreconciled_positions()"
     },
     {
@@ -8643,7 +8683,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_monitor_watchdog_watchdog_set_halt",
-      "community": 8,
+      "community": 40,
       "norm_label": ".set_halt()"
     },
     {
@@ -8663,7 +8703,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_monitor_watchdog_rationale_14",
-      "community": 8,
+      "community": 40,
       "norm_label": "citeste runtime/ (heartbeat, last_bar, reconciliation). halt prin killswitch."
     },
     {
@@ -8953,7 +8993,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_research_context_builder",
-      "community": 45,
+      "community": 106,
       "norm_label": "context_builder.py"
     },
     {
@@ -8963,7 +9003,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_research_context_builder_require_utc",
-      "community": 45,
+      "community": 106,
       "norm_label": "_require_utc()"
     },
     {
@@ -8973,7 +9013,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_research_context_builder_py_datetime",
-      "community": 45,
+      "community": 106,
       "norm_label": "datetime"
     },
     {
@@ -8983,7 +9023,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_research_context_builder_fmt_dt",
-      "community": 45,
+      "community": 106,
       "norm_label": "_fmt_dt()"
     },
     {
@@ -8993,7 +9033,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_research_context_builder_interpretation",
-      "community": 45,
+      "community": 106,
       "norm_label": "_interpretation()"
     },
     {
@@ -9003,7 +9043,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "src_research_context_builder_render_document",
-      "community": 45,
+      "community": 106,
       "norm_label": "_render_document()"
     },
     {
@@ -9033,7 +9073,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_research_context_builder_rationale_1",
-      "community": 45,
+      "community": 106,
       "norm_label": "r3 \u2014 context builder determinist (design-research-financiar.md \u00a76.4, research-cr"
     },
     {
@@ -9043,7 +9083,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_research_context_builder_rationale_41",
-      "community": 45,
+      "community": 106,
       "norm_label": "strat de analiza/semnal (\u00a77: rezumat/analiza), separat explicit de facts:."
     },
     {
@@ -9093,7 +9133,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_research_models_researchdocument",
-      "community": 83,
+      "community": 106,
       "norm_label": "researchdocument"
     },
     {
@@ -9133,7 +9173,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "src_research_models_rationale_58",
-      "community": 83,
+      "community": 106,
       "norm_label": "randul normalizat, persistat in metadata.db \u2014 vezi design \u00a75 pentru ddl echivale"
     },
     {
@@ -9343,7 +9383,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_research_store",
-      "community": 36,
+      "community": 83,
       "norm_label": "store.py"
     },
     {
@@ -9353,7 +9393,7 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "src_research_store_compute_doc_id",
-      "community": 36,
+      "community": 83,
       "norm_label": "compute_doc_id()"
     },
     {
@@ -9363,7 +9403,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_research_store_py_datetime",
-      "community": 36,
+      "community": 83,
       "norm_label": "datetime"
     },
     {
@@ -9433,7 +9473,7 @@
       "source_location": "L153",
       "_origin": "ast",
       "id": "src_research_store_rawdocumentstore_init",
-      "community": 83,
+      "community": 31,
       "norm_label": ".__init__()"
     },
     {
@@ -9443,7 +9483,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_research_store_py_path",
-      "community": 83,
+      "community": 31,
       "norm_label": "path"
     },
     {
@@ -9453,7 +9493,7 @@
       "source_location": "L156",
       "_origin": "ast",
       "id": "src_research_store_rawdocumentstore_save",
-      "community": 31,
+      "community": 30,
       "norm_label": ".save()"
     },
     {
@@ -9473,7 +9513,7 @@
       "source_location": "L170",
       "_origin": "ast",
       "id": "src_research_store_dt_to_iso",
-      "community": 36,
+      "community": 83,
       "norm_label": "_dt_to_iso()"
     },
     {
@@ -9483,7 +9523,7 @@
       "source_location": "L176",
       "_origin": "ast",
       "id": "src_research_store_iso_to_dt",
-      "community": 36,
+      "community": 83,
       "norm_label": "_iso_to_dt()"
     },
     {
@@ -9493,7 +9533,7 @@
       "source_location": "L182",
       "_origin": "ast",
       "id": "src_research_store_metadatastore",
-      "community": 83,
+      "community": 31,
       "norm_label": "metadatastore"
     },
     {
@@ -9503,7 +9543,7 @@
       "source_location": "L185",
       "_origin": "ast",
       "id": "src_research_store_metadatastore_init",
-      "community": 83,
+      "community": 31,
       "norm_label": ".__init__()"
     },
     {
@@ -9513,7 +9553,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "src_research_store_metadatastore_close",
-      "community": 83,
+      "community": 31,
       "norm_label": ".close()"
     },
     {
@@ -9543,7 +9583,7 @@
       "source_location": "L253",
       "_origin": "ast",
       "id": "src_research_store_metadatastore_list_documents",
-      "community": 83,
+      "community": 106,
       "norm_label": ".list_documents()"
     },
     {
@@ -9563,7 +9603,7 @@
       "source_location": "L290",
       "_origin": "ast",
       "id": "src_research_store_metadatastore_related_documents",
-      "community": 83,
+      "community": 31,
       "norm_label": ".related_documents()"
     },
     {
@@ -9593,7 +9633,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_research_store_rationale_1",
-      "community": 36,
+      "community": 83,
       "norm_label": "r2 \u2014 rawdocumentstore, metadatastore, extractie+normalizare (design-research-fin"
     },
     {
@@ -9603,7 +9643,7 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "src_research_store_rationale_81",
-      "community": 36,
+      "community": 83,
       "norm_label": "sha256(url|fetched_at) \u2014 identic cu _raw_payload_ref din connectors.py (design \u00a7"
     },
     {
@@ -9663,7 +9703,7 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "src_research_store_rationale_183",
-      "community": 83,
+      "community": 31,
       "norm_label": "wrapper sqlite peste schema design-research-financiar.md \u00a75."
     },
     {
@@ -9683,7 +9723,7 @@
       "source_location": "L256",
       "_origin": "ast",
       "id": "src_research_store_rationale_256",
-      "community": 83,
+      "community": 106,
       "norm_label": "listare pentru control plane \u2014 read-only, fara retea."
     },
     {
@@ -9693,7 +9733,7 @@
       "source_location": "L291",
       "_origin": "ast",
       "id": "src_research_store_rationale_291",
-      "community": 83,
+      "community": 31,
       "norm_label": "(related_doc_id, relation_type) pentru un doc_id \u2014 folosit de teste de dedup/adv"
     },
     {
@@ -9723,7 +9763,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_risk_circuit_breaker",
-      "community": 8,
+      "community": 33,
       "norm_label": "circuit_breaker.py"
     },
     {
@@ -9803,7 +9843,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_risk_circuit_breaker_rationale_1",
-      "community": 8,
+      "community": 33,
       "norm_label": "circuit breaker \u2014 stare running/halted, reluare doar prin kill switch manual."
     },
     {
@@ -9823,7 +9863,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_risk_config_schema",
-      "community": 62,
+      "community": 48,
       "norm_label": "config_schema.py"
     },
     {
@@ -9833,7 +9873,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_risk_config_schema_decimal_from_yaml",
-      "community": 62,
+      "community": 48,
       "norm_label": "_decimal_from_yaml()"
     },
     {
@@ -9843,7 +9883,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_risk_config_schema_py_any",
-      "community": 62,
+      "community": 48,
       "norm_label": "any"
     },
     {
@@ -9853,7 +9893,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_risk_config_schema_py_decimal",
-      "community": 62,
+      "community": 48,
       "norm_label": "decimal"
     },
     {
@@ -9883,7 +9923,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_risk_config_schema_risklimits",
-      "community": 60,
+      "community": 48,
       "norm_label": "risklimits"
     },
     {
@@ -9893,7 +9933,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_risk_config_schema_load_risk_limits",
-      "community": 21,
+      "community": 48,
       "norm_label": "load_risk_limits()"
     },
     {
@@ -9903,7 +9943,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_risk_config_schema_py_path",
-      "community": 21,
+      "community": 48,
       "norm_label": "path"
     },
     {
@@ -9913,7 +9953,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_risk_config_schema_rationale_1",
-      "community": 62,
+      "community": 48,
       "norm_label": "schema risklimits \u2014 validare hard la pornire, fara fallback silentios."
     },
     {
@@ -9923,7 +9963,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_risk_config_schema_rationale_16",
-      "community": 62,
+      "community": 48,
       "norm_label": "yaml incarca numere ca float; trecem prin str ca sa nu pierdem precizie."
     },
     {
@@ -9933,7 +9973,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "src_risk_config_schema_rationale_49",
-      "community": 60,
+      "community": 48,
       "norm_label": "limite imutabile pe durata rularii. extra fields interzise."
     },
     {
@@ -9943,7 +9983,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_risk_config_schema_rationale_63",
-      "community": 21,
+      "community": 48,
       "norm_label": "incarca si valideaza config/risk_limits.yaml. lipsa/invalid \u2192 valueerror, fara d"
     },
     {
@@ -10083,7 +10123,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_risk_portfolio_state",
-      "community": 62,
+      "community": 48,
       "norm_label": "portfolio_state.py"
     },
     {
@@ -10103,7 +10143,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_risk_portfolio_state_portfoliostate",
-      "community": 60,
+      "community": 9,
       "norm_label": "portfoliostate"
     },
     {
@@ -10113,7 +10153,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_risk_portfolio_state_optional_positive_decimal",
-      "community": 62,
+      "community": 48,
       "norm_label": "_optional_positive_decimal()"
     },
     {
@@ -10123,7 +10163,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_risk_portfolio_state_py_any",
-      "community": 62,
+      "community": 48,
       "norm_label": "any"
     },
     {
@@ -10133,7 +10173,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_risk_portfolio_state_py_decimal",
-      "community": 62,
+      "community": 48,
       "norm_label": "decimal"
     },
     {
@@ -10143,7 +10183,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_risk_portfolio_state_load_instrument_rules",
-      "community": 106,
+      "community": 48,
       "norm_label": "load_instrument_rules()"
     },
     {
@@ -10153,7 +10193,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_risk_portfolio_state_py_path",
-      "community": 106,
+      "community": 48,
       "norm_label": "path"
     },
     {
@@ -10163,7 +10203,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_risk_portfolio_state_rationale_1",
-      "community": 62,
+      "community": 48,
       "norm_label": "starea de portofoliu si regulile de rotunjire per instrument.  nu e un snapshot"
     },
     {
@@ -10183,7 +10223,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_risk_portfolio_state_rationale_39",
-      "community": 60,
+      "community": 9,
       "norm_label": "expunere si metrici de risc deja realizate \u2014 niciun camp nu vine din llm."
     },
     {
@@ -10193,7 +10233,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "src_risk_portfolio_state_rationale_67",
-      "community": 106,
+      "community": 48,
       "norm_label": "citeste regulile per simbol din universe.yaml. campuri optionale \u2192 default-uri s"
     },
     {
@@ -10263,7 +10303,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_risk_risk_engine",
-      "community": 60,
+      "community": 33,
       "norm_label": "risk_engine.py"
     },
     {
@@ -10273,7 +10313,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_risk_risk_engine_riskdecision",
-      "community": 60,
+      "community": 9,
       "norm_label": "riskdecision"
     },
     {
@@ -10283,7 +10323,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_risk_risk_engine_riskengine",
-      "community": 60,
+      "community": 33,
       "norm_label": "riskengine"
     },
     {
@@ -10293,7 +10333,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_risk_risk_engine_riskengine_init",
-      "community": 60,
+      "community": 48,
       "norm_label": ".__init__()"
     },
     {
@@ -10303,7 +10343,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_risk_risk_engine_riskengine_evaluate",
-      "community": 60,
+      "community": 9,
       "norm_label": ".evaluate()"
     },
     {
@@ -10313,7 +10353,7 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_risk_risk_engine_riskengine_evaluate_exit",
-      "community": 60,
+      "community": 9,
       "norm_label": "._evaluate_exit()"
     },
     {
@@ -10323,7 +10363,7 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "src_risk_risk_engine_riskengine_evaluate_long",
-      "community": 60,
+      "community": 9,
       "norm_label": "._evaluate_long()"
     },
     {
@@ -10333,7 +10373,7 @@
       "source_location": "L145",
       "_origin": "ast",
       "id": "src_risk_risk_engine_riskengine_reject",
-      "community": 60,
+      "community": 9,
       "norm_label": "._reject()"
     },
     {
@@ -10343,7 +10383,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_risk_risk_engine_rationale_1",
-      "community": 60,
+      "community": 33,
       "norm_label": "riskengine \u2014 singura cale de la parsedproposal la o decizie de marime.  primeste"
     },
     {
@@ -10353,7 +10393,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_risk_risk_engine_rationale_32",
-      "community": 60,
+      "community": 9,
       "norm_label": "iesirea evaluate(). `side` e conventional 'buy' cand approved=false (camp fara s"
     },
     {
@@ -11133,7 +11173,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_adversarial_test_risk_bypass",
-      "community": 66,
+      "community": 48,
       "norm_label": "test_risk_bypass.py"
     },
     {
@@ -11143,7 +11183,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_adversarial_test_risk_bypass_engine",
-      "community": 66,
+      "community": 48,
       "norm_label": "_engine()"
     },
     {
@@ -11153,7 +11193,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_adversarial_test_risk_bypass_py_path",
-      "community": 66,
+      "community": 48,
       "norm_label": "path"
     },
     {
@@ -11163,7 +11203,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "tests_adversarial_test_risk_bypass_proposal",
-      "community": 66,
+      "community": 48,
       "norm_label": "_proposal()"
     },
     {
@@ -11173,7 +11213,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "tests_adversarial_test_risk_bypass_state",
-      "community": 66,
+      "community": 48,
       "norm_label": "_state()"
     },
     {
@@ -11183,7 +11223,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "tests_adversarial_test_risk_bypass_test_extra_sizing_fields_cannot_enter_parsed_proposal",
-      "community": 66,
+      "community": 48,
       "norm_label": "test_extra_sizing_fields_cannot_enter_parsed_proposal()"
     },
     {
@@ -11193,7 +11233,7 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "tests_adversarial_test_risk_bypass_test_rationale_cannot_raise_size_over_notional_cap",
-      "community": 66,
+      "community": 48,
       "norm_label": "test_rationale_cannot_raise_size_over_notional_cap()"
     },
     {
@@ -11203,7 +11243,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "tests_adversarial_test_risk_bypass_test_exit_at_exposure_limit_does_not_increase_exposure",
-      "community": 66,
+      "community": 48,
       "norm_label": "test_exit_at_exposure_limit_does_not_increase_exposure()"
     },
     {
@@ -11213,7 +11253,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "tests_adversarial_test_risk_bypass_test_rationale_cannot_override_drawdown_limit",
-      "community": 66,
+      "community": 48,
       "norm_label": "test_rationale_cannot_override_drawdown_limit()"
     },
     {
@@ -11223,7 +11263,7 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "tests_adversarial_test_risk_bypass_test_halt_rejects_urgent_high_confidence_proposal",
-      "community": 66,
+      "community": 48,
       "norm_label": "test_halt_rejects_urgent_high_confidence_proposal()"
     },
     {
@@ -11233,7 +11273,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_adversarial_test_risk_bypass_rationale_1",
-      "community": 66,
+      "community": 48,
       "norm_label": "bypass de risc prin continut llm \u2014 respins indiferent de rationale/confidence."
     },
     {
@@ -11423,7 +11463,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_integration_test_paper_trading_flow",
-      "community": 91,
+      "community": 33,
       "norm_label": "test_paper_trading_flow.py"
     },
     {
@@ -11433,7 +11473,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "tests_integration_test_paper_trading_flow_fixedproposalclient",
-      "community": 91,
+      "community": 33,
       "norm_label": "fixedproposalclient"
     },
     {
@@ -11443,7 +11483,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "tests_integration_test_paper_trading_flow_fixedproposalclient_init",
-      "community": 91,
+      "community": 33,
       "norm_label": ".__init__()"
     },
     {
@@ -11453,7 +11493,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "tests_integration_test_paper_trading_flow_fixedproposalclient_request_proposal",
-      "community": 1,
+      "community": 33,
       "norm_label": ".request_proposal()"
     },
     {
@@ -11463,7 +11503,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_integration_test_paper_trading_flow_py_rejectedproposal",
-      "community": 1,
+      "community": 33,
       "norm_label": "rejectedproposal"
     },
     {
@@ -11533,7 +11573,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_integration_test_paper_trading_flow_rationale_1",
-      "community": 91,
+      "community": 33,
       "norm_label": "end-to-end paper flow: proposal \u2192 risc \u2192 aprobare \u2192 ordin \u2192 audit. zero retea."
     },
     {
@@ -11623,7 +11663,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "tests_integration_test_strategy_research_wiring_alwayslong_request_proposal",
-      "community": 1,
+      "community": 89,
       "norm_label": ".request_proposal()"
     },
     {
@@ -11633,7 +11673,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_integration_test_strategy_research_wiring_py_rejectedproposal",
-      "community": 1,
+      "community": 89,
       "norm_label": "rejectedproposal"
     },
     {
@@ -11663,7 +11703,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "tests_integration_test_strategy_research_wiring_capturingclient_request_proposal",
-      "community": 1,
+      "community": 89,
       "norm_label": ".request_proposal()"
     },
     {
@@ -12557,10 +12597,20 @@
       "norm_label": "test_websocket_emits_health_channel()"
     },
     {
-      "label": "test_auth_token_required_when_configured()",
+      "label": "test_websocket_rejects_missing_token_after_accept()",
       "file_type": "code",
       "source_file": "tests/unit/test_control_server.py",
       "source_location": "L476",
+      "_origin": "ast",
+      "id": "tests_unit_test_control_server_test_websocket_rejects_missing_token_after_accept",
+      "community": 88,
+      "norm_label": "test_websocket_rejects_missing_token_after_accept()"
+    },
+    {
+      "label": "test_auth_token_required_when_configured()",
+      "file_type": "code",
+      "source_file": "tests/unit/test_control_server.py",
+      "source_location": "L487",
       "_origin": "ast",
       "id": "tests_unit_test_control_server_test_auth_token_required_when_configured",
       "community": 88,
@@ -12583,7 +12633,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_data_cache",
-      "community": 10,
+      "community": 101,
       "norm_label": "test_data_cache.py"
     },
     {
@@ -12593,7 +12643,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "tests_unit_test_data_cache_test_get_or_fetch_writes_cache_and_is_stable",
-      "community": 10,
+      "community": 101,
       "norm_label": "test_get_or_fetch_writes_cache_and_is_stable()"
     },
     {
@@ -12603,7 +12653,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_unit_test_data_cache_py_path",
-      "community": 10,
+      "community": 101,
       "norm_label": "path"
     },
     {
@@ -12613,7 +12663,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "tests_unit_test_data_cache_test_hash_changes_when_a_close_changes",
-      "community": 10,
+      "community": 101,
       "norm_label": "test_hash_changes_when_a_close_changes()"
     },
     {
@@ -12623,7 +12673,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_data_cache_rationale_1",
-      "community": 10,
+      "community": 101,
       "norm_label": "marketdatacache: persista barele si intoarce acelasi hash la re-citire."
     },
     {
@@ -13093,7 +13143,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "tests_unit_test_historical_test_kraken_source_is_cacheable",
-      "community": 10,
+      "community": 101,
       "norm_label": "test_kraken_source_is_cacheable()"
     },
     {
@@ -13573,7 +13623,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_kraken_paper",
-      "community": 42,
+      "community": 24,
       "norm_label": "test_kraken_paper.py"
     },
     {
@@ -13583,7 +13633,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "tests_unit_test_kraken_paper_test_assert_no_keys_rejects_spot_secret",
-      "community": 42,
+      "community": 24,
       "norm_label": "test_assert_no_keys_rejects_spot_secret()"
     },
     {
@@ -13593,7 +13643,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "tests_unit_test_kraken_paper_test_assert_no_keys_allows_empty",
-      "community": 42,
+      "community": 24,
       "norm_label": "test_assert_no_keys_allows_empty()"
     },
     {
@@ -13603,7 +13653,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "tests_unit_test_kraken_paper_test_data_client_has_no_credentials",
-      "community": 42,
+      "community": 24,
       "norm_label": "test_data_client_has_no_credentials()"
     },
     {
@@ -13613,7 +13663,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_unit_test_kraken_paper_py_monkeypatch",
-      "community": 42,
+      "community": 24,
       "norm_label": "monkeypatch"
     },
     {
@@ -13623,7 +13673,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "tests_unit_test_kraken_paper_test_sandbox_exec_is_local_cash",
-      "community": 42,
+      "community": 24,
       "norm_label": "test_sandbox_exec_is_local_cash()"
     },
     {
@@ -13633,7 +13683,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "tests_unit_test_kraken_paper_test_paper_node_config_wires_kraken_data_and_sandbox_exec",
-      "community": 42,
+      "community": 24,
       "norm_label": "test_paper_node_config_wires_kraken_data_and_sandbox_exec()"
     },
     {
@@ -13643,7 +13693,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_kraken_paper_rationale_1",
-      "community": 42,
+      "community": 24,
       "norm_label": "kraken paper adapter \u2014 date publice, exec sandbox, zero chei."
     },
     {
@@ -13853,7 +13903,7 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "tests_unit_test_llm_service_test_out_of_universe_instrument_rejected",
-      "community": 68,
+      "community": 62,
       "norm_label": "test_out_of_universe_instrument_rejected()"
     },
     {
@@ -13863,7 +13913,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "tests_unit_test_llm_service_test_in_universe_instrument_accepted",
-      "community": 68,
+      "community": 62,
       "norm_label": "test_in_universe_instrument_accepted()"
     },
     {
@@ -14243,7 +14293,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_order_validation",
-      "community": 61,
+      "community": 60,
       "norm_label": "test_order_validation.py"
     },
     {
@@ -14253,7 +14303,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "tests_unit_test_order_validation_order",
-      "community": 61,
+      "community": 60,
       "norm_label": "_order()"
     },
     {
@@ -14263,7 +14313,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_unit_test_order_validation_py_decimal",
-      "community": 61,
+      "community": 60,
       "norm_label": "decimal"
     },
     {
@@ -14273,7 +14323,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "tests_unit_test_order_validation_test_aligned_quantity_passes",
-      "community": 61,
+      "community": 60,
       "norm_label": "test_aligned_quantity_passes()"
     },
     {
@@ -14283,7 +14333,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "tests_unit_test_order_validation_test_unaligned_lot_rejected",
-      "community": 61,
+      "community": 60,
       "norm_label": "test_unaligned_lot_rejected()"
     },
     {
@@ -14293,7 +14343,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "tests_unit_test_order_validation_test_notional_too_small",
-      "community": 61,
+      "community": 60,
       "norm_label": "test_notional_too_small()"
     },
     {
@@ -14303,7 +14353,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_order_validation_rationale_1",
-      "community": 61,
+      "community": 60,
       "norm_label": "validare lot / notional inainte de submit live."
     },
     {
@@ -14313,7 +14363,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_paper_config",
-      "community": 42,
+      "community": 59,
       "norm_label": "test_paper_config.py"
     },
     {
@@ -14323,7 +14373,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "tests_unit_test_paper_config_valid",
-      "community": 42,
+      "community": 59,
       "norm_label": "_valid()"
     },
     {
@@ -14333,7 +14383,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "tests_unit_test_paper_config_test_real_paper_config_loads",
-      "community": 42,
+      "community": 59,
       "norm_label": "test_real_paper_config_loads()"
     },
     {
@@ -14343,7 +14393,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "tests_unit_test_paper_config_test_dry_run_false_refused",
-      "community": 42,
+      "community": 59,
       "norm_label": "test_dry_run_false_refused()"
     },
     {
@@ -14353,7 +14403,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_unit_test_paper_config_py_path",
-      "community": 42,
+      "community": 59,
       "norm_label": "path"
     },
     {
@@ -14363,7 +14413,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "tests_unit_test_paper_config_test_path_a_refused",
-      "community": 42,
+      "community": 59,
       "norm_label": "test_path_a_refused()"
     },
     {
@@ -14373,7 +14423,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "tests_unit_test_paper_config_test_missing_file",
-      "community": 42,
+      "community": 59,
       "norm_label": "test_missing_file()"
     },
     {
@@ -14383,7 +14433,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_paper_config_rationale_1",
-      "community": 42,
+      "community": 59,
       "norm_label": "validare hard paper_trading.yaml \u2014 dry_run obligatoriu."
     },
     {
@@ -14393,7 +14443,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_portfolio_state",
-      "community": 106,
+      "community": 48,
       "norm_label": "test_portfolio_state.py"
     },
     {
@@ -14403,7 +14453,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_unit_test_portfolio_state_test_real_universe_loads_explicit_rules",
-      "community": 106,
+      "community": 48,
       "norm_label": "test_real_universe_loads_explicit_rules()"
     },
     {
@@ -14413,7 +14463,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_unit_test_portfolio_state_test_missing_optional_fields_use_defaults",
-      "community": 106,
+      "community": 48,
       "norm_label": "test_missing_optional_fields_use_defaults()"
     },
     {
@@ -14423,7 +14473,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_unit_test_portfolio_state_py_path",
-      "community": 106,
+      "community": 48,
       "norm_label": "path"
     },
     {
@@ -14433,7 +14483,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "tests_unit_test_portfolio_state_test_missing_file_raises",
-      "community": 106,
+      "community": 48,
       "norm_label": "test_missing_file_raises()"
     },
     {
@@ -14443,7 +14493,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "tests_unit_test_portfolio_state_test_invalid_asset_class_raises",
-      "community": 106,
+      "community": 48,
       "norm_label": "test_invalid_asset_class_raises()"
     },
     {
@@ -14453,7 +14503,7 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "tests_unit_test_portfolio_state_test_non_positive_lot_size_raises",
-      "community": 106,
+      "community": 48,
       "norm_label": "test_non_positive_lot_size_raises()"
     },
     {
@@ -14463,7 +14513,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_portfolio_state_rationale_1",
-      "community": 106,
+      "community": 48,
       "norm_label": "load_instrument_rules \u2014 campuri optionale din universe.yaml au default-uri sane."
     },
     {
@@ -15273,7 +15323,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_risk_config_schema",
-      "community": 21,
+      "community": 48,
       "norm_label": "test_risk_config_schema.py"
     },
     {
@@ -15283,7 +15333,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "tests_unit_test_risk_config_schema_write_yaml",
-      "community": 21,
+      "community": 48,
       "norm_label": "_write_yaml()"
     },
     {
@@ -15293,7 +15343,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_unit_test_risk_config_schema_py_path",
-      "community": 21,
+      "community": 48,
       "norm_label": "path"
     },
     {
@@ -15303,7 +15353,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "tests_unit_test_risk_config_schema_valid_payload",
-      "community": 21,
+      "community": 48,
       "norm_label": "_valid_payload()"
     },
     {
@@ -15313,7 +15363,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "tests_unit_test_risk_config_schema_test_real_risk_limits_file_loads",
-      "community": 21,
+      "community": 48,
       "norm_label": "test_real_risk_limits_file_loads()"
     },
     {
@@ -15323,7 +15373,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "tests_unit_test_risk_config_schema_test_missing_file_raises",
-      "community": 21,
+      "community": 48,
       "norm_label": "test_missing_file_raises()"
     },
     {
@@ -15333,7 +15383,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "tests_unit_test_risk_config_schema_test_missing_field_raises",
-      "community": 21,
+      "community": 48,
       "norm_label": "test_missing_field_raises()"
     },
     {
@@ -15343,7 +15393,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "tests_unit_test_risk_config_schema_test_negative_limit_raises",
-      "community": 21,
+      "community": 48,
       "norm_label": "test_negative_limit_raises()"
     },
     {
@@ -15353,7 +15403,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "tests_unit_test_risk_config_schema_test_zero_orders_per_day_raises",
-      "community": 21,
+      "community": 48,
       "norm_label": "test_zero_orders_per_day_raises()"
     },
     {
@@ -15363,7 +15413,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "tests_unit_test_risk_config_schema_test_halt_on_unknown_false_raises",
-      "community": 21,
+      "community": 48,
       "norm_label": "test_halt_on_unknown_false_raises()"
     },
     {
@@ -15373,7 +15423,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "tests_unit_test_risk_config_schema_test_empty_file_raises",
-      "community": 21,
+      "community": 48,
       "norm_label": "test_empty_file_raises()"
     },
     {
@@ -15383,7 +15433,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "tests_unit_test_risk_config_schema_test_extra_field_is_rejected",
-      "community": 21,
+      "community": 48,
       "norm_label": "test_extra_field_is_rejected()"
     },
     {
@@ -15393,7 +15443,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_risk_config_schema_rationale_1",
-      "community": 21,
+      "community": 48,
       "norm_label": "validare hard a config/risk_limits.yaml \u2014 fara fallback la valori implicite."
     },
     {
@@ -15973,7 +16023,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_venue_registry",
-      "community": 61,
+      "community": 66,
       "norm_label": "test_venue_registry.py"
     },
     {
@@ -15983,7 +16033,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "tests_unit_test_venue_registry_test_execution_venue_is_kraken",
-      "community": 61,
+      "community": 66,
       "norm_label": "test_execution_venue_is_kraken()"
     },
     {
@@ -15993,7 +16043,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "tests_unit_test_venue_registry_test_symbol_maps_are_centralized",
-      "community": 61,
+      "community": 66,
       "norm_label": "test_symbol_maps_are_centralized()"
     },
     {
@@ -16003,7 +16053,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "tests_unit_test_venue_registry_test_constraints_match_universe_defaults",
-      "community": 61,
+      "community": 60,
       "norm_label": "test_constraints_match_universe_defaults()"
     },
     {
@@ -16013,7 +16063,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "tests_unit_test_venue_registry_test_unknown_symbol_rejected",
-      "community": 61,
+      "community": 66,
       "norm_label": "test_unknown_symbol_rejected()"
     },
     {
@@ -16023,7 +16073,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_venue_registry_rationale_1",
-      "community": 61,
+      "community": 66,
       "norm_label": "venueregistry \u2014 un singur loc pentru simboluri, constraints, venue de executie."
     },
     {
@@ -16113,7 +16163,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "claude_instructiuni_faza_0_4",
-      "community": 37,
+      "community": 112,
       "norm_label": "claude-instructiuni-faza-0-4.md"
     },
     {
@@ -16263,7 +16313,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "readme",
-      "community": 37,
+      "community": 112,
       "norm_label": "readme.md"
     },
     {
@@ -16353,7 +16403,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "raport_agentic_trading_2026_09_18",
-      "community": 37,
+      "community": 112,
       "norm_label": "raport-agentic-trading-2026-09-18.md"
     },
     {
@@ -16403,7 +16453,7 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "raport_agentic_trading_2026_09_18_4_fi\u0219ele_tehnice",
-      "community": 2,
+      "community": 116,
       "norm_label": "4. fisele tehnice"
     },
     {
@@ -16413,7 +16463,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "raport_agentic_trading_2026_09_18_4_1_fsaavedra_analizor_de_sentiment_prezentat_drept_trading_bot",
-      "community": 2,
+      "community": 116,
       "norm_label": "4.1. fsaavedra \u2014 analizor de sentiment prezentat drept trading bot"
     },
     {
@@ -16423,7 +16473,7 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "raport_agentic_trading_2026_09_18_4_2_friestrader_agent_opera\u021bional_dar_barier\u0103_de_securitate_incomplet\u0103",
-      "community": 2,
+      "community": 116,
       "norm_label": "4.2. friestrader \u2014 agent operational, dar bariera de securitate incompleta"
     },
     {
@@ -16433,7 +16483,7 @@
       "source_location": "L138",
       "_origin": "ast",
       "id": "raport_agentic_trading_2026_09_18_4_3_krexibd_quant_trading_bibliotec\u0103_educa\u021bional\u0103_nu_agent",
-      "community": 2,
+      "community": 116,
       "norm_label": "4.3. krexibd/quant-trading \u2014 biblioteca educationala, nu agent"
     },
     {
@@ -16443,7 +16493,7 @@
       "source_location": "L148",
       "_origin": "ast",
       "id": "raport_agentic_trading_2026_09_18_4_4_kweinmeister_agentic_trading_demonstra\u021bie_adk_a2a_bine_delimitat\u0103",
-      "community": 2,
+      "community": 116,
       "norm_label": "4.4. kweinmeister/agentic-trading \u2014 demonstratie adk/a2a bine delimitata"
     },
     {
@@ -16453,7 +16503,7 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "raport_agentic_trading_2026_09_18_4_5_hkuds_ai_trader_platform\u0103_de_agen\u021bi_\u0219i_simulare_nu_adapter_universal",
-      "community": 2,
+      "community": 116,
       "norm_label": "4.5. hkuds/ai-trader \u2014 platforma de agenti si simulare, nu adapter universal"
     },
     {
@@ -16463,7 +16513,7 @@
       "source_location": "L172",
       "_origin": "ast",
       "id": "raport_agentic_trading_2026_09_18_4_6_nautilustrader_cea_mai_bun\u0103_funda\u021bie_multi_asset_cu_blocaj_de_versiune",
-      "community": 2,
+      "community": 116,
       "norm_label": "4.6. nautilustrader \u2014 cea mai buna fundatie multi-asset, cu blocaj de versiune"
     },
     {
@@ -16473,7 +16523,7 @@
       "source_location": "L186",
       "_origin": "ast",
       "id": "raport_agentic_trading_2026_09_18_4_7_freqtrade_alegerea_pragmatic\u0103_pentru_crypto",
-      "community": 2,
+      "community": 116,
       "norm_label": "4.7. freqtrade \u2014 alegerea pragmatica pentru crypto"
     },
     {
@@ -16483,7 +16533,7 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "raport_agentic_trading_2026_09_18_4_8_tradingagents_component\u0103_bun\u0103_de_research_nu_broker",
-      "community": 2,
+      "community": 116,
       "norm_label": "4.8. tradingagents \u2014 componenta buna de research, nu broker"
     },
     {
@@ -16493,7 +16543,7 @@
       "source_location": "L210",
       "_origin": "ast",
       "id": "raport_agentic_trading_2026_09_18_4_9_ai_hedge_fund_arhitectur\u0103_promi\u021b\u0103toare_\u00een_reconstruc\u021bie",
-      "community": 2,
+      "community": 116,
       "norm_label": "4.9. ai-hedge-fund \u2014 arhitectura promitatoare, in reconstructie"
     },
     {
@@ -16503,7 +16553,7 @@
       "source_location": "L220",
       "_origin": "ast",
       "id": "raport_agentic_trading_2026_09_18_4_10_hugging_face_finrobot_forecaster_\u0219i_fingpt",
-      "community": 2,
+      "community": 116,
       "norm_label": "4.10. hugging face: finrobot forecaster si fingpt"
     },
     {
@@ -16723,7 +16773,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "brief_proiect_agent_trading_local",
-      "community": 37,
+      "community": 112,
       "norm_label": "brief-proiect-agent-trading-local.md"
     },
     {
@@ -17303,7 +17353,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "claudedocs_workflow_faza_0_4",
-      "community": 37,
+      "community": 112,
       "norm_label": "workflow_faza-0-4.md"
     },
     {
@@ -17613,7 +17663,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "design_componente_faza_0_4",
-      "community": 37,
+      "community": 112,
       "norm_label": "design-componente-faza-0-4.md"
     },
     {
@@ -18203,7 +18253,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "research_agentic_trading_bots",
-      "community": 37,
+      "community": 112,
       "norm_label": "research_agentic_trading_bots.md"
     },
     {
@@ -18652,7 +18702,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L7",
+      "source_location": "L8",
       "weight": 1.0,
       "source": "apps_console_angular",
       "target": "apps_console_angular_newprojectroot",
@@ -18662,7 +18712,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L8",
+      "source_location": "L9",
       "weight": 1.0,
       "source": "apps_console_angular",
       "target": "apps_console_angular_projects",
@@ -18692,6 +18742,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "apps_console_angular_cli",
+      "target": "apps_console_angular_cli_analytics",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/console/angular.json",
       "source_location": "L5",
       "weight": 1.0,
       "source": "apps_console_angular_cli",
@@ -18713,7 +18773,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L9",
+      "source_location": "L10",
       "weight": 1.0,
       "source": "apps_console_angular_projects",
       "target": "apps_console_angular_projects_console",
@@ -18723,7 +18783,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L19",
+      "source_location": "L20",
       "weight": 1.0,
       "source": "apps_console_angular_projects_console",
       "target": "apps_console_angular_console_architect",
@@ -18733,7 +18793,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L18",
+      "source_location": "L19",
       "weight": 1.0,
       "source": "apps_console_angular_projects_console",
       "target": "apps_console_angular_console_prefix",
@@ -18743,7 +18803,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L10",
+      "source_location": "L11",
       "weight": 1.0,
       "source": "apps_console_angular_projects_console",
       "target": "apps_console_angular_console_projecttype",
@@ -18753,7 +18813,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L16",
+      "source_location": "L17",
       "weight": 1.0,
       "source": "apps_console_angular_projects_console",
       "target": "apps_console_angular_console_root",
@@ -18763,7 +18823,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L11",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "apps_console_angular_projects_console",
       "target": "apps_console_angular_console_schematics",
@@ -18773,7 +18833,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L17",
+      "source_location": "L18",
       "weight": 1.0,
       "source": "apps_console_angular_projects_console",
       "target": "apps_console_angular_console_sourceroot",
@@ -18783,7 +18843,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L12",
+      "source_location": "L13",
       "weight": 1.0,
       "source": "apps_console_angular_console_schematics",
       "target": "apps_console_angular_schematics_schematics_angular_component",
@@ -18793,7 +18853,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0,
       "source": "apps_console_angular_schematics_schematics_angular_component",
       "target": "apps_console_angular_schematics_angular_component_style",
@@ -18803,7 +18863,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L20",
+      "source_location": "L21",
       "weight": 1.0,
       "source": "apps_console_angular_console_architect",
       "target": "apps_console_angular_architect_build",
@@ -18813,7 +18873,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L60",
+      "source_location": "L61",
       "weight": 1.0,
       "source": "apps_console_angular_console_architect",
       "target": "apps_console_angular_architect_serve",
@@ -18823,7 +18883,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L75",
+      "source_location": "L76",
       "weight": 1.0,
       "source": "apps_console_angular_console_architect",
       "target": "apps_console_angular_architect_test",
@@ -18833,7 +18893,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0,
       "source": "apps_console_angular_architect_build",
       "target": "apps_console_angular_build_builder",
@@ -18843,7 +18903,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 1.0,
       "source": "apps_console_angular_architect_build",
       "target": "apps_console_angular_build_configurations",
@@ -18853,7 +18913,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L58",
+      "source_location": "L59",
       "weight": 1.0,
       "source": "apps_console_angular_architect_build",
       "target": "apps_console_angular_build_defaultconfiguration",
@@ -18863,7 +18923,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1.0,
       "source": "apps_console_angular_architect_build",
       "target": "apps_console_angular_build_options",
@@ -18873,7 +18933,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L26",
+      "source_location": "L27",
       "weight": 1.0,
       "source": "apps_console_angular_build_options",
       "target": "apps_console_angular_options_assets",
@@ -18883,7 +18943,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L23",
+      "source_location": "L24",
       "weight": 1.0,
       "source": "apps_console_angular_build_options",
       "target": "apps_console_angular_options_browser",
@@ -18893,7 +18953,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L25",
+      "source_location": "L26",
       "weight": 1.0,
       "source": "apps_console_angular_build_options",
       "target": "apps_console_angular_options_inlinestylelanguage",
@@ -18903,7 +18963,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1.0,
       "source": "apps_console_angular_build_options",
       "target": "apps_console_angular_options_styles",
@@ -18913,7 +18973,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L24",
+      "source_location": "L25",
       "weight": 1.0,
       "source": "apps_console_angular_build_options",
       "target": "apps_console_angular_options_tsconfig",
@@ -18923,7 +18983,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L52",
+      "source_location": "L53",
       "weight": 1.0,
       "source": "apps_console_angular_build_configurations",
       "target": "apps_console_angular_configurations_development",
@@ -18933,7 +18993,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L37",
+      "source_location": "L38",
       "weight": 1.0,
       "source": "apps_console_angular_build_configurations",
       "target": "apps_console_angular_configurations_production",
@@ -18943,7 +19003,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L38",
+      "source_location": "L39",
       "weight": 1.0,
       "source": "apps_console_angular_configurations_production",
       "target": "apps_console_angular_production_budgets",
@@ -18953,7 +19013,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L67",
+      "source_location": "L68",
       "weight": 1.0,
       "source": "apps_console_angular_configurations_production",
       "target": "apps_console_angular_production_buildtarget",
@@ -18963,7 +19023,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L50",
+      "source_location": "L51",
       "weight": 1.0,
       "source": "apps_console_angular_configurations_production",
       "target": "apps_console_angular_production_outputhashing",
@@ -18973,7 +19033,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L66",
+      "source_location": "L67",
       "weight": 1.0,
       "source": "apps_console_angular_serve_configurations",
       "target": "apps_console_angular_configurations_production",
@@ -18983,7 +19043,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L70",
+      "source_location": "L71",
       "weight": 1.0,
       "source": "apps_console_angular_configurations_development",
       "target": "apps_console_angular_development_buildtarget",
@@ -18993,7 +19053,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L54",
+      "source_location": "L55",
       "weight": 1.0,
       "source": "apps_console_angular_configurations_development",
       "target": "apps_console_angular_development_extractlicenses",
@@ -19003,7 +19063,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L53",
+      "source_location": "L54",
       "weight": 1.0,
       "source": "apps_console_angular_configurations_development",
       "target": "apps_console_angular_development_optimization",
@@ -19013,7 +19073,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L55",
+      "source_location": "L56",
       "weight": 1.0,
       "source": "apps_console_angular_configurations_development",
       "target": "apps_console_angular_development_sourcemap",
@@ -19023,7 +19083,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L69",
+      "source_location": "L70",
       "weight": 1.0,
       "source": "apps_console_angular_serve_configurations",
       "target": "apps_console_angular_configurations_development",
@@ -19033,7 +19093,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L61",
+      "source_location": "L62",
       "weight": 1.0,
       "source": "apps_console_angular_architect_serve",
       "target": "apps_console_angular_serve_builder",
@@ -19043,7 +19103,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L65",
+      "source_location": "L66",
       "weight": 1.0,
       "source": "apps_console_angular_architect_serve",
       "target": "apps_console_angular_serve_configurations",
@@ -19053,7 +19113,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L73",
+      "source_location": "L74",
       "weight": 1.0,
       "source": "apps_console_angular_architect_serve",
       "target": "apps_console_angular_serve_defaultconfiguration",
@@ -19063,7 +19123,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L62",
+      "source_location": "L63",
       "weight": 1.0,
       "source": "apps_console_angular_architect_serve",
       "target": "apps_console_angular_serve_options",
@@ -19073,7 +19133,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L63",
+      "source_location": "L64",
       "weight": 1.0,
       "source": "apps_console_angular_serve_options",
       "target": "apps_console_angular_options_proxyconfig",
@@ -19083,7 +19143,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/angular.json",
-      "source_location": "L76",
+      "source_location": "L77",
       "weight": 1.0,
       "source": "apps_console_angular_architect_test",
       "target": "apps_console_angular_test_builder",
@@ -19997,7 +20057,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/src/app/core/agent-state.service.ts",
-      "source_location": "L27",
+      "source_location": "L38",
       "weight": 1.0,
       "source": "apps_console_src_app_core_agent_state_service",
       "target": "apps_console_src_app_core_agent_state_service_agentstateservice",
@@ -20011,6 +20071,16 @@
       "weight": 1.0,
       "source": "apps_console_src_app_core_agent_state_service",
       "target": "apps_console_src_app_core_agent_state_service_empty_health",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/console/src/app/core/agent-state.service.ts",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "apps_console_src_app_core_agent_state_service",
+      "target": "apps_console_src_app_core_agent_state_service_eventssocketurl",
       "confidence_score": 1.0
     },
     {
@@ -20168,10 +20238,21 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/console/src/app/core/agent-state.service.ts",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "apps_console_src_app_core_agent_state_service_agentstateservice_connectsocket",
+      "target": "apps_console_src_app_core_agent_state_service_eventssocketurl",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/src/app/core/agent-state.service.ts",
-      "source_location": "L67",
+      "source_location": "L89",
       "weight": 1.0,
       "source": "apps_console_src_app_core_agent_state_service_agentstateservice",
       "target": "apps_console_src_app_core_agent_state_service_agentstateservice_connectsocket",
@@ -20181,7 +20262,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/src/app/core/agent-state.service.ts",
-      "source_location": "L54",
+      "source_location": "L76",
       "weight": 1.0,
       "source": "apps_console_src_app_core_agent_state_service_agentstateservice",
       "target": "apps_console_src_app_core_agent_state_service_agentstateservice_refresh",
@@ -20191,7 +20272,17 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/src/app/core/agent-state.service.ts",
-      "source_location": "L41",
+      "source_location": "L124",
+      "weight": 1.0,
+      "source": "apps_console_src_app_core_agent_state_service_agentstateservice",
+      "target": "apps_console_src_app_core_agent_state_service_agentstateservice_schedulereconnect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/console/src/app/core/agent-state.service.ts",
+      "source_location": "L55",
       "weight": 1.0,
       "source": "apps_console_src_app_core_agent_state_service_agentstateservice",
       "target": "apps_console_src_app_core_agent_state_service_agentstateservice_start",
@@ -20201,7 +20292,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/src/app/core/agent-state.service.ts",
-      "source_location": "L47",
+      "source_location": "L62",
       "weight": 1.0,
       "source": "apps_console_src_app_core_agent_state_service_agentstateservice",
       "target": "apps_console_src_app_core_agent_state_service_agentstateservice_stop",
@@ -20278,7 +20369,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/src/app/core/agent-state.service.ts",
-      "source_location": "L43",
+      "source_location": "L58",
       "weight": 1.0,
       "source": "apps_console_src_app_core_agent_state_service_agentstateservice_start",
       "target": "apps_console_src_app_core_agent_state_service_agentstateservice_connectsocket",
@@ -20289,10 +20380,21 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/console/src/app/core/agent-state.service.ts",
-      "source_location": "L42",
+      "source_location": "L57",
       "weight": 1.0,
       "source": "apps_console_src_app_core_agent_state_service_agentstateservice_start",
       "target": "apps_console_src_app_core_agent_state_service_agentstateservice_refresh",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/console/src/app/core/agent-state.service.ts",
+      "source_location": "L98",
+      "weight": 1.0,
+      "source": "apps_console_src_app_core_agent_state_service_agentstateservice_connectsocket",
+      "target": "apps_console_src_app_core_agent_state_service_agentstateservice_schedulereconnect",
       "confidence_score": 1.0
     },
     {
@@ -26668,7 +26770,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L30",
+      "source_location": "L31",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_agent_process",
@@ -26730,7 +26832,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L30",
+      "source_location": "L31",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_agent_process_agentprocesscontroller",
@@ -26740,7 +26842,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "src/control/server.py",
-      "source_location": "L30",
+      "source_location": "L31",
       "weight": 0.8,
       "source": "src_control_server_controlcontext",
       "target": "src_control_agent_process_agentprocesscontroller",
@@ -26863,7 +26965,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L30",
+      "source_location": "L31",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_agent_process_subprocessagentprocess",
@@ -26873,7 +26975,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "src/control/server.py",
-      "source_location": "L30",
+      "source_location": "L31",
       "weight": 0.8,
       "source": "src_control_server_controlcontext",
       "target": "src_control_agent_process_subprocessagentprocess",
@@ -27305,7 +27407,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_models",
@@ -27338,7 +27440,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_models_healthresponse",
@@ -27348,7 +27450,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 0.8,
       "source": "src_control_server_controlcontext",
       "target": "src_control_models_healthresponse",
@@ -27535,7 +27637,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_models_approvaldecisionrequest",
@@ -27545,7 +27647,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 0.8,
       "source": "src_control_server_controlcontext",
       "target": "src_control_models_approvaldecisionrequest",
@@ -27600,7 +27702,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_models_risklimitswrite",
@@ -27610,7 +27712,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 0.8,
       "source": "src_control_server_controlcontext",
       "target": "src_control_models_risklimitswrite",
@@ -27621,7 +27723,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_models_haltrequest",
@@ -27631,7 +27733,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 0.8,
       "source": "src_control_server_controlcontext",
       "target": "src_control_models_haltrequest",
@@ -27752,7 +27854,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_models_strategytogglerequest",
@@ -27762,7 +27864,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 0.8,
       "source": "src_control_server_controlcontext",
       "target": "src_control_models_strategytogglerequest",
@@ -27795,7 +27897,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_models_wsenvelope",
@@ -27805,7 +27907,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 0.8,
       "source": "src_control_server_controlcontext",
       "target": "src_control_models_wsenvelope",
@@ -27816,7 +27918,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L432",
+      "source_location": "L440",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_models_wsenvelope",
@@ -27827,7 +27929,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_models_ackresponse",
@@ -27837,7 +27939,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "src/control/server.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 0.8,
       "source": "src_control_server_controlcontext",
       "target": "src_control_models_ackresponse",
@@ -27848,7 +27950,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L265",
+      "source_location": "L273",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_models_ackresponse",
@@ -28557,7 +28659,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state",
@@ -29239,7 +29341,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_pid_is_alive",
@@ -29349,7 +29451,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_ping_http",
@@ -29448,7 +29550,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_build_health",
@@ -29459,9 +29561,20 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L166",
+      "source_location": "L174",
       "weight": 1.0,
       "source": "src_control_server_create_app",
+      "target": "src_control_runtime_state_build_health",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/control/server.py",
+      "source_location": "L103",
+      "weight": 1.0,
+      "source": "src_control_server_ws_snapshot",
       "target": "src_control_runtime_state_build_health",
       "confidence_score": 1.0
     },
@@ -29646,7 +29759,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_build_portfolio",
@@ -29657,7 +29770,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L170",
+      "source_location": "L178",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_build_portfolio",
@@ -29745,7 +29858,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_build_market",
@@ -29756,7 +29869,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L182",
+      "source_location": "L190",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_build_market",
@@ -29833,7 +29946,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_build_bars",
@@ -29844,7 +29957,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L197",
+      "source_location": "L205",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_build_bars",
@@ -29899,7 +30012,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_build_signal",
@@ -29910,7 +30023,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L214",
+      "source_location": "L222",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_build_signal",
@@ -29954,7 +30067,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_list_pending",
@@ -29965,9 +30078,20 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L232",
+      "source_location": "L240",
       "weight": 1.0,
       "source": "src_control_server_create_app",
+      "target": "src_control_runtime_state_list_pending",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/control/server.py",
+      "source_location": "L104",
+      "weight": 1.0,
+      "source": "src_control_server_ws_snapshot",
       "target": "src_control_runtime_state_list_pending",
       "confidence_score": 1.0
     },
@@ -29998,7 +30122,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_write_approval",
@@ -30009,7 +30133,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L253",
+      "source_location": "L261",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_write_approval",
@@ -30053,7 +30177,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_list_orders",
@@ -30064,7 +30188,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L225",
+      "source_location": "L233",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_list_orders",
@@ -30108,7 +30232,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_list_positions",
@@ -30119,7 +30243,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L218",
+      "source_location": "L226",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_list_positions",
@@ -30185,7 +30309,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_build_risk",
@@ -30196,7 +30320,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L271",
+      "source_location": "L279",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_build_risk",
@@ -30218,7 +30342,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_write_risk_limits",
@@ -30229,7 +30353,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L283",
+      "source_location": "L291",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_write_risk_limits",
@@ -30262,7 +30386,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_trigger_halt",
@@ -30273,7 +30397,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L303",
+      "source_location": "L311",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_trigger_halt",
@@ -30306,7 +30430,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_reset_halt",
@@ -30317,7 +30441,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L316",
+      "source_location": "L324",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_reset_halt",
@@ -30339,7 +30463,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_list_agent_events",
@@ -30350,7 +30474,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L327",
+      "source_location": "L335",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_list_agent_events",
@@ -30405,7 +30529,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_list_research",
@@ -30416,7 +30540,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L362",
+      "source_location": "L370",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_list_research",
@@ -30482,7 +30606,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_build_security",
@@ -30493,7 +30617,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L366",
+      "source_location": "L374",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_build_security",
@@ -30603,7 +30727,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_list_strategies",
@@ -30614,7 +30738,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L383",
+      "source_location": "L391",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_list_strategies",
@@ -30636,7 +30760,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_set_strategy_enabled",
@@ -30647,7 +30771,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L396",
+      "source_location": "L404",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_runtime_state_set_strategy_enabled",
@@ -30691,7 +30815,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_runtime_state_build_alerts",
@@ -30702,9 +30826,20 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L174",
+      "source_location": "L182",
       "weight": 1.0,
       "source": "src_control_server_create_app",
+      "target": "src_control_runtime_state_build_alerts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/control/server.py",
+      "source_location": "L105",
+      "weight": 1.0,
+      "source": "src_control_server_ws_snapshot",
       "target": "src_control_runtime_state_build_alerts",
       "confidence_score": 1.0
     },
@@ -30713,7 +30848,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L18",
+      "source_location": "L19",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "fastapi",
@@ -30723,7 +30858,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L90",
+      "source_location": "L91",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_server_controlcontext",
@@ -30733,7 +30868,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L110",
+      "source_location": "L118",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_server_create_app",
@@ -30743,7 +30878,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L79",
+      "source_location": "L80",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_server_fetch_kraken_bars",
@@ -30753,7 +30888,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L101",
+      "source_location": "L109",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_server_load_dotenv_control",
@@ -30763,7 +30898,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L476",
+      "source_location": "L478",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_server_main",
@@ -30774,10 +30909,20 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L11",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_server_py_datetime",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/control/server.py",
+      "source_location": "L102",
+      "weight": 1.0,
+      "source": "src_control_server",
+      "target": "src_control_server_ws_snapshot",
       "confidence_score": 1.0
     },
     {
@@ -30785,7 +30930,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L66",
+      "source_location": "L67",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_settings",
@@ -30796,7 +30941,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L66",
+      "source_location": "L67",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_settings_controlsettings",
@@ -30807,7 +30952,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L66",
+      "source_location": "L67",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_settings_load_control_settings",
@@ -30818,7 +30963,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L66",
+      "source_location": "L67",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_control_settings_validate_bind_host",
@@ -30829,7 +30974,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L72",
+      "source_location": "L73",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_data_kraken",
@@ -30840,7 +30985,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L72",
+      "source_location": "L73",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_data_kraken_krakenpublicohlcsource",
@@ -30851,7 +30996,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L73",
+      "source_location": "L74",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_data_sources",
@@ -30862,7 +31007,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L73",
+      "source_location": "L74",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_data_sources_bar",
@@ -30873,7 +31018,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L74",
+      "source_location": "L75",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_execution_key_policy",
@@ -30884,7 +31029,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L74",
+      "source_location": "L75",
       "weight": 1.0,
       "source": "src_control_server",
       "target": "src_execution_key_policy_redact_secrets",
@@ -30927,7 +31072,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L79",
+      "source_location": "L80",
       "weight": 1.0,
       "source": "src_control_server_fetch_kraken_bars",
       "target": "src_control_server_py_datetime",
@@ -30938,7 +31083,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L82",
+      "source_location": "L83",
       "weight": 1.0,
       "source": "src_control_server_fetch_kraken_bars",
       "target": "src_data_kraken_krakenpublicohlcsource",
@@ -30949,17 +31094,28 @@
       "context": "generic_arg",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L79",
+      "source_location": "L80",
       "weight": 1.0,
       "source": "src_control_server_fetch_kraken_bars",
       "target": "src_data_sources_bar",
       "confidence_score": 1.0
     },
     {
+      "relation": "references",
+      "context": "parameter_type",
+      "confidence": "EXTRACTED",
+      "source_file": "src/control/server.py",
+      "source_location": "L102",
+      "weight": 1.0,
+      "source": "src_control_server_ws_snapshot",
+      "target": "src_control_server_py_datetime",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "src/control/server.py",
-      "source_location": "L66",
+      "source_location": "L67",
       "weight": 0.8,
       "source": "src_control_server_controlcontext",
       "target": "src_control_settings_controlsettings",
@@ -30969,7 +31125,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "src/control/server.py",
-      "source_location": "L72",
+      "source_location": "L73",
       "weight": 0.8,
       "source": "src_control_server_controlcontext",
       "target": "src_data_kraken_krakenpublicohlcsource",
@@ -30979,7 +31135,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "src/control/server.py",
-      "source_location": "L73",
+      "source_location": "L74",
       "weight": 0.8,
       "source": "src_control_server_controlcontext",
       "target": "src_data_sources_bar",
@@ -30990,7 +31146,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L110",
+      "source_location": "L118",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_server_controlcontext",
@@ -31001,9 +31157,20 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L481",
+      "source_location": "L483",
       "weight": 1.0,
       "source": "src_control_server_main",
+      "target": "src_control_server_controlcontext",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "parameter_type",
+      "confidence": "EXTRACTED",
+      "source_file": "src/control/server.py",
+      "source_location": "L102",
+      "weight": 1.0,
+      "source": "src_control_server_ws_snapshot",
       "target": "src_control_server_controlcontext",
       "confidence_score": 1.0
     },
@@ -31045,7 +31212,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L477",
+      "source_location": "L479",
       "weight": 1.0,
       "source": "src_control_server_main",
       "target": "src_control_server_load_dotenv_control",
@@ -31056,7 +31223,7 @@
       "context": "return_type",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L110",
+      "source_location": "L118",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "fastapi",
@@ -31067,7 +31234,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L119",
+      "source_location": "L127",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_control_settings_load_control_settings",
@@ -31078,7 +31245,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L367",
+      "source_location": "L375",
       "weight": 1.0,
       "source": "src_control_server_create_app",
       "target": "src_execution_key_policy_redact_secrets",
@@ -31089,7 +31256,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L480",
+      "source_location": "L482",
       "weight": 1.0,
       "source": "src_control_server_main",
       "target": "src_control_server_create_app",
@@ -31144,7 +31311,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L478",
+      "source_location": "L480",
       "weight": 1.0,
       "source": "src_control_server_main",
       "target": "src_control_settings_load_control_settings",
@@ -31155,7 +31322,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/control/server.py",
-      "source_location": "L479",
+      "source_location": "L481",
       "weight": 1.0,
       "source": "src_control_server_main",
       "target": "src_control_settings_validate_bind_host",
@@ -59295,7 +59462,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/unit/test_control_server.py",
-      "source_location": "L476",
+      "source_location": "L487",
       "weight": 1.0,
       "source": "tests_unit_test_control_server",
       "target": "tests_unit_test_control_server_test_auth_token_required_when_configured",
@@ -59452,6 +59619,16 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/unit/test_control_server.py",
+      "source_location": "L476",
+      "weight": 1.0,
+      "source": "tests_unit_test_control_server",
+      "target": "tests_unit_test_control_server_test_websocket_rejects_missing_token_after_accept",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "tests/unit/test_control_server.py",
@@ -59521,7 +59698,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/unit/test_control_server.py",
-      "source_location": "L477",
+      "source_location": "L488",
       "weight": 1.0,
       "source": "tests_unit_test_control_server_test_auth_token_required_when_configured",
       "target": "tests_unit_test_control_server_ctx",
@@ -59671,6 +59848,17 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/unit/test_control_server.py",
+      "source_location": "L479",
+      "weight": 1.0,
+      "source": "tests_unit_test_control_server_test_websocket_rejects_missing_token_after_accept",
+      "target": "tests_unit_test_control_server_ctx",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "references",
       "context": "parameter_type",
       "confidence": "EXTRACTED",
@@ -59708,7 +59896,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "tests/unit/test_control_server.py",
-      "source_location": "L476",
+      "source_location": "L487",
       "weight": 1.0,
       "source": "tests_unit_test_control_server_test_auth_token_required_when_configured",
       "target": "tests_unit_test_control_server_py_path",
@@ -59859,6 +60047,17 @@
     },
     {
       "relation": "references",
+      "context": "parameter_type",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/unit/test_control_server.py",
+      "source_location": "L476",
+      "weight": 1.0,
+      "source": "tests_unit_test_control_server_test_websocket_rejects_missing_token_after_accept",
+      "target": "tests_unit_test_control_server_py_path",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
       "context": "return_type",
       "confidence": "EXTRACTED",
       "source_file": "tests/unit/test_control_server.py",
@@ -59906,7 +60105,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/unit/test_control_server.py",
-      "source_location": "L478",
+      "source_location": "L489",
       "weight": 1.0,
       "source": "tests_unit_test_control_server_test_auth_token_required_when_configured",
       "target": "tests_unit_test_control_server_client",
@@ -60052,6 +60251,17 @@
       "source_location": "L469",
       "weight": 1.0,
       "source": "tests_unit_test_control_server_test_websocket_emits_health_channel",
+      "target": "tests_unit_test_control_server_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/unit/test_control_server.py",
+      "source_location": "L480",
+      "weight": 1.0,
+      "source": "tests_unit_test_control_server_test_websocket_rejects_missing_token_after_accept",
       "target": "tests_unit_test_control_server_client",
       "confidence_score": 1.0
     },
@@ -68990,5 +69200,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "5fc0eed35c496130d553e63c68cb1985d29697ab"
+  "built_at_commit": "8ea0af7dd0835dec8407bf0cb65dba18d2928cdd"
 }

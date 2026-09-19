@@ -730,8 +730,8 @@
     "semantic_hash": ""
   },
   "apps/console/angular.json": {
-    "mtime": 1789745414.7909682,
-    "ast_hash": "9e8383caafc52d2e5d22afa06c3a0b43",
+    "mtime": 1789816489.9549396,
+    "ast_hash": "8440e70dba6c8a55db9ea6e7a1a7a1f1",
     "semantic_hash": ""
   },
   "apps/console/package.json": {
@@ -765,8 +765,8 @@
     "semantic_hash": ""
   },
   "apps/console/src/app/core/agent-state.service.ts": {
-    "mtime": 1789745209.7327561,
-    "ast_hash": "0cb319d5c30a4bc4daca544a7bdbd6eb",
+    "mtime": 1789817236.8720417,
+    "ast_hash": "f553ee7ffd4220440064c0e59b3cc5c2",
     "semantic_hash": ""
   },
   "apps/console/src/app/core/api.service.ts": {
@@ -905,8 +905,8 @@
     "semantic_hash": ""
   },
   "src/control/server.py": {
-    "mtime": 1789744809.1942406,
-    "ast_hash": "165b846eaa1d0486b24cb1ce4b08a410",
+    "mtime": 1789817293.541832,
+    "ast_hash": "87ade0404efcf962f25318ae438cc37b",
     "semantic_hash": ""
   },
   "src/control/settings.py": {
@@ -920,8 +920,8 @@
     "semantic_hash": ""
   },
   "tests/unit/test_control_server.py": {
-    "mtime": 1789744951.281614,
-    "ast_hash": "6b58b32cd819ab6e92af7b6d41148868",
+    "mtime": 1789817293.6439292,
+    "ast_hash": "eff0d4e568c1ee5661c5f883349479fc",
     "semantic_hash": ""
   },
   "apps/console/README.md": {

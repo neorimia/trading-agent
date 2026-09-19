@@ -6,6 +6,7 @@ Host-ul e forțat pe loopback (127.0.0.1 / localhost / ::1).
 
 from __future__ import annotations
 
+import asyncio
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -96,6 +97,13 @@ class ControlContext:
     process: AgentProcessController = field(default_factory=SubprocessAgentProcess)
     idempotency: dict[str, tuple[int, dict]] = field(default_factory=dict)
     now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)
+
+
+def _ws_snapshot(ctx: ControlContext, sent_at: datetime) -> tuple:
+    health = build_health(ctx.settings, now=sent_at, ping=ctx.ping, alive=ctx.alive)
+    pending = list_pending(ctx.settings, now=sent_at)
+    alerts = build_alerts(ctx.settings, now=sent_at)
+    return health, pending, alerts
 
 
 def _load_dotenv_control() -> None:
@@ -414,6 +422,7 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
     @app.websocket("/v1/ws/events")
     async def ws_events(websocket: WebSocket) -> None:
         ctx = get_ctx()
+        await websocket.accept()
         token = ctx.settings.operator_token
         if token:
             offered = websocket.query_params.get("token")
@@ -421,12 +430,11 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
             if offered != token and header != f"Bearer {token}":
                 await websocket.close(code=1008)
                 return
-        await websocket.accept()
         try:
             while True:
                 sent_at = ctx.now()
-                health = build_health(
-                    ctx.settings, now=sent_at, ping=ctx.ping, alive=ctx.alive
+                health, pending, alerts = await asyncio.to_thread(
+                    _ws_snapshot, ctx, sent_at
                 )
                 await websocket.send_json(
                     WsEnvelope(
@@ -439,10 +447,7 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
                     WsEnvelope(
                         channel="approvals",
                         payload={
-                            "items": [
-                                item.model_dump(mode="json")
-                                for item in list_pending(ctx.settings, now=sent_at)
-                            ]
+                            "items": [item.model_dump(mode="json") for item in pending]
                         },
                         sent_at=sent_at,
                     ).model_dump(mode="json")
@@ -451,18 +456,15 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
                     WsEnvelope(
                         channel="alerts",
                         payload={
-                            "items": [
-                                item.model_dump(mode="json")
-                                for item in build_alerts(ctx.settings, now=sent_at)
-                            ]
+                            "items": [item.model_dump(mode="json") for item in alerts]
                         },
                         sent_at=sent_at,
                     ).model_dump(mode="json")
                 )
-                import asyncio
-
                 await asyncio.sleep(2)
         except WebSocketDisconnect:
+            return
+        except Exception:
             return
 
     app.dependency_overrides = {}

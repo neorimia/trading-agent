@@ -23,6 +23,17 @@ const EMPTY_HEALTH: HealthResponse = {
   live_actions_blocked: true,
 };
 
+const MAX_BACKOFF_MS = 10_000;
+
+/** ng serve talks to the control plane directly; Vite's /v1 WS proxy never completes the upgrade. */
+export function eventsSocketUrl(): string {
+  const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+  const host = location.port === '4200' ? '127.0.0.1:8767' : location.host;
+  const token = localStorage.getItem('control_operator_token');
+  const query = token ? `?token=${encodeURIComponent(token)}` : '';
+  return `${protocol}://${host}/v1/ws/events${query}`;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AgentStateService {
   private readonly api = inject(ApiService);
@@ -37,18 +48,29 @@ export class AgentStateService {
 
   private socket: WebSocket | null = null;
   private pollHandle: ReturnType<typeof setInterval> | null = null;
+  private reconnectHandle: ReturnType<typeof setTimeout> | null = null;
+  private backoffMs = 1000;
+  private stopped = true;
 
   start(): void {
+    this.stopped = false;
     this.refresh();
     this.connectSocket();
     this.pollHandle = setInterval(() => this.refresh(), 2000);
   }
 
   stop(): void {
+    this.stopped = true;
     if (this.pollHandle) {
       clearInterval(this.pollHandle);
+      this.pollHandle = null;
+    }
+    if (this.reconnectHandle) {
+      clearTimeout(this.reconnectHandle);
+      this.reconnectHandle = null;
     }
     this.socket?.close();
+    this.socket = null;
   }
 
   refresh(): void {
@@ -65,16 +87,19 @@ export class AgentStateService {
   }
 
   private connectSocket(): void {
-    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-    const token = localStorage.getItem('control_operator_token');
-    const query = token ? `?token=${encodeURIComponent(token)}` : '';
-    const url = `${protocol}://${location.host}/v1/ws/events${query}`;
+    if (this.stopped) {
+      return;
+    }
+    this.socket?.close();
+    this.socket = null;
     try {
-      this.socket = new WebSocket(url);
+      this.socket = new WebSocket(eventsSocketUrl());
     } catch {
+      this.scheduleReconnect();
       return;
     }
     this.socket.onmessage = (event) => {
+      this.backoffMs = 1000;
       const envelope = JSON.parse(event.data) as WsEnvelope;
       if (envelope.channel === 'health') {
         this.health.set(envelope.payload as unknown as HealthResponse);
@@ -87,5 +112,23 @@ export class AgentStateService {
         this.pending.set(envelope.payload['items'] as PendingApproval[]);
       }
     };
+    this.socket.onclose = () => {
+      this.socket = null;
+      this.scheduleReconnect();
+    };
+    this.socket.onerror = () => {
+      this.socket?.close();
+    };
+  }
+
+  private scheduleReconnect(): void {
+    if (this.stopped || this.reconnectHandle) {
+      return;
+    }
+    this.reconnectHandle = setTimeout(() => {
+      this.reconnectHandle = null;
+      this.connectSocket();
+    }, this.backoffMs);
+    this.backoffMs = Math.min(this.backoffMs * 2, MAX_BACKOFF_MS);
   }
 }

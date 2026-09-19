@@ -473,6 +473,17 @@ def test_websocket_emits_health_channel(tmp_path: Path) -> None:
     assert message["payload"]["trading_mode"] == "paper"
 
 
+def test_websocket_rejects_missing_token_after_accept(tmp_path: Path) -> None:
+    from starlette.websockets import WebSocketDisconnect
+
+    ctx = _ctx(tmp_path, environ={"CONTROL_OPERATOR_TOKEN": "local-token"})
+    with _client(ctx) as client:
+        with client.websocket_connect("/v1/ws/events") as ws:
+            with pytest.raises(WebSocketDisconnect) as exc:
+                ws.receive_json()
+    assert exc.value.code == 1008
+
+
 def test_auth_token_required_when_configured(tmp_path: Path) -> None:
     ctx = _ctx(tmp_path, environ={"CONTROL_OPERATOR_TOKEN": "local-token"})
     with _client(ctx) as client:
