@@ -484,6 +484,29 @@ def test_websocket_rejects_missing_token_after_accept(tmp_path: Path) -> None:
     assert exc.value.code == 1008
 
 
+def test_websocket_rejects_cross_origin(tmp_path: Path) -> None:
+    from starlette.websockets import WebSocketDisconnect
+
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        with client.websocket_connect(
+            "/v1/ws/events", headers={"origin": "http://evil.example"}
+        ) as ws:
+            with pytest.raises(WebSocketDisconnect) as exc:
+                ws.receive_json()
+    assert exc.value.code == 1008
+
+
+def test_websocket_allows_configured_origin(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        with client.websocket_connect(
+            "/v1/ws/events", headers={"origin": ctx.settings.cors_origins[0]}
+        ) as ws:
+            message = ws.receive_json()
+    assert message["channel"] == "health"
+
+
 def test_auth_token_required_when_configured(tmp_path: Path) -> None:
     ctx = _ctx(tmp_path, environ={"CONTROL_OPERATOR_TOKEN": "local-token"})
     with _client(ctx) as client:

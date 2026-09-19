@@ -423,6 +423,10 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
     async def ws_events(websocket: WebSocket) -> None:
         ctx = get_ctx()
         await websocket.accept()
+        origin = websocket.headers.get("origin")
+        if origin is not None and origin not in ctx.settings.cors_origins:
+            await websocket.close(code=1008)
+            return
         token = ctx.settings.operator_token
         if token:
             offered = websocket.query_params.get("token")
