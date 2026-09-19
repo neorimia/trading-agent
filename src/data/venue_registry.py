@@ -1,8 +1,11 @@
 """Registru unic de venue: simboluri, constraints, sursă istorică vs execuție.
 
-Execuția live/paper e KRAKEN. Binance rămâne doar backfill opțional pentru
-istoric lung (paginare klines). Backtestul Nautilus simulează venue-ul de
-execuție, nu vendor-ul de istoric.
+Instrumentele cu plumbing Kraken (§_INSTRUMENTS) execută live/paper pe KRAKEN.
+Orice alt simbol din universe.yaml (ex. echities) e research-only —
+`execution_venue == "NONE"` — nu o eroare "necunoscut": apartenența la
+universul allowlist-at se validează separat (`instrument_not_in_universe`),
+nu aici. Binance rămâne doar backfill opțional pentru istoric lung crypto.
+Backtestul Nautilus simulează venue-ul de execuție, nu vendor-ul de istoric.
 """
 
 from __future__ import annotations
@@ -11,13 +14,17 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Literal
 
-ExecutionVenue = Literal["KRAKEN"]
+ExecutionVenue = Literal["KRAKEN", "NONE"]
 HistoricalSource = Literal["KRAKEN", "BINANCE"]
 
 EXECUTION_VENUE: ExecutionVenue = "KRAKEN"
 NAUTILUS_VENUE_NAME = "KRAKEN"
 # Istoric lung: Binance public klines. Kraken OHLC public ~720 lumânări.
 DEFAULT_HISTORICAL_SOURCE: HistoricalSource = "BINANCE"
+
+
+class NoExecutionVenue(ValueError):
+    """Instrumentul e research-only (`execution_venue == "NONE"`) — fără plumbing de execuție."""
 
 
 @dataclass(frozen=True)
@@ -36,11 +43,11 @@ class InstrumentConstraints:
 class VenueInstrument:
     universe_symbol: str
     execution_venue: ExecutionVenue
-    kraken_pair: str
-    binance_symbol: str
-    nautilus_symbol: str
-    nautilus_base: str
-    constraints: InstrumentConstraints
+    kraken_pair: str | None = None
+    binance_symbol: str | None = None
+    nautilus_symbol: str | None = None
+    nautilus_base: str | None = None
+    constraints: InstrumentConstraints | None = None
 
 
 _ETH = InstrumentConstraints(
@@ -94,29 +101,45 @@ UNIVERSE_TO_BINANCE = {
 
 
 def get_instrument(universe_symbol: str) -> VenueInstrument:
+    """Rezolvă plumbing-ul de execuție pentru un simbol.
+
+    Simbolurile fără plumbing Kraken cunoscut sunt research-only
+    (`execution_venue == "NONE"`), nu o eroare — apartenența la universul
+    allowlist-at (universe.yaml) se validează în altă parte.
+    """
     spec = _INSTRUMENTS.get(universe_symbol)
-    if spec is None:
-        raise ValueError(f"no venue mapping for {universe_symbol!r}")
-    return spec
+    if spec is not None:
+        return spec
+    return VenueInstrument(universe_symbol=universe_symbol, execution_venue="NONE")
 
 
 def execution_pair(universe_symbol: str) -> str:
-    return get_instrument(universe_symbol).kraken_pair
+    spec = get_instrument(universe_symbol)
+    if spec.kraken_pair is None:
+        raise NoExecutionVenue(f"{universe_symbol!r} has no execution venue (research-only)")
+    return spec.kraken_pair
 
 
 def historical_symbol(universe_symbol: str, source: HistoricalSource) -> str:
     spec = get_instrument(universe_symbol)
-    if source == "KRAKEN":
-        return spec.kraken_pair
-    return spec.binance_symbol
+    symbol = spec.kraken_pair if source == "KRAKEN" else spec.binance_symbol
+    if symbol is None:
+        raise NoExecutionVenue(f"{universe_symbol!r} has no execution venue (research-only)")
+    return symbol
 
 
 def nautilus_symbol(universe_symbol: str) -> str:
-    return get_instrument(universe_symbol).nautilus_symbol
+    spec = get_instrument(universe_symbol)
+    if spec.nautilus_symbol is None:
+        raise NoExecutionVenue(f"{universe_symbol!r} has no execution venue (research-only)")
+    return spec.nautilus_symbol
 
 
 def constraints_for(universe_symbol: str) -> InstrumentConstraints:
-    return get_instrument(universe_symbol).constraints
+    spec = get_instrument(universe_symbol)
+    if spec.constraints is None:
+        raise NoExecutionVenue(f"{universe_symbol!r} has no execution venue (research-only)")
+    return spec.constraints
 
 
 def listed_crypto_symbols() -> tuple[str, ...]:

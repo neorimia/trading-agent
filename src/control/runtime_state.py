@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import statistics
+import subprocess
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -24,6 +26,7 @@ from src.control.models import (
     BarsResponse,
     CircuitBreakerView,
     HealthResponse,
+    MarketDataStatus,
     MarketInstrument,
     OrderRow,
     PendingApproval,
@@ -42,6 +45,7 @@ from src.control.settings import (
     STRATEGY_ENABLE_TOKEN,
 )
 from src.monitor.broker_monitor import load_broker_monitor
+from src.data.market_data_registry import MarketDataUnavailable
 from src.data.sources import Bar
 from src.engine.analysis_types import (
     AnalysisContext,
@@ -111,16 +115,29 @@ def trading_mode(settings: ControlSettings) -> str:
     return "paper"
 
 
+def _pid_is_zombie(pid: int) -> bool:
+    try:
+        completed = subprocess.run(
+            ["ps", "-o", "state=", "-p", str(pid)],
+            capture_output=True,
+            text=True,
+            timeout=1,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    state = completed.stdout.strip()
+    return bool(state) and state[:1].upper() == "Z"
+
+
 def pid_is_alive(pid: int) -> bool:
     if pid <= 0:
         return False
     try:
-        import os
-
         os.kill(pid, 0)
     except OSError:
         return False
-    return True
+    return not _pid_is_zombie(pid)
 
 
 def read_pid(pid_path: Path) -> int | None:
@@ -384,13 +401,18 @@ def build_market(
         end = moment
         start = end - timedelta(days=40)
         bars: list[Bar] = []
+        status: MarketDataStatus = "ok"
         try:
             paper = load_paper_trading_config(settings.paths.paper_config)
             bars = fetch_bars(symbol, start, end, paper.timeframe)
+        except MarketDataUnavailable as exc:
+            status = exc.reason
         except Exception:
-            bars = []
+            status = "data_unavailable"
         change, vol = _change_and_vol(bars)
         last = bars[-1] if bars else None
+        if status == "ok" and (stale or last is None):
+            status = "stale"
         rows.append(
             MarketInstrument(
                 symbol=symbol,
@@ -402,7 +424,8 @@ def build_market(
                 volatility=_dstr(vol) if vol is not None else None,
                 spread=None,
                 as_of=last.timestamp if last else None,
-                stale=stale or last is None,
+                stale=status != "ok",
+                status=status,
             )
         )
     return rows

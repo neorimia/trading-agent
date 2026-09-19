@@ -18,6 +18,7 @@ ServiceStatus = Literal["up", "down"]
 TradingMode = Literal["paper", "live"]
 ReconciliationStatus = Literal["ok", "mismatch", "unknown"]
 OperatorRole = Literal["operator", "observer"]
+MarketDataStatus = Literal["ok", "stale", "research_only", "no_adapter", "data_unavailable"]
 StrategyKind = Literal["ema_cross", "llm"]
 AlertSeverity = Literal["warning", "error"]
 WsChannel = Literal["health", "approvals", "alerts", "events"]
@@ -73,6 +74,7 @@ class MarketInstrument(BaseModel):
     as_of: datetime | None
     stale: bool
     in_universe: bool = True
+    status: MarketDataStatus = "ok"
 
 
 class BarPoint(BaseModel):

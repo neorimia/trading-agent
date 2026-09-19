@@ -17,6 +17,7 @@ from src.audit.events import AuditEvent
 from src.control.agent_process import NullAgentProcess
 from src.control.server import ControlContext, create_app, validate_bind_host
 from src.control.settings import load_control_settings
+from src.data.market_data_registry import MarketDataAdapterRegistry
 from src.data.sources import Bar
 from src.engine.analysis_types import ParsedAnalysis
 from src.research.models import ResearchDocument
@@ -334,6 +335,27 @@ def test_market_and_signal_from_injected_bars(tmp_path: Path) -> None:
     assert bars.json()["bars"][-1]["close"] == "2410"
     assert "ema_fast" in bars.json()["bars"][-1]
     assert signal.json()["is_proposal"] is True
+
+
+class _CryptoOnlySource:
+    def fetch_bars(self, instrument: str, start: datetime, end: datetime, timeframe: str) -> list[Bar]:
+        return _bars(instrument)
+
+
+def test_market_surfaces_typed_status_for_research_only_symbol(tmp_path: Path) -> None:
+    """Regresie root cause: un simbol fără venue de execuție (AAPL) nu dispare silențios."""
+    registry = MarketDataAdapterRegistry(adapters={"KRAKEN": _CryptoOnlySource})
+    ctx = _ctx(tmp_path, fetch_bars=registry.fetch_bars)
+    _write_last_bar(ctx)
+    with _client(ctx) as client:
+        market = client.get("/v1/market")
+    assert market.status_code == 200
+    rows = {item["symbol"]: item for item in market.json()}
+    assert rows["AAPL"]["status"] == "research_only"
+    assert rows["AAPL"]["stale"] is True
+    assert rows["AAPL"]["price"] is None
+    assert rows["ETHUSD"]["status"] == "ok"
+    assert rows["ETHUSD"]["stale"] is False
 
 
 def test_portfolio_and_orders_from_audit(tmp_path: Path) -> None:

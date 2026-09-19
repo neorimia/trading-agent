@@ -9,6 +9,7 @@ import pytest
 from src.data.venue_registry import (
     EXECUTION_VENUE,
     NAUTILUS_VENUE_NAME,
+    NoExecutionVenue,
     UNIVERSE_TO_BINANCE,
     UNIVERSE_TO_KRAKEN,
     constraints_for,
@@ -41,6 +42,19 @@ def test_constraints_match_universe_defaults() -> None:
     assert eth.tick_size > 0
 
 
-def test_unknown_symbol_rejected() -> None:
-    with pytest.raises(ValueError, match="no venue mapping"):
-        get_instrument("AAPL")
+def test_symbol_without_execution_venue_is_research_only() -> None:
+    spec = get_instrument("AAPL")
+    assert spec.execution_venue == "NONE"
+    assert spec.kraken_pair is None
+    assert spec.constraints is None
+
+
+def test_research_only_symbol_rejected_by_execution_helpers() -> None:
+    with pytest.raises(NoExecutionVenue):
+        execution_pair("AAPL")
+    with pytest.raises(NoExecutionVenue):
+        constraints_for("AAPL")
+    with pytest.raises(NoExecutionVenue):
+        nautilus_symbol("AAPL")
+    with pytest.raises(NoExecutionVenue):
+        historical_symbol("AAPL", "KRAKEN")

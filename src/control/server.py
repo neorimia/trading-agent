@@ -81,8 +81,7 @@ from src.control.settings import (
     load_control_settings,
     validate_bind_host,
 )
-from src.data.kraken import KrakenPublicOHLCSource
-from src.data.sources import Bar
+from src.data.market_data_registry import MarketDataAdapterRegistry
 from src.engine.analysis_client import LLMAnalysisClient
 from src.engine.analysis_types import AnalysisContext
 from src.engine.paper_config import load_paper_trading_config
@@ -92,21 +91,14 @@ LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 _LOG = logging.getLogger(__name__)
 
 
-def _fetch_kraken_bars(
-    instrument: str, start: datetime, end: datetime, timeframe: str
-) -> list[Bar]:
-    source = KrakenPublicOHLCSource()
-    try:
-        return source.fetch_bars(instrument, start, end, timeframe)
-    finally:
-        source.close()
+_DEFAULT_MARKET_DATA_REGISTRY = MarketDataAdapterRegistry()
 
 
 @dataclass
 class ControlContext:
     settings: ControlSettings
     environ: dict[str, str]
-    fetch_bars: FetchBarsFn = _fetch_kraken_bars
+    fetch_bars: FetchBarsFn = _DEFAULT_MARKET_DATA_REGISTRY.fetch_bars
     ping: PingFn = ping_http
     alive: PidAliveFn = pid_is_alive
     process: AgentProcessController = field(default_factory=SubprocessAgentProcess)
