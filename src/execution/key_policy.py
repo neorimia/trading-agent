@@ -53,9 +53,43 @@ def _flag(environ: dict[str, str], name: str) -> bool:
     raise ValueError(f"{name} must be true or false, got {environ.get(name)!r}")
 
 
+_BROKER_SECRET_KEYS = ("BROKER_API_KEY", "BROKER_API_SECRET")
+_SPOT_KEYS = ("KRAKEN_SPOT_API_KEY", "KRAKEN_SPOT_API_SECRET")
+
+
 def present_kraken_keys(environ: dict[str, str] | None = None) -> list[str]:
     env = environ if environ is not None else os.environ
     return [key for key in KRAKEN_TRADING_KEYS if env.get(key)]
+
+
+def paper_child_env(source: dict[str, str] | None = None) -> dict[str, str]:
+    """Copy environ for a paper subprocess, without exchange trading secrets."""
+    env = dict(os.environ if source is None else source)
+    for key in KRAKEN_TRADING_KEYS:
+        env.pop(key, None)
+    for key in _BROKER_SECRET_KEYS:
+        env.pop(key, None)
+    return env
+
+
+def withdraw_enabled(environ: dict[str, str] | None = None) -> bool:
+    env = environ if environ is not None else os.environ
+    return env.get(WITHDRAW_ENABLED_FLAG, "false").strip().lower() in _TRUTHY
+
+
+def has_spot_keys(environ: dict[str, str] | None = None) -> bool:
+    env = environ if environ is not None else os.environ
+    return bool(env.get("KRAKEN_SPOT_API_KEY") and env.get("KRAKEN_SPOT_API_SECRET"))
+
+
+def monitor_child_env(source: dict[str, str] | None = None) -> dict[str, str]:
+    """Keep Kraken spot keys for Balance/OpenOrders. Drop futures keys. Live flag off."""
+    env = dict(os.environ if source is None else source)
+    for key in KRAKEN_TRADING_KEYS:
+        if key not in _SPOT_KEYS:
+            env.pop(key, None)
+    env[LIVE_TRADING_FLAG] = "false"
+    return env
 
 
 def assert_no_kraken_trading_keys(environ: dict[str, str] | None = None) -> None:

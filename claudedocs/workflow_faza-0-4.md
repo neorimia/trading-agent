@@ -194,7 +194,7 @@ Faza 0 (mediu)
 
 ---
 
-## 6. Faza 5 — Paper trading ✅ COD + 30 SESIUNI (2026-09-18); revizuire PO/Risk owner deschisă
+## 6. Faza 5 — Paper trading ✅ COD + 30 SESIUNI (2026-09-18); PO/Risk review acceptată (2026-09-19)
 
 **Corespunde:** Task 5 (instrucțiuni §7).
 
@@ -208,7 +208,7 @@ Faza 0 (mediu)
 - [x] Minim 30 sesiuni paper, fără incident critic nereportat. Run `20260918T143445Z`, 30 sesiuni ETHUSD pe OHLC public Kraken, `halted=false`.
 - [x] Zero chei live folosite. `assert_no_kraken_trading_keys`; `KrakenDataClientConfig(api_key=None)`; execuție `SimulatedBroker` / sandbox.
 - [x] Reconciliere completă demonstrată după minim un restart simulat. Broker snapshot restaurat pe instanță nouă; `restart_reconciled=true`.
-- [ ] Raport final revizuit de PO/Risk owner **înainte** de orice discuție despre Faza 5+ (live). `docs/paper-trading-report.md` scris, așteaptă revizuire.
+- [x] Raport final revizuit de PO/Risk owner **înainte** de orice discuție despre Faza 5+ (live). `docs/paper-trading-report.md` §5: acceptat 2026-09-19 ca evidență Path B; **nu** autorizează `LIVE_TRADING_ENABLED`.
 
 ---
 
@@ -229,11 +229,11 @@ Sincronizarea `llm.schema` ↔ `engine.proposal_types` se verifică separat prin
 
 ## 8. Checklist global — Definition of Done Faza 0–4 (per instrucțiuni §9)
 
-- [ ] Toate DoD-urile individuale (Faza 0–5) bifate. Blocat de revizuirea PO/Risk owner (Faza 5, mai jos).
+- [x] Toate DoD-urile individuale (Faza 0–5) bifate. Faza 5 PO review: 2026-09-19.
 - [x] Zero chei/credențiale live în cod, config sau istoric git. `gitleaks detect --source . -v` (2026-09-19) → `no leaks found`, 12 commits scanate.
 - [x] Toate limitele de risc în config validat, niciodată în prompt/cod LLM. `config/risk_limits.yaml` + `load_risk_limits()` (Faza 3); `ParsedProposal` nu are câmpuri de sizing/risc.
 - [x] Suite unit + adversarial rulează în CI la fiecare commit relevant. `.github/workflows/ci.yml` (2026-09-19) — job `test` rulează `uv run pytest -m "not llm_live and not network_live"` (322 passed local, aceeași comandă) pe push/PR către `main`; job `secrets-scan` rulează `gitleaks-action` pe tot istoricul.
-- [ ] Rapoartele de calificare NautilusTrader, backtest și paper trading există, revizuite de PO/Risk owner.
+- [x] Rapoartele de calificare NautilusTrader, backtest și paper trading există, revizuite de PO/Risk owner. Paper: `docs/paper-trading-report.md` §5 (2026-09-19).
 - [x] Kill switch testat manual, rezultat documentat. Vezi DoD Task 3 (0.430 ms, HALT respinge propuneri noi; cancel-all așteaptă Faza 5).
 - [ ] Zero cod care presupune/pregătește silențios trecerea la live.
 
@@ -243,4 +243,5 @@ Sincronizarea `llm.schema` ↔ `engine.proposal_types` se verifică separat prin
 
 - Alegerea mecanismului concret de transport HTTP pentru `llm/server.py` — decizie de implementare (Faza 2).
 - Schema exactă SQLite pentru `audit/`/`idempotency_store` — DDL la implementare (Faza 5), pe baza contractelor design §4.
-- Cod. Pasul următor este `/sc:implement` pe Faza 5 (paper trading), după punctul de decizie umană Cale A vs. Cale B.
+- Cod Faza 5: livrat. PO/Risk a acceptat `docs/paper-trading-report.md` (2026-09-19) ca evidență Path B; **nu** autorizează live.
+- Faza 5+ (2026-09-19): paper `--mode stream` (OHLC public, `SimulatedBroker`) + sidecar broker `monitor` (Query-only). Fără `AddOrder`, fără `LIVE_TRADING_ENABLED`.

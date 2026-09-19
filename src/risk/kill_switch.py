@@ -12,6 +12,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.runtime_io import write_text_atomic
+
 _STRICT = ConfigDict(extra="forbid")
 
 
@@ -43,8 +45,7 @@ class KillSwitch:
             "reason": cleaned,
             "triggered_at": triggered_at.isoformat(),
         }
-        self._flag_path.parent.mkdir(parents=True, exist_ok=True)
-        self._flag_path.write_text(json.dumps(payload), encoding="utf-8")
+        write_text_atomic(self._flag_path, json.dumps(payload))
         return KillSwitchResult(triggered=True, reason=cleaned, triggered_at=triggered_at)
 
     def is_active(self) -> bool:

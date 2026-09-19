@@ -6,6 +6,8 @@ Flux: bar → llm_client → risk → audit → approval → order_gateway → a
 from __future__ import annotations
 
 import json
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -21,7 +23,7 @@ from src.engine.portfolio_tracker import PortfolioTracker
 from src.engine.proposal_cache import ProposalClient
 from src.engine.proposal_types import ParsedProposal, RejectedProposal
 from src.engine.signals import proposal_context_at
-from src.execution.broker import BrokerClient, SimulatedBroker
+from src.execution.broker import BrokerClient, BrokerState, SimulatedBroker
 from src.execution.human_approval import ApprovalGate
 from src.execution.order_gateway import OrderGateway
 from src.execution.reconciliation import LocalPortfolioSnapshot, Reconciliation
@@ -31,6 +33,7 @@ from src.monitor.heartbeat import Heartbeat
 from src.monitor.watchdog import Watchdog
 from src.risk.circuit_breaker import CircuitBreaker
 from src.risk.kill_switch import KillSwitch
+from src.runtime_io import write_text_atomic
 from src.risk.risk_engine import RiskEngine
 
 
@@ -85,6 +88,8 @@ class PaperTradingLoop:
         last_bar_path: Path,
         local_state_path: Path,
         process_id: str = "paper-engine",
+        broker_state_path: Path | None = None,
+        tracker_state_path: Path | None = None,
     ) -> None:
         self._config = config
         self._risk = risk_engine
@@ -101,12 +106,129 @@ class PaperTradingLoop:
         self._reconciliation = reconciliation
         self._last_bar_path = last_bar_path
         self._local_state_path = local_state_path
+        self._broker_state_path = broker_state_path or local_state_path.with_name(
+            "simulated_broker.json"
+        )
+        self._tracker_state_path = tracker_state_path or local_state_path.with_name(
+            "paper_tracker.json"
+        )
         self._process_id = process_id
         self._history: list[Bar] = []
         self._in_flight: list[str] = []
         self._last_price: Decimal | None = None
         self._flatten = HaltAndFlatten(watchdog, gateway.cancel_all)
         self._periodic = PeriodicReconciler(reconciliation, self._flatten)
+
+    def restore_persisted_state(self) -> None:
+        if self._tracker_state_path.is_file():
+            raw = json.loads(self._tracker_state_path.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                self._tracker.restore(raw)
+        if isinstance(self._broker, SimulatedBroker) and self._broker_state_path.is_file():
+            restored = BrokerState.model_validate_json(
+                self._broker_state_path.read_text(encoding="utf-8")
+            )
+            self._broker.restore(restored)
+            if restored.last_price:
+                self._last_price = next(iter(restored.last_price.values()))
+        if self._local_state_path.is_file():
+            snap = LocalPortfolioSnapshot.model_validate_json(
+                self._local_state_path.read_text(encoding="utf-8")
+            )
+            self._in_flight = list(snap.pending_client_order_ids)
+
+    def seed_history(self, bars: list[Bar]) -> None:
+        """Warm lookback without proposals or orders."""
+        seen = {bar.timestamp for bar in self._history}
+        for bar in bars:
+            if bar.timestamp in seen:
+                continue
+            self._history.append(bar)
+            seen.add(bar.timestamp)
+            self._last_price = bar.close
+            self._tracker.on_bar(bar.timestamp, bar.close)
+            if isinstance(self._broker, SimulatedBroker):
+                self._broker.set_last_price(bar.instrument, bar.close)
+        if bars:
+            self._write_last_bar(bars[-1])
+            self._persist_local_state()
+
+    def run_stream(
+        self,
+        poll_bars: Callable[[datetime | None], list[Bar]],
+        *,
+        poll_interval_s: float = 30.0,
+        sleep_fn: Callable[[float], None] = time.sleep,
+        should_stop: Callable[[], bool] | None = None,
+        max_polls: int | None = None,
+    ) -> PaperRunResult:
+        """Poll closed bars until stop/HALT. Does not cap at session_count_target."""
+        self.restore_persisted_state()
+        self.reconcile_startup()
+        result = PaperRunResult()
+        last_ts = self._last_processed_bar_ts()
+        polls = 0
+        while True:
+            if should_stop is not None and should_stop():
+                break
+            if self._kill.is_active():
+                break
+            self._heartbeat.write(self._process_id)
+            polls += 1
+            try:
+                bars = sorted(poll_bars(last_ts), key=lambda item: item.timestamp)
+            except Exception:
+                if max_polls is not None and polls >= max_polls:
+                    break
+                sleep_fn(poll_interval_s)
+                continue
+            if last_ts is None:
+                if bars:
+                    self.seed_history(bars)
+                    last_ts = bars[-1].timestamp
+            else:
+                for bar in bars:
+                    if bar.timestamp <= last_ts:
+                        self._ensure_history(bar)
+                        continue
+                    record = self.run_bar(bar)
+                    last_ts = bar.timestamp
+                    if record is not None:
+                        result.sessions.append(record)
+                    if self._kill.is_active():
+                        break
+            if max_polls is not None and polls >= max_polls:
+                break
+            if should_stop is not None and should_stop():
+                break
+            if self._kill.is_active():
+                break
+            sleep_fn(poll_interval_s)
+        return result
+
+    def _ensure_history(self, bar: Bar) -> None:
+        if any(existing.timestamp == bar.timestamp for existing in self._history):
+            return
+        self._history.append(bar)
+        self._history.sort(key=lambda item: item.timestamp)
+        self._last_price = bar.close
+        self._tracker.on_bar(bar.timestamp, bar.close)
+        if isinstance(self._broker, SimulatedBroker):
+            self._broker.set_last_price(bar.instrument, bar.close)
+
+    def _last_processed_bar_ts(self) -> datetime | None:
+        if not self._last_bar_path.is_file():
+            return None
+        try:
+            raw = json.loads(self._last_bar_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            return None
+        if not isinstance(raw, dict) or not raw.get("bar_timestamp"):
+            return None
+        moment = datetime.fromisoformat(str(raw["bar_timestamp"]).replace("Z", "+00:00"))
+        if moment.tzinfo is None:
+            moment = moment.replace(tzinfo=timezone.utc)
+        return moment.astimezone(timezone.utc)
 
     def reconcile_startup(self) -> None:
         report = self._periodic.run(
@@ -368,8 +490,8 @@ class PaperTradingLoop:
         self._in_flight.clear()
 
     def _write_last_bar(self, bar: Bar) -> None:
-        self._last_bar_path.parent.mkdir(parents=True, exist_ok=True)
-        self._last_bar_path.write_text(
+        write_text_atomic(
+            self._last_bar_path,
             json.dumps(
                 {
                     "instrument": bar.instrument,
@@ -378,7 +500,6 @@ class PaperTradingLoop:
                     "close": str(bar.close),
                 }
             ),
-            encoding="utf-8",
         )
 
     def _local_snapshot(self) -> LocalPortfolioSnapshot:
@@ -390,8 +511,13 @@ class PaperTradingLoop:
         )
 
     def _persist_local_state(self) -> None:
-        self._local_state_path.parent.mkdir(parents=True, exist_ok=True)
-        self._local_state_path.write_text(
-            self._local_snapshot().model_dump_json(),
-            encoding="utf-8",
+        write_text_atomic(self._local_state_path, self._local_snapshot().model_dump_json())
+        if isinstance(self._broker, SimulatedBroker):
+            write_text_atomic(
+                self._broker_state_path,
+                self._broker.snapshot().model_dump_json(),
+            )
+        write_text_atomic(
+            self._tracker_state_path,
+            json.dumps(self._tracker.dump_state()),
         )

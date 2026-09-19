@@ -2,6 +2,16 @@ export type AgentStatus = 'running' | 'stopped' | 'halted';
 export type VenueStatus = 'connected' | 'stale' | 'down';
 export type TradingMode = 'paper' | 'live';
 
+export interface BrokerMonitorSnapshot {
+  status: 'not_configured' | 'polling' | 'error';
+  polled_at: string | null;
+  positions: Record<string, string>;
+  open_client_order_ids: string[];
+  last_price: Record<string, string>;
+  error: string | null;
+  mode: 'monitor';
+}
+
 export interface HealthResponse {
   agent: AgentStatus;
   venue: VenueStatus;
@@ -14,6 +24,7 @@ export interface HealthResponse {
   reconciliation: 'ok' | 'mismatch' | 'unknown';
   halt_reason: string | null;
   live_actions_blocked: boolean;
+  broker_monitor: BrokerMonitorSnapshot;
 }
 
 export interface PortfolioResponse {

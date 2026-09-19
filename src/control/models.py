@@ -8,6 +8,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.monitor.broker_monitor import BrokerMonitorSnapshot
+
 _STRICT = ConfigDict(extra="forbid")
 
 AgentStatus = Literal["running", "stopped", "halted"]
@@ -35,6 +37,9 @@ class HealthResponse(BaseModel):
     reconciliation: ReconciliationStatus
     halt_reason: str | None = None
     live_actions_blocked: bool = True
+    broker_monitor: BrokerMonitorSnapshot = Field(
+        default_factory=lambda: BrokerMonitorSnapshot(status="not_configured")
+    )
 
 
 class PortfolioResponse(BaseModel):

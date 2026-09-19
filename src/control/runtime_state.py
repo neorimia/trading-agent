@@ -12,6 +12,7 @@ from typing import Callable
 from uuid import UUID, uuid4
 
 import yaml
+from pydantic import ValidationError
 
 from src.audit.audit_log import AuditLog
 from src.audit.events import AuditEvent
@@ -40,6 +41,7 @@ from src.control.settings import (
     STRATEGY_DISABLE_TOKEN,
     STRATEGY_ENABLE_TOKEN,
 )
+from src.monitor.broker_monitor import load_broker_monitor
 from src.data.sources import Bar
 from src.engine.analysis_types import (
     AnalysisContext,
@@ -60,6 +62,7 @@ from src.research.store import MetadataStore
 from src.risk.config_schema import RiskLimits, load_risk_limits
 from src.risk.kill_switch import KillSwitch
 from src.risk.portfolio_state import load_instrument_rules
+from src.runtime_io import write_text_exclusive
 
 STOP_FRACTION = Decimal("0.02")
 PingFn = Callable[[str], bool]
@@ -89,7 +92,10 @@ def _dec(raw: object, default: Decimal = Decimal("0")) -> Decimal:
 def _read_json(path: Path) -> dict | None:
     if not path.is_file():
         return None
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
     return raw if isinstance(raw, dict) else None
 
 
@@ -187,16 +193,19 @@ def build_health(
     heartbeat_age = _heartbeat_age(paths.heartbeat, moment)
     venue: str
     if last_bar_at is None:
-        venue = "down" if running else "down"
+        venue = "stale" if running else "down"
     else:
         age = (moment - last_bar_at.astimezone(timezone.utc)).total_seconds()
         venue = "stale" if age > settings.stale_data_threshold_s else "connected"
     recon = "unknown"
     if paths.reconciliation.is_file():
-        report = ReconciliationReport.model_validate_json(
-            paths.reconciliation.read_text(encoding="utf-8")
-        )
-        recon = "ok" if report.matched else "mismatch"
+        try:
+            report = ReconciliationReport.model_validate_json(
+                paths.reconciliation.read_text(encoding="utf-8")
+            )
+            recon = "ok" if report.matched else "mismatch"
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValidationError):
+            recon = "unknown"
     mode = trading_mode(settings)
     return HealthResponse(
         agent=agent,  # type: ignore[arg-type]
@@ -210,6 +219,7 @@ def build_health(
         reconciliation=recon,  # type: ignore[arg-type]
         halt_reason=halt_reason,
         live_actions_blocked=mode == "live" or halted or venue != "connected",
+        broker_monitor=load_broker_monitor(paths.broker_monitor),
     )
 
 
@@ -219,8 +229,15 @@ def _audit(paths) -> AuditLog:
 
 def build_portfolio(settings: ControlSettings, *, now: datetime | None = None) -> PortfolioResponse:
     moment = now if now is not None else _now()
-    paper = load_paper_trading_config(settings.paths.paper_config)
-    starting = paper.starting_cash
+    default_instrument: str | None = None
+    try:
+        paper = load_paper_trading_config(settings.paths.paper_config)
+        starting = paper.starting_cash
+        default_instrument = paper.instrument
+        config_ok = True
+    except Exception:
+        starting = Decimal("0")
+        config_ok = False
     cash = starting
     realized = Decimal("0")
     qty_from_fills: dict[str, Decimal] = {}
@@ -240,7 +257,10 @@ def build_portfolio(settings: ControlSettings, *, now: datetime | None = None) -
             if event.event_type != "fill":
                 continue
             payload = event.payload
-            instrument = str(payload.get("instrument") or paper.instrument)
+            fill_instrument = payload.get("instrument") or default_instrument
+            if not fill_instrument:
+                continue
+            instrument = str(fill_instrument)
             side = str(payload.get("side") or "buy")
             qty = _dec(payload.get("filled_quantity") or payload.get("quantity"))
             price = _dec(payload.get("fill_price") or payload.get("price"))
@@ -265,20 +285,33 @@ def build_portfolio(settings: ControlSettings, *, now: datetime | None = None) -
     local = _read_json(settings.paths.local_positions)
     positions: dict[str, Decimal] = dict(qty_from_fills)
     if local:
-        snapshot = LocalPortfolioSnapshot.model_validate(local)
-        positions = dict(snapshot.positions)
-        incomplete = False
+        try:
+            snapshot = LocalPortfolioSnapshot.model_validate(local)
+            positions = dict(snapshot.positions)
+            incomplete = False
+        except ValidationError:
+            pass
     last_bar_at, last_instrument, last_close = _last_bar(settings.paths.last_bar)
     last_price = last_close if last_close is not None else Decimal("0")
-    instrument = last_instrument or paper.instrument
-    if instrument not in positions:
+    instrument = last_instrument or default_instrument
+    if instrument is not None and instrument not in positions:
         positions.setdefault(instrument, Decimal("0"))
-    _, asset_classes = load_instrument_rules(settings.paths.universe)
+    try:
+        _, asset_classes = load_instrument_rules(settings.paths.universe)
+    except Exception:
+        asset_classes = {}
     exposure: dict[str, Decimal] = {}
     class_exposure: dict[str, Decimal] = {}
     unrealized = Decimal("0")
+    equity_positions = Decimal("0")
+    unmatched = False
     for symbol, qty in positions.items():
-        price = last_price if symbol == instrument else last_price
+        if instrument is not None and symbol == instrument and last_close is not None:
+            price = last_price
+        else:
+            price = Decimal("0")
+            if qty != 0:
+                unmatched = True
         notional = abs(qty * price)
         exposure[symbol] = notional
         asset_class = asset_classes.get(symbol, "crypto")
@@ -286,7 +319,10 @@ def build_portfolio(settings: ControlSettings, *, now: datetime | None = None) -
         entry = avg_price.get(symbol)
         if qty > 0 and entry is not None and price > 0:
             unrealized += (price - entry) * qty
-    equity = cash + sum(qty * last_price for qty in positions.values())
+        equity_positions += qty * price
+    if not config_ok or unmatched:
+        incomplete = True
+    equity = cash + equity_positions
     peak = max(starting, equity)
     drawdown = peak - equity if peak > equity else Decimal("0")
     return PortfolioResponse(
@@ -528,6 +564,10 @@ def list_pending(settings: ControlSettings, *, now: datetime | None = None) -> l
     return pending
 
 
+class ApprovalExpired(Exception):
+    """Approve after the human-approval window."""
+
+
 def write_approval(
     settings: ControlSettings,
     correlation_id: UUID,
@@ -543,16 +583,24 @@ def write_approval(
     request_path = directory / f"{correlation_id}.request.json"
     if not request_path.is_file():
         raise FileNotFoundError(f"no pending approval {correlation_id}")
+    raw = _read_json(request_path) or {}
+    requested_at = _parse_dt(raw.get("requested_at")) or moment
+    expires_at = requested_at.astimezone(timezone.utc) + timedelta(
+        seconds=settings.approval_timeout_s
+    )
+    if approved and moment >= expires_at:
+        raise ApprovalExpired(f"approval window expired {correlation_id}")
     decision_path = directory / f"{correlation_id}.decision.json"
-    if decision_path.is_file():
-        raise FileExistsError(f"approval already decided {correlation_id}")
     payload = {
         "approved": approved,
         "decided_by": decided_by,
         "reason": reason,
         "decided_at": moment.isoformat(),
     }
-    decision_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    try:
+        write_text_exclusive(decision_path, json.dumps(payload, indent=2))
+    except FileExistsError as exc:
+        raise FileExistsError(f"approval already decided {correlation_id}") from exc
     _audit(settings.paths).record(
         AuditEvent.now(
             correlation_id=correlation_id,
@@ -597,7 +645,7 @@ def list_orders(settings: ControlSettings) -> list[OrderRow]:
                 if payload.get("slippage") is not None
                 else None,
                 timestamp=event.timestamp,
-                reason=str(payload["reason"] or payload.get("reject_reason") or "")
+                reason=str(payload.get("reason") or payload.get("reject_reason") or "")
                 if payload.get("reason") or payload.get("reject_reason")
                 else None,
                 trading_mode=mode,  # type: ignore[arg-type]
@@ -609,13 +657,24 @@ def list_orders(settings: ControlSettings) -> list[OrderRow]:
 def list_positions(settings: ControlSettings) -> list[PositionRow]:
     portfolio = build_portfolio(settings)
     last_bar_at, instrument, last_close = _last_bar(settings.paths.last_bar)
-    paper = load_paper_trading_config(settings.paths.paper_config)
-    symbol = instrument or paper.instrument
+    default_instrument: str | None = None
+    try:
+        default_instrument = load_paper_trading_config(settings.paths.paper_config).instrument
+    except Exception:
+        default_instrument = None
+    symbol = instrument or default_instrument
+    if not symbol:
+        return []
     qty = _dec(portfolio.exposure_per_instrument.get(symbol), Decimal("0"))
     local = _read_json(settings.paths.local_positions)
     open_qty = Decimal("0")
     if local:
-        open_qty = LocalPortfolioSnapshot.model_validate(local).positions.get(symbol, Decimal("0"))
+        try:
+            open_qty = LocalPortfolioSnapshot.model_validate(local).positions.get(
+                symbol, Decimal("0")
+            )
+        except ValidationError:
+            open_qty = Decimal("0")
     stop = None
     if last_close is not None and last_close > 0:
         stop = last_close * (Decimal("1") - STOP_FRACTION)
@@ -958,6 +1017,16 @@ def build_alerts(settings: ControlSettings, *, now: datetime | None = None) -> l
                 severity="error",
                 title="Reconciliation mismatch",
                 detail="Local state does not match broker snapshot. Reset halt only after review.",
+            )
+        )
+    if health.broker_monitor.status == "error":
+        alerts.append(
+            AlertRow(
+                id="broker_monitor",
+                severity="warning",
+                title="Kraken monitor",
+                detail=health.broker_monitor.error
+                or "Broker monitor poll failed. Paper book is unchanged.",
             )
         )
     if _dec(risk.remaining_daily_loss) <= 0:

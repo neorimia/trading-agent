@@ -6,6 +6,8 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from src.runtime_io import write_text_atomic
+
 
 class Heartbeat:
     def __init__(self, path: str | Path) -> None:
@@ -22,7 +24,7 @@ class Heartbeat:
             "process_id": process_id,
             "timestamp": moment.astimezone(timezone.utc).isoformat(),
         }
-        self._path.write_text(json.dumps(payload), encoding="utf-8")
+        write_text_atomic(self._path, json.dumps(payload))
 
     def is_stale(self, threshold_s: float, *, now: datetime | None = None) -> bool:
         if threshold_s <= 0:

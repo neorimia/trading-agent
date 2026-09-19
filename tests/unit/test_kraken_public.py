@@ -51,3 +51,49 @@ def test_kraken_source_parses_public_ohlc() -> None:
     assert bars[0].close == Decimal("2520.0")
     assert bars[0].volume == Decimal("100.5")
     assert bars[0].timestamp.tzinfo is not None
+
+
+def test_closed_bars_exclude_forming_candle() -> None:
+    open_ts = int(datetime(2024, 11, 1, tzinfo=timezone.utc).timestamp())
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "error": [],
+                "result": {
+                    "XETHZUSD": [
+                        [
+                            open_ts,
+                            "2500.0",
+                            "2550.0",
+                            "2480.0",
+                            "2520.0",
+                            "2510.0",
+                            "100.5",
+                            12,
+                        ]
+                    ],
+                    "last": open_ts,
+                },
+            },
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    source = KrakenPublicOHLCSource(http_client=client)
+    start = datetime(2024, 11, 1, tzinfo=timezone.utc)
+    forming = source.closed_bars(
+        "ETHUSD",
+        start,
+        "1d",
+        now=datetime(2024, 11, 1, 12, tzinfo=timezone.utc),
+    )
+    closed = source.closed_bars(
+        "ETHUSD",
+        start,
+        "1d",
+        now=datetime(2024, 11, 2, tzinfo=timezone.utc),
+    )
+    assert forming == []
+    assert len(closed) == 1
+    assert closed[0].close == Decimal("2520.0")

@@ -111,6 +111,16 @@ def test_health_stopped_paper(tmp_path: Path) -> None:
     assert body["llm"] == "up"
     assert body["research"] == "down"
     assert body["live_actions_blocked"] is True
+    assert body["broker_monitor"]["status"] == "not_configured"
+    assert body["broker_monitor"]["mode"] == "monitor"
+
+
+def test_broker_monitor_endpoint_not_configured(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.get("/v1/broker/monitor")
+    assert response.status_code == 200
+    assert response.json()["status"] == "not_configured"
 
 
 def test_emergency_halt_writes_flag(tmp_path: Path) -> None:
@@ -161,7 +171,7 @@ def test_approval_writes_same_decision_file_as_cli(tmp_path: Path) -> None:
         json.dumps(
             {
                 "correlation_id": str(cid),
-                "requested_at": "2026-09-18T11:00:00+00:00",
+                "requested_at": "2026-09-18T11:30:00+00:00",
                 "risk_decision": {
                     "approved": True,
                     "instrument": "ETHUSD",
@@ -633,3 +643,247 @@ def test_observer_cannot_run_analysis(tmp_path: Path) -> None:
             headers={"Idempotency-Key": "analyze-obs"},
         )
     assert response.status_code == 403
+
+
+def _write_last_bar(ctx: ControlContext, instrument: str = "ETHUSD", close: str = "2410") -> None:
+    ctx.settings.paths.last_bar.parent.mkdir(parents=True, exist_ok=True)
+    ctx.settings.paths.last_bar.write_text(
+        json.dumps(
+            {
+                "instrument": instrument,
+                "bar_timestamp": "2026-09-18T12:00:00+00:00",
+                "timestamp": "2026-09-18T12:00:00+00:00",
+                "close": close,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_pid(ctx: ControlContext) -> None:
+    ctx.settings.paths.agent_pid.parent.mkdir(parents=True, exist_ok=True)
+    ctx.settings.paths.agent_pid.write_text("4242", encoding="utf-8")
+
+
+def test_health_venue_stale_when_running_without_bar(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    _write_pid(ctx)
+    with _client(ctx) as client:
+        body = client.get("/v1/health").json()
+    assert body["agent"] == "running"
+    assert body["venue"] == "stale"
+
+
+def test_health_venue_down_when_stopped_without_bar(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        body = client.get("/v1/health").json()
+    assert body["agent"] == "stopped"
+    assert body["venue"] == "down"
+
+
+def test_health_survives_truncated_last_bar(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    _write_pid(ctx)
+    ctx.settings.paths.last_bar.parent.mkdir(parents=True, exist_ok=True)
+    ctx.settings.paths.last_bar.write_text("{", encoding="utf-8")
+    with _client(ctx) as client:
+        response = client.get("/v1/health")
+    assert response.status_code == 200
+    assert response.json()["venue"] == "stale"
+
+
+def test_portfolio_does_not_mark_other_instruments_at_last_bar(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    ctx.settings.paths.local_positions.parent.mkdir(parents=True, exist_ok=True)
+    ctx.settings.paths.local_positions.write_text(
+        json.dumps(
+            {"positions": {"ETHUSD": "0.2", "BTCUSD": "0.1"}, "pending_client_order_ids": []}
+        ),
+        encoding="utf-8",
+    )
+    _write_last_bar(ctx)
+    with _client(ctx) as client:
+        body = client.get("/v1/portfolio").json()
+    assert Decimal(body["exposure_per_instrument"]["ETHUSD"]) == Decimal("482.0")
+    assert Decimal(body["exposure_per_instrument"]["BTCUSD"]) == Decimal("0")
+    assert body["incomplete"] is True
+
+
+def test_orders_include_reject_reason_without_reason_key(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    log = AuditLog(ctx.settings.paths.audit_db)
+    cid = uuid4()
+    log.record(
+        AuditEvent.now(
+            correlation_id=cid,
+            event_type="risk_decision",
+            payload={
+                "approved": False,
+                "instrument": "ETHUSD",
+                "side": "buy",
+                "quantity": "0",
+                "reject_reason": "max_drawdown",
+                "requires_human_approval": False,
+            },
+        )
+    )
+    with _client(ctx) as client:
+        response = client.get("/v1/orders")
+    assert response.status_code == 200
+    assert response.json()[0]["reason"] == "max_drawdown"
+    assert response.json()[0]["status"] == "rejected"
+
+
+def test_approve_expired_is_conflict(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    cid = uuid4()
+    directory = ctx.settings.paths.approvals_dir
+    directory.mkdir(parents=True)
+    _write_last_bar(ctx)
+    _write_pid(ctx)
+    (directory / f"{cid}.request.json").write_text(
+        json.dumps(
+            {
+                "correlation_id": str(cid),
+                "requested_at": "2026-09-18T10:00:00+00:00",
+                "risk_decision": {
+                    "approved": True,
+                    "instrument": "ETHUSD",
+                    "side": "buy",
+                    "quantity": "0.1",
+                    "reject_reason": None,
+                    "requires_human_approval": True,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    with _client(ctx) as client:
+        response = client.post(
+            f"/v1/approvals/{cid}",
+            json={"approved": True, "reason": "late", "decided_by": "human"},
+            headers={"Idempotency-Key": "appr-expired"},
+        )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "approval_timeout"
+    assert not (directory / f"{cid}.decision.json").is_file()
+
+
+def test_reject_after_expiry_is_recorded(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    cid = uuid4()
+    directory = ctx.settings.paths.approvals_dir
+    directory.mkdir(parents=True)
+    (directory / f"{cid}.request.json").write_text(
+        json.dumps(
+            {
+                "correlation_id": str(cid),
+                "requested_at": "2026-09-18T10:00:00+00:00",
+                "risk_decision": {
+                    "approved": True,
+                    "instrument": "ETHUSD",
+                    "side": "buy",
+                    "quantity": "0.1",
+                    "reject_reason": None,
+                    "requires_human_approval": True,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    with _client(ctx) as client:
+        response = client.post(
+            f"/v1/approvals/{cid}",
+            json={"approved": False, "reason": "too_late", "decided_by": "human"},
+            headers={"Idempotency-Key": "appr-reject-expired"},
+        )
+    assert response.status_code == 200
+    decision = json.loads((directory / f"{cid}.decision.json").read_text(encoding="utf-8"))
+    assert decision["approved"] is False
+
+
+def test_concurrent_write_approval_one_wins(tmp_path: Path) -> None:
+    from concurrent.futures import ThreadPoolExecutor
+
+    from src.control.runtime_state import write_approval
+
+    ctx = _ctx(tmp_path)
+    cid = uuid4()
+    directory = ctx.settings.paths.approvals_dir
+    directory.mkdir(parents=True)
+    (directory / f"{cid}.request.json").write_text(
+        json.dumps(
+            {
+                "correlation_id": str(cid),
+                "requested_at": "2026-09-18T11:30:00+00:00",
+                "risk_decision": {
+                    "approved": True,
+                    "instrument": "ETHUSD",
+                    "side": "buy",
+                    "quantity": "0.1",
+                    "reject_reason": None,
+                    "requires_human_approval": True,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    errors: list[BaseException] = []
+
+    def _write(reason: str) -> None:
+        try:
+            write_approval(
+                ctx.settings,
+                cid,
+                approved=False,
+                reason=reason,
+                decided_by="human",
+                now=ctx.now(),
+            )
+        except FileExistsError as exc:
+            errors.append(exc)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        one = pool.submit(_write, "a")
+        two = pool.submit(_write, "b")
+        one.result()
+        two.result()
+    assert len(errors) == 1
+    assert (directory / f"{cid}.decision.json").is_file()
+
+
+def test_portfolio_survives_invalid_paper_config(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    ctx.settings.paths.paper_config.write_text("not: valid-paper-config\n", encoding="utf-8")
+    with _client(ctx) as client:
+        response = client.get("/v1/portfolio")
+        positions = client.get("/v1/positions")
+    assert response.status_code == 200
+    assert response.json()["incomplete"] is True
+    assert positions.status_code == 200
+
+
+def test_websocket_survives_snapshot_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.control import server as control_server
+
+    ctx = _ctx(tmp_path)
+    calls = {"n": 0}
+    real = control_server._ws_snapshot
+
+    def flaky(snapshot_ctx, sent_at):  # noqa: ANN001
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("torn json")
+        return real(snapshot_ctx, sent_at)
+
+    async def _no_sleep(*_args, **_kwargs):  # noqa: ANN002, ANN003
+        return None
+
+    monkeypatch.setattr(control_server, "_ws_snapshot", flaky)
+    monkeypatch.setattr(control_server.asyncio, "sleep", _no_sleep)
+    with _client(ctx) as client:
+        with client.websocket_connect("/v1/ws/events") as ws:
+            message = ws.receive_json()
+    assert message["channel"] == "health"
+    assert calls["n"] >= 2

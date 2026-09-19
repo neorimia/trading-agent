@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 
 import { ApiService } from '../core/api.service';
 import { AgentStateService } from '../core/agent-state.service';
-import { DailyPlan, DailyPlanItem, PortfolioResponse, pnlClass } from '../core/models';
+import { DailyPlan, DailyPlanItem, PortfolioResponse, BrokerMonitorSnapshot, pnlClass } from '../core/models';
 import { MetricCard } from '../shared/metric-card';
 import { EmptyState } from '../shared/empty-state';
 
@@ -19,6 +19,7 @@ import { EmptyState } from '../shared/empty-state';
       @if (portfolio()!.incomplete) {
         <p class="banner-warn">Portfolio reconstruction is incomplete. Treat P&amp;L as an estimate.</p>
       }
+      <h2>Paper book (simulated)</h2>
       <section class="metric-grid">
         <app-metric-card label="Equity" [value]="portfolio()!.equity" />
         <app-metric-card label="Cash" [value]="portfolio()!.cash" />
@@ -37,6 +38,41 @@ import { EmptyState } from '../shared/empty-state';
         <app-metric-card label="Orders today" [value]="'' + portfolio()!.orders_today" />
       </section>
     }
+    <section>
+      <h2>Kraken account (monitor)</h2>
+      <p class="lede">Query-only Balance/OpenOrders. This is not the paper book and cannot place orders.</p>
+      @if (monitor().status === 'not_configured') {
+        <app-empty-state
+          title="Monitor not configured"
+          detail="Paper still runs without keys. Add Query-only Kraken spot keys (Withdraw off) to observe the real account."
+        />
+      } @else if (monitor().status === 'error') {
+        <p class="banner-warn">Monitor error: {{ monitor().error || 'poll failed' }}</p>
+      } @else {
+        <p class="muted">status={{ monitor().status }} · polled {{ monitor().polled_at || '—' }}</p>
+        @if (krakenBalanceEntries().length === 0) {
+          <app-empty-state title="No Kraken balances" detail="Spot query returned an empty book." />
+        } @else {
+          <table>
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Quantity</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of krakenBalanceEntries(); track row[0]) {
+                <tr>
+                  <td>{{ row[0] }}</td>
+                  <td class="mono">{{ row[1] }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+        <p class="muted">Open client order ids: {{ monitor().open_client_order_ids.join(', ') || 'none' }}</p>
+      }
+    </section>
     <section>
       <h2>Exposure</h2>
       @if (exposureEntries().length === 0) {
@@ -108,6 +144,14 @@ export class DashboardPage implements OnInit {
   ngOnInit(): void {
     this.api.portfolio().subscribe((value) => this.portfolio.set(value));
     this.loadPlan();
+  }
+
+  monitor(): BrokerMonitorSnapshot {
+    return this.state.health().broker_monitor;
+  }
+
+  krakenBalanceEntries(): [string, string][] {
+    return Object.entries(this.monitor().positions);
   }
 
   loadPlan(): void {

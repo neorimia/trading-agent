@@ -9,6 +9,7 @@ import {
   AnalysisRunResponse,
   AnalysisType,
   BarsResponse,
+  BrokerMonitorSnapshot,
   DailyPlan,
   HealthResponse,
   IndicatorsResponse,
@@ -40,6 +41,10 @@ export class ApiService {
 
   portfolio(): Observable<PortfolioResponse> {
     return this.http.get<PortfolioResponse>('/v1/portfolio');
+  }
+
+  brokerMonitor(): Observable<BrokerMonitorSnapshot> {
+    return this.http.get<BrokerMonitorSnapshot>('/v1/broker/monitor');
   }
 
   alerts(): Observable<AlertRow[]> {

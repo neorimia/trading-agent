@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 import time
+import signal
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,7 +15,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from src.data.kraken import KrakenPublicOHLCSource
-from src.data.sources import CsvBarDataSource
+from src.data.sources import CsvBarDataSource, timeframe_delta
 from src.engine.adapters.kraken_paper import (
     assert_no_kraken_trading_keys,
     build_paper_node_config,
@@ -119,10 +120,28 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--runtime-dir", default="")
     parser.add_argument("--max-sessions", type=int, default=0)
+    parser.add_argument(
+        "--mode",
+        choices=("batch", "stream"),
+        default="batch",
+        help="batch = historical window then exit; stream = poll closed bars until stop",
+    )
+    parser.add_argument("--poll-interval-s", type=float, default=30.0)
     parser.add_argument("--start", default="2024-11-01T00:00:00+00:00")
     parser.add_argument("--end", default="2024-12-31T23:59:59+00:00")
     parser.add_argument("--simulate-restart", action="store_true")
     return parser.parse_args()
+
+
+class _StopFlag:
+    def __init__(self) -> None:
+        self.stopped = False
+
+    def request(self, *_args: object) -> None:
+        self.stopped = True
+
+    def __call__(self) -> bool:
+        return self.stopped
 
 
 def _dt(raw: str) -> datetime:
@@ -194,17 +213,6 @@ def main() -> None:
     runtime = Path(args.runtime_dir) if args.runtime_dir else REPO_ROOT / "runtime" / "paper"
     runtime.mkdir(parents=True, exist_ok=True)
 
-    if args.csv:
-        bars = CsvBarDataSource(Path(args.csv)).fetch_bars(
-            config.instrument, _dt(args.start), _dt(args.end), config.timeframe
-        )
-        data_source = f"csv:{args.csv}"
-    else:
-        bars = KrakenPublicOHLCSource().fetch_bars(
-            config.instrument, _dt(args.start), _dt(args.end), config.timeframe
-        )
-        data_source = "kraken_public_ohlc"
-
     if args.skip_llm:
         client: object = BaselineProposalClient(
             fast_period=config.fast_ema_period,
@@ -219,22 +227,64 @@ def main() -> None:
         else None
     )
     loop, broker = build_loop(runtime, config, client, operator)
-    max_sessions = args.max_sessions or config.session_count_target
     started = time.perf_counter()
-    result = loop.run_bars(bars, max_sessions=max_sessions)
-    elapsed_s = time.perf_counter() - started
+    n_bars = 0
+    data_source = "kraken_public_ohlc"
 
-    restart_ok = None
-    if args.simulate_restart:
-        snapshot = broker.snapshot()
-        restored = SimulatedBroker()
-        restored.restore(snapshot)
-        report = loop._reconciliation.reconcile(  # noqa: SLF001 — restart check in CLI
-            loop._local_snapshot(),  # noqa: SLF001
-            restored.snapshot(),
-        )
-        restart_ok = report.matched
-        result.restart_reconciled = restart_ok
+    if args.mode == "stream":
+        if args.csv:
+            raise SystemExit("stream mode does not accept --csv; use batch for replay")
+        source = KrakenPublicOHLCSource()
+        data_source = "kraken_public_ohlc_stream"
+
+        def poll(_after: datetime | None) -> list:
+            now = datetime.now(timezone.utc)
+            delta = timeframe_delta(config.timeframe)
+            start = now - delta * (config.lookback_bars + 2)
+            return source.closed_bars(
+                config.instrument, start, config.timeframe, now=now
+            )
+
+        flag = _StopFlag()
+        signal.signal(signal.SIGTERM, flag.request)
+        signal.signal(signal.SIGINT, flag.request)
+        try:
+            result = loop.run_stream(
+                poll,
+                poll_interval_s=args.poll_interval_s,
+                should_stop=flag,
+            )
+        finally:
+            source.close()
+        n_bars = len(loop._history)  # noqa: SLF001 — summary only
+        restart_ok = None
+    else:
+        if args.csv:
+            bars = CsvBarDataSource(Path(args.csv)).fetch_bars(
+                config.instrument, _dt(args.start), _dt(args.end), config.timeframe
+            )
+            data_source = f"csv:{args.csv}"
+        else:
+            bars = KrakenPublicOHLCSource().fetch_bars(
+                config.instrument, _dt(args.start), _dt(args.end), config.timeframe
+            )
+            data_source = "kraken_public_ohlc"
+        n_bars = len(bars)
+        max_sessions = args.max_sessions or config.session_count_target
+        result = loop.run_bars(bars, max_sessions=max_sessions)
+        restart_ok = None
+        if args.simulate_restart:
+            snapshot = broker.snapshot()
+            restored = SimulatedBroker()
+            restored.restore(snapshot)
+            report = loop._reconciliation.reconcile(  # noqa: SLF001 — restart check in CLI
+                loop._local_snapshot(),  # noqa: SLF001
+                restored.snapshot(),
+            )
+            restart_ok = report.matched
+            result.restart_reconciled = restart_ok
+
+    elapsed_s = time.perf_counter() - started
 
     sessions_payload = [
         {
@@ -259,7 +309,8 @@ def main() -> None:
         "venue": config.venue,
         "instrument": config.instrument,
         "data_source": data_source,
-        "n_bars": len(bars),
+        "mode": args.mode,
+        "n_bars": n_bars,
         "n_sessions": len(result.sessions),
         "elapsed_s": round(elapsed_s, 4),
         "latency_per_session_s": round(elapsed_s / max(len(result.sessions), 1), 4),

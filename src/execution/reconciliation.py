@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -10,6 +9,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.execution.broker import BrokerState
+from src.runtime_io import write_text_atomic
 
 _STRICT = ConfigDict(extra="forbid")
 
@@ -78,7 +78,7 @@ class Reconciliation:
             checked_at=datetime.now(timezone.utc),
             mismatches=mismatches,
         )
-        self._report_path.write_text(report.model_dump_json(), encoding="utf-8")
+        write_text_atomic(self._report_path, report.model_dump_json())
         return report
 
     def last_report(self) -> ReconciliationReport | None:

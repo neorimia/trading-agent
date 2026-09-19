@@ -7,6 +7,7 @@ Host-ul e forțat pe loopback (127.0.0.1 / localhost / ::1).
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -29,6 +30,7 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.control.agent_process import AgentProcessController, SubprocessAgentProcess
+from src.control.replay_cache import ReplayCache, run_idempotent
 from src.control.models import (
     AckResponse,
     ApprovalDecisionRequest,
@@ -41,6 +43,7 @@ from src.control.models import (
 )
 from src.control.runtime_state import (
     AnalyzeFn,
+    ApprovalExpired,
     FetchBarsFn,
     PidAliveFn,
     PingFn,
@@ -71,6 +74,7 @@ from src.control.runtime_state import (
     write_approval,
     write_risk_limits,
 )
+from src.monitor.broker_monitor import load_broker_monitor
 from src.control.settings import (
     DEFAULT_CORS,
     ControlSettings,
@@ -85,6 +89,7 @@ from src.engine.paper_config import load_paper_trading_config
 from src.execution.key_policy import redact_secrets
 
 LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+_LOG = logging.getLogger(__name__)
 
 
 def _fetch_kraken_bars(
@@ -105,7 +110,7 @@ class ControlContext:
     ping: PingFn = ping_http
     alive: PidAliveFn = pid_is_alive
     process: AgentProcessController = field(default_factory=SubprocessAgentProcess)
-    idempotency: dict[str, tuple[int, dict]] = field(default_factory=dict)
+    replay: ReplayCache = field(default_factory=ReplayCache)
     now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)
     request_analysis: AnalyzeFn | None = None
 
@@ -166,23 +171,18 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
             raise HTTPException(status_code=403, detail="observer cannot mutate")
         return ctx
 
-    def require_idempotency(
-        ctx: ControlContext,
-        idempotency_key: str | None,
-    ) -> dict | None:
+    def require_idempotency_key(idempotency_key: str | None) -> str:
         if not idempotency_key or not idempotency_key.strip():
             raise HTTPException(status_code=400, detail="Idempotency-Key required")
-        cached = ctx.idempotency.get(idempotency_key)
-        if cached is not None:
-            return {"status": cached[0], "body": cached[1], "replay": True}
-        return None
-
-    def store_idempotency(ctx: ControlContext, key: str, status: int, body: dict) -> None:
-        ctx.idempotency[key] = (status, body)
+        return idempotency_key
 
     @app.get("/v1/health", response_model=HealthResponse)
     def health(ctx: ControlContext = Depends(require_auth)) -> HealthResponse:
         return build_health(ctx.settings, now=ctx.now(), ping=ctx.ping, alive=ctx.alive)
+
+    @app.get("/v1/broker/monitor")
+    def broker_monitor(ctx: ControlContext = Depends(require_auth)):
+        return load_broker_monitor(ctx.settings.paths.broker_monitor)
 
     @app.get("/v1/portfolio")
     def portfolio(ctx: ControlContext = Depends(require_auth)):
@@ -274,33 +274,35 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
         ctx: ControlContext = Depends(require_operator),
     ):
-        replay = require_idempotency(ctx, idempotency_key)
-        if replay is not None:
-            return replay["body"]
-        health = build_health(ctx.settings, now=ctx.now(), ping=ctx.ping, alive=ctx.alive)
-        if body.approved:
-            if health.trading_mode == "live":
-                raise HTTPException(status_code=403, detail="live approvals are blocked")
-            if health.agent == "halted":
-                raise HTTPException(status_code=409, detail="agent_halted")
-            if health.venue != "connected":
-                raise HTTPException(status_code=409, detail="stale_or_disconnected")
-        try:
-            write_approval(
-                ctx.settings,
-                correlation_id,
-                approved=body.approved,
-                reason=body.reason,
-                decided_by=body.decided_by,
-                now=ctx.now(),
-            )
-        except FileNotFoundError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
-        except FileExistsError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
-        payload = AckResponse(ok=True, detail="decision recorded").model_dump()
-        store_idempotency(ctx, idempotency_key or "", 200, payload)
-        return payload
+        key = require_idempotency_key(idempotency_key)
+
+        def _act() -> dict:
+            health = build_health(ctx.settings, now=ctx.now(), ping=ctx.ping, alive=ctx.alive)
+            if body.approved:
+                if health.trading_mode == "live":
+                    raise HTTPException(status_code=403, detail="live approvals are blocked")
+                if health.agent == "halted":
+                    raise HTTPException(status_code=409, detail="agent_halted")
+                if health.venue != "connected":
+                    raise HTTPException(status_code=409, detail="stale_or_disconnected")
+            try:
+                write_approval(
+                    ctx.settings,
+                    correlation_id,
+                    approved=body.approved,
+                    reason=body.reason,
+                    decided_by=body.decided_by,
+                    now=ctx.now(),
+                )
+            except FileNotFoundError as exc:
+                raise HTTPException(status_code=404, detail=str(exc)) from exc
+            except FileExistsError as exc:
+                raise HTTPException(status_code=409, detail=str(exc)) from exc
+            except ApprovalExpired as exc:
+                raise HTTPException(status_code=409, detail="approval_timeout") from exc
+            return AckResponse(ok=True, detail="decision recorded").model_dump()
+
+        return run_idempotent(ctx.replay, key, _act)
 
     @app.get("/v1/risk/limits")
     def risk_get(ctx: ControlContext = Depends(require_auth)):
@@ -312,20 +314,20 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
         ctx: ControlContext = Depends(require_operator),
     ):
-        replay = require_idempotency(ctx, idempotency_key)
-        if replay is not None:
-            return replay["body"]
-        try:
-            write_risk_limits(ctx.settings, body, correlation_id=uuid4())
-        except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
-        payload = AckResponse(
-            ok=True,
-            detail="limits written; restart required before they apply",
-            restart_required=True,
-        ).model_dump()
-        store_idempotency(ctx, idempotency_key or "", 200, payload)
-        return payload
+        key = require_idempotency_key(idempotency_key)
+
+        def _act() -> dict:
+            try:
+                write_risk_limits(ctx.settings, body, correlation_id=uuid4())
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+            return AckResponse(
+                ok=True,
+                detail="limits written; restart required before they apply",
+                restart_required=True,
+            ).model_dump()
+
+        return run_idempotent(ctx.replay, key, _act)
 
     @app.post("/v1/risk/halt")
     def halt(
@@ -333,26 +335,26 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
         ctx: ControlContext = Depends(require_operator),
     ):
-        replay = require_idempotency(ctx, idempotency_key)
-        if replay is not None:
-            return replay["body"]
-        trigger_halt(ctx.settings, body.reason)
-        payload = AckResponse(ok=True, detail="halt flag written").model_dump()
-        store_idempotency(ctx, idempotency_key or "", 200, payload)
-        return payload
+        key = require_idempotency_key(idempotency_key)
+
+        def _act() -> dict:
+            trigger_halt(ctx.settings, body.reason)
+            return AckResponse(ok=True, detail="halt flag written").model_dump()
+
+        return run_idempotent(ctx.replay, key, _act)
 
     @app.post("/v1/risk/halt/reset")
     def halt_reset(
         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
         ctx: ControlContext = Depends(require_operator),
     ):
-        replay = require_idempotency(ctx, idempotency_key)
-        if replay is not None:
-            return replay["body"]
-        reset_halt(ctx.settings)
-        payload = AckResponse(ok=True, detail="halt flag cleared; resume is manual").model_dump()
-        store_idempotency(ctx, idempotency_key or "", 200, payload)
-        return payload
+        key = require_idempotency_key(idempotency_key)
+
+        def _act() -> dict:
+            reset_halt(ctx.settings)
+            return AckResponse(ok=True, detail="halt flag cleared; resume is manual").model_dump()
+
+        return run_idempotent(ctx.replay, key, _act)
 
     @app.get("/v1/agent/events")
     def agent_events(
@@ -367,28 +369,28 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
         ctx: ControlContext = Depends(require_operator),
     ):
-        replay = require_idempotency(ctx, idempotency_key)
-        if replay is not None:
-            return replay["body"]
-        if ctx.settings.live_trading_enabled:
-            raise HTTPException(status_code=403, detail="live start is blocked")
-        pid = ctx.process.start(ctx.settings)
-        payload = AckResponse(ok=True, detail=f"agent pid {pid}").model_dump()
-        store_idempotency(ctx, idempotency_key or "", 200, payload)
-        return payload
+        key = require_idempotency_key(idempotency_key)
+
+        def _act() -> dict:
+            if ctx.settings.live_trading_enabled:
+                raise HTTPException(status_code=403, detail="live start is blocked")
+            pid = ctx.process.start(ctx.settings, ctx.environ)
+            return AckResponse(ok=True, detail=f"agent pid {pid}").model_dump()
+
+        return run_idempotent(ctx.replay, key, _act)
 
     @app.post("/v1/agent/stop")
     def agent_stop(
         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
         ctx: ControlContext = Depends(require_operator),
     ):
-        replay = require_idempotency(ctx, idempotency_key)
-        if replay is not None:
-            return replay["body"]
-        ctx.process.stop(ctx.settings)
-        payload = AckResponse(ok=True, detail="agent stop requested").model_dump()
-        store_idempotency(ctx, idempotency_key or "", 200, payload)
-        return payload
+        key = require_idempotency_key(idempotency_key)
+
+        def _act() -> dict:
+            ctx.process.stop(ctx.settings)
+            return AckResponse(ok=True, detail="agent stop requested").model_dump()
+
+        return run_idempotent(ctx.replay, key, _act)
 
     @app.get("/v1/research/documents")
     def research_docs(
@@ -431,34 +433,33 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
         ctx: ControlContext = Depends(require_operator),
     ):
-        replay = require_idempotency(ctx, idempotency_key)
-        if replay is not None:
-            return replay["body"]
+        key = require_idempotency_key(idempotency_key)
 
-        def _call(context: AnalysisContext):
-            if ctx.request_analysis is not None:
-                return ctx.request_analysis(context)
-            client = LLMAnalysisClient(ctx.settings.llm_health_url)
+        def _act() -> dict:
+            def _call(context: AnalysisContext):
+                if ctx.request_analysis is not None:
+                    return ctx.request_analysis(context)
+                client = LLMAnalysisClient(ctx.settings.llm_health_url)
+                try:
+                    return client.request_analysis(context)
+                finally:
+                    client.close()
+
             try:
-                return client.request_analysis(context)
-            finally:
-                client.close()
+                result = run_operator_analysis(
+                    ctx.settings,
+                    instrument=body.instrument,
+                    analysis_type=body.analysis_type,
+                    timeframe=body.timeframe,
+                    fetch_bars=ctx.fetch_bars,
+                    request_analysis=_call,
+                    now=ctx.now(),
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+            return result.model_dump(mode="json")
 
-        try:
-            result = run_operator_analysis(
-                ctx.settings,
-                instrument=body.instrument,
-                analysis_type=body.analysis_type,
-                timeframe=body.timeframe,
-                fetch_bars=ctx.fetch_bars,
-                request_analysis=_call,
-                now=ctx.now(),
-            )
-        except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
-        payload = result.model_dump(mode="json")
-        store_idempotency(ctx, idempotency_key or "", 200, payload)
-        return payload
+        return run_idempotent(ctx.replay, key, _act)
 
     @app.get("/v1/settings/security")
     def security(ctx: ControlContext = Depends(require_auth)):
@@ -488,27 +489,27 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
         ctx: ControlContext = Depends(require_operator),
     ):
-        replay = require_idempotency(ctx, idempotency_key)
-        if replay is not None:
-            return replay["body"]
-        try:
-            set_strategy_enabled(
-                ctx.settings,
-                strategy_id,
-                enabled=body.enabled,
-                confirmation_token=body.confirmation_token,
-            )
-        except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
-        except FileNotFoundError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
-        payload = AckResponse(
-            ok=True,
-            detail="strategy file written; restart required",
-            restart_required=True,
-        ).model_dump()
-        store_idempotency(ctx, idempotency_key or "", 200, payload)
-        return payload
+        key = require_idempotency_key(idempotency_key)
+
+        def _act() -> dict:
+            try:
+                set_strategy_enabled(
+                    ctx.settings,
+                    strategy_id,
+                    enabled=body.enabled,
+                    confirmation_token=body.confirmation_token,
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+            except FileNotFoundError as exc:
+                raise HTTPException(status_code=404, detail=str(exc)) from exc
+            return AckResponse(
+                ok=True,
+                detail="strategy file written; restart required",
+                restart_required=True,
+            ).model_dump()
+
+        return run_idempotent(ctx.replay, key, _act)
 
     @app.websocket("/v1/ws/events")
     async def ws_events(websocket: WebSocket) -> None:
@@ -528,9 +529,14 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
         try:
             while True:
                 sent_at = ctx.now()
-                health, pending, alerts = await asyncio.to_thread(
-                    _ws_snapshot, ctx, sent_at
-                )
+                try:
+                    health, pending, alerts = await asyncio.to_thread(
+                        _ws_snapshot, ctx, sent_at
+                    )
+                except Exception:
+                    _LOG.exception("websocket snapshot failed")
+                    await asyncio.sleep(2)
+                    continue
                 await websocket.send_json(
                     WsEnvelope(
                         channel="health",
@@ -558,8 +564,6 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
                 )
                 await asyncio.sleep(2)
         except WebSocketDisconnect:
-            return
-        except Exception:
             return
 
     app.dependency_overrides = {}

@@ -7,7 +7,11 @@ import pytest
 from src.execution.key_policy import (
     assert_live_key_policy,
     assert_no_kraken_trading_keys,
+    has_spot_keys,
+    monitor_child_env,
+    paper_child_env,
     redact_secrets,
+    withdraw_enabled,
 )
 
 
@@ -72,3 +76,42 @@ def test_redact_secrets_strips_key_material() -> None:
     env = {"KRAKEN_SPOT_API_SECRET": "super-secret-value"}
     assert "super-secret-value" not in redact_secrets("err super-secret-value", env)
     assert "KRAKEN_SPOT_API_SECRET_REDACTED" in redact_secrets("err super-secret-value", env)
+
+
+def test_paper_child_env_drops_trading_secrets_and_keeps_path() -> None:
+    source = {
+        "PATH": "/usr/bin",
+        "KRAKEN_SPOT_API_KEY": "spot-key",
+        "KRAKEN_SPOT_API_SECRET": "spot-secret",
+        "KRAKEN_FUTURES_API_KEY": "fx-key",
+        "BROKER_API_KEY": "broker-key",
+        "BROKER_API_SECRET": "broker-secret",
+        "BROKER_PAPER_MODE": "true",
+    }
+    child = paper_child_env(source)
+    assert child["PATH"] == "/usr/bin"
+    assert child["BROKER_PAPER_MODE"] == "true"
+    assert "KRAKEN_SPOT_API_KEY" not in child
+    assert "KRAKEN_SPOT_API_SECRET" not in child
+    assert "KRAKEN_FUTURES_API_KEY" not in child
+    assert "BROKER_API_KEY" not in child
+    assert "BROKER_API_SECRET" not in child
+    assert_no_kraken_trading_keys(child)
+
+
+def test_monitor_child_env_keeps_spot_drops_futures() -> None:
+    source = {
+        "PATH": "/usr/bin",
+        "KRAKEN_SPOT_API_KEY": "spot-key",
+        "KRAKEN_SPOT_API_SECRET": "spot-secret",
+        "KRAKEN_FUTURES_API_KEY": "fx-key",
+        "LIVE_TRADING_ENABLED": "true",
+        "KRAKEN_KEY_WITHDRAW_ENABLED": "false",
+    }
+    child = monitor_child_env(source)
+    assert child["KRAKEN_SPOT_API_KEY"] == "spot-key"
+    assert child["KRAKEN_SPOT_API_SECRET"] == "spot-secret"
+    assert "KRAKEN_FUTURES_API_KEY" not in child
+    assert child["LIVE_TRADING_ENABLED"] == "false"
+    assert has_spot_keys(child) is True
+    assert withdraw_enabled(child) is False

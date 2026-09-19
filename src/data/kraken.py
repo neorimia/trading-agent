@@ -111,3 +111,17 @@ class KrakenPublicOHLCSource:
                 )
             )
         return bars
+
+    def closed_bars(
+        self,
+        instrument: str,
+        start: datetime,
+        timeframe: str,
+        *,
+        now: datetime | None = None,
+    ) -> list[Bar]:
+        """OHLC already closed at `now`. Forming candles are excluded (no look-ahead)."""
+        moment = now if now is not None else datetime.now(timezone.utc)
+        moment = require_utc(moment, "now")
+        bars = self.fetch_bars(instrument, start, moment, timeframe)
+        return [bar for bar in bars if bar.timestamp <= moment]

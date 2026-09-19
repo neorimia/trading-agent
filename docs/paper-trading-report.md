@@ -88,6 +88,19 @@ LLM live: omite `--skip-llm` și pornește `src/llm/server.py` pe loopback.
 
 ---
 
-## 5. Ce rămâne la PO / Risk owner
+## 5. Revizuire PO / Risk owner
 
-Acest raport trebuie **revizuit de PO/Risk owner înainte de orice discuție despre live (Faza 5+)**. Rularea de 30 de sesiuni folosește dry_run local pe date publice Kraken, nu un cont Kraken paper cu chei de trading — asta e Calea B cerută (`dry_run: true`, doar date publice).
+**Revizuit:** 2026-09-19 — PO/Risk owner (Gabriel Cruceanu).  
+**Verdict:** acceptat ca evidență Faza 5 Path B.
+
+Acceptat:
+- 30 sesiuni ETHUSD pe OHLC public Kraken, `halted=false`, restart reconciliat
+- 7 fill-uri, toate cu `human_approval=true`; zero ordine neautorizate / duplicate / peste limită
+- Calea B: `dry_run: true`, `SimulatedBroker`, zero chei de trading
+
+Nu autorizează:
+- `LIVE_TRADING_ENABLED=true`
+- `dry_run: false`
+- capital pe Kraken Spot
+
+Următorul ciclu (cod 2026-09-19, nu live): paper `--mode stream` pe OHLC public + sidecar `KrakenLiveBroker` `monitor` (Balance/OpenOrders). Paper recon **nu** compară cu soldul Kraken. `LIVE_TRADING_ENABLED` rămâne oprit. 30 sesiuni aici = 30 cicluri bar→decizie, nu 30 zile calendaristice.

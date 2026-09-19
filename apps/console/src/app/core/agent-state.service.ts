@@ -21,6 +21,15 @@ const EMPTY_HEALTH: HealthResponse = {
   reconciliation: 'unknown',
   halt_reason: null,
   live_actions_blocked: true,
+  broker_monitor: {
+    status: 'not_configured',
+    polled_at: null,
+    positions: {},
+    open_client_order_ids: [],
+    last_price: {},
+    error: null,
+    mode: 'monitor',
+  },
 };
 
 const MAX_BACKOFF_MS = 10_000;

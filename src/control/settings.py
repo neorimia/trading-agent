@@ -44,6 +44,8 @@ class RuntimePaths:
     approvals_dir: Path
     audit_db: Path
     agent_pid: Path
+    broker_monitor: Path
+    broker_monitor_pid: Path
     strategies: Path
     risk_limits: Path
     universe: Path
@@ -96,6 +98,8 @@ def build_paths(
         approvals_dir=runtime / "control" / "approvals",
         audit_db=runtime / "audit" / "audit.sqlite",
         agent_pid=runtime / "control" / "agent.pid",
+        broker_monitor=runtime / "control" / "broker_monitor.json",
+        broker_monitor_pid=runtime / "control" / "broker_monitor.pid",
         strategies=Path(env.get("STRATEGIES_PATH", str(base / "config" / "strategies.yaml"))),
         risk_limits=Path(env.get("RISK_LIMITS_PATH", str(base / "config" / "risk_limits.yaml"))),
         universe=Path(env.get("UNIVERSE_PATH", str(base / "config" / "universe.yaml"))),

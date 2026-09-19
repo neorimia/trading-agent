@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from src.risk.portfolio_state import PortfolioState
 
@@ -84,6 +85,34 @@ class PortfolioTracker:
             last_price={self._instrument: last_price},
             open_quantity={self._instrument: self._open_qty},
         )
+
+    def dump_state(self) -> dict[str, Any]:
+        return {
+            "starting_cash": str(self._starting_cash),
+            "cash": str(self._cash),
+            "instrument": self._instrument,
+            "asset_class": self._asset_class,
+            "open_qty": str(self._open_qty),
+            "avg_price": str(self._avg_price),
+            "realized_pnl_today": str(self._realized_pnl_today),
+            "day_key": self._day_key,
+            "orders_today": self._orders_today,
+            "peak_equity": str(self._peak_equity),
+        }
+
+    def restore(self, state: dict[str, Any]) -> None:
+        if str(state.get("instrument")) != self._instrument:
+            raise ValueError("tracker instrument mismatch on restore")
+        self._starting_cash = Decimal(str(state["starting_cash"]))
+        self._cash = Decimal(str(state["cash"]))
+        self._asset_class = str(state.get("asset_class") or self._asset_class)
+        self._open_qty = Decimal(str(state["open_qty"]))
+        self._avg_price = Decimal(str(state["avg_price"]))
+        self._realized_pnl_today = Decimal(str(state["realized_pnl_today"]))
+        day_key = state.get("day_key")
+        self._day_key = str(day_key) if day_key else None
+        self._orders_today = int(state["orders_today"])
+        self._peak_equity = Decimal(str(state["peak_equity"]))
 
     def _equity(self, last_price: Decimal) -> Decimal:
         return self._cash + (self._open_qty * last_price)
