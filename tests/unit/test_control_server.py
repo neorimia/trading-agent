@@ -18,6 +18,7 @@ from src.control.agent_process import NullAgentProcess
 from src.control.server import ControlContext, create_app, validate_bind_host
 from src.control.settings import load_control_settings
 from src.data.sources import Bar
+from src.engine.analysis_types import ParsedAnalysis
 from src.research.models import ResearchDocument
 from src.research.store import MetadataStore
 from src.risk.kill_switch import KillSwitch
@@ -514,3 +515,121 @@ def test_auth_token_required_when_configured(tmp_path: Path) -> None:
         ok = client.get("/v1/health", headers={"Authorization": "Bearer local-token"})
     assert denied.status_code == 401
     assert ok.status_code == 200
+
+
+def _parsed_analysis() -> ParsedAnalysis:
+    return ParsedAnalysis.model_validate(
+        {
+            "asset": "ETHUSD",
+            "timestamp": "2026-09-18T12:00:00+00:00",
+            "timeframe": "1d",
+            "analysis_type": "technical",
+            "factual_summary": "EMA fast above slow.",
+            "data_sources": [{"url": "kraken:ohlc"}],
+            "bullish_case": "hold",
+            "bearish_case": "break",
+            "neutral_case": "range",
+            "key_assumptions": ["spot"],
+            "catalysts": ["unknown"],
+            "risks": ["liquidity"],
+            "invalidation_conditions": ["close below slow"],
+            "confidence_score": 0.4,
+            "data_quality_score": 0.6,
+            "uncertainty": "no funding",
+            "recommended_action": "hold",
+            "action_type": "research_only",
+            "position_size_suggestion": None,
+            "required_human_approval": True,
+            "expiry_time": "2026-09-19T12:00:00+00:00",
+            "audit_metadata": {
+                "model_name": "qwen3:8b",
+                "prompt_hash": "aa",
+                "facts_bundle_hash": "bb",
+                "temperature": 0.0,
+                "schema_version": "analysis.v1",
+            },
+        }
+    )
+
+
+def test_indicators_endpoint_is_not_an_order(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.get("/v1/market/ETHUSD/indicators", params={"timeframe": "1d"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["is_order"] is False
+    assert body["snapshot"]["instrument"] == "ETHUSD"
+    assert body["snapshot"]["funding"] == "unknown"
+
+
+def test_stress_endpoint_is_deterministic(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.get("/v1/portfolio/stress")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["is_order"] is False
+    assert body["options_available"] is False
+    assert body["hedge_universe"] == "spot_only_kraken"
+    assert {item["name"] for item in body["scenarios"]} >= {
+        "crypto_spot_down_10",
+        "crypto_bear_20",
+    }
+
+
+def test_daily_plan_does_not_invent_calendar_events(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.get("/v1/research/daily-plan", params={"instrument": "ETHUSD"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["is_order"] is False
+    calendar = next(item for item in body["checklist"] if item["item"] == "economic / protocol calendar")
+    assert calendar["value"] == ["none listed"]
+
+
+def test_operator_analyze_is_research_only(tmp_path: Path) -> None:
+    captured: list[object] = []
+
+    def _analyze(context):
+        captured.append(context.analysis_type)
+        return _parsed_analysis()
+
+    ctx = _ctx(tmp_path, request_analysis=_analyze)
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/research/analyze",
+            json={"instrument": "ETHUSD", "analysis_type": "technical", "timeframe": "1d"},
+            headers={"Idempotency-Key": "analyze-1"},
+        )
+        listed = client.get("/v1/research/analyses", params={"instrument": "ETHUSD"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["is_order"] is False
+    assert body["analysis"]["position_size_suggestion"] is None
+    assert body["analysis"]["required_human_approval"] is True
+    assert captured == ["technical"]
+    assert listed.json()[0]["is_order"] is False
+
+
+def test_analyze_rejects_non_level1_type(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path, request_analysis=lambda context: _parsed_analysis())
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/research/analyze",
+            json={"instrument": "ETHUSD", "analysis_type": "stress", "timeframe": "1d"},
+            headers={"Idempotency-Key": "analyze-stress"},
+        )
+    assert response.status_code == 422
+
+
+def test_observer_cannot_run_analysis(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path, environ={"CONTROL_OPERATOR_ROLE": "observer"})
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/research/analyze",
+            json={"instrument": "ETHUSD", "analysis_type": "technical", "timeframe": "1d"},
+            headers={"Idempotency-Key": "analyze-obs"},
+        )
+    assert response.status_code == 403

@@ -5,6 +5,7 @@
 !.env.engine.example
 !.env.llm.example
 !.env.control.example
+!.env.research.example
 
 # Consola Angular
 apps/console/node_modules/
@@ -15,6 +16,9 @@ apps/console/.angular/
 
 # Stare locală runtime (halt flag, idempotency store, heartbeat) — niciodată în git
 runtime/
+
+# Date research ingerate local — niciodată în git
+data/research/
 
 # Python
 venv/

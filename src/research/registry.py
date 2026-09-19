@@ -1,8 +1,9 @@
-"""Registry de surse — nicio sursă nu e utilizabilă fără tos_reviewed_at valid (Regula absolută 1)."""
+"""Registry de surse — prezența în YAML nu activează ingestia (Regula absolută 1)."""
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Sequence
 
 import yaml
 from pydantic import ValidationError
@@ -33,3 +34,21 @@ def load_source_registry(path: str | Path) -> list[SourceConfig]:
         seen_ids.add(source.source_id)
         sources.append(source)
     return sources
+
+
+def active_sources(sources: Sequence[SourceConfig]) -> list[SourceConfig]:
+    """Doar surse cu ToS semnat și review_status reviewed / reviewed_with_dynamic_limit."""
+    return [source for source in sources if source.is_fetchable()]
+
+
+def require_fetchable(source: SourceConfig) -> None:
+    """Fail loud înainte de HTTP. YAML ≠ permisiune de ingestie."""
+    if not source.is_fetchable():
+        raise ValueError(
+            f"source {source.source_id!r} is not fetchable "
+            f"(review_status={source.review_status!r}, tos_reviewed_at={source.tos_reviewed_at})"
+        )
+    if source.review_status == "reviewed_with_dynamic_limit" and source.min_request_interval_s is None:
+        raise ValueError(
+            f"source {source.source_id!r} reviewed_with_dynamic_limit requires min_request_interval_s"
+        )

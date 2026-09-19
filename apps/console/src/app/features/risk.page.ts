@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 
 import { ApiService } from '../core/api.service';
 import { AgentStateService } from '../core/agent-state.service';
-import { RiskLimitsView } from '../core/models';
+import { RiskLimitsView, StressReport, pnlClass } from '../core/models';
 import { ConfirmDanger } from '../shared/confirm-danger';
 import { EmptyState } from '../shared/empty-state';
 import { MetricCard } from '../shared/metric-card';
@@ -79,6 +79,47 @@ import { MetricCard } from '../shared/metric-card';
         <button type="submit" [disabled]="!state.canMutate()">Propose limit change</button>
       </form>
     }
+    <section>
+      <h2>Portfolio stress (deterministic)</h2>
+      <p class="lede">
+        Linear spot shock table. This is not a hedge ticket and does not place orders.
+        Kraken path is cash spot — options are unavailable.
+      </p>
+      @if (!stress()) {
+        <app-empty-state title="Stress unavailable" />
+      } @else {
+        @if (stress()!.incomplete) {
+          <p class="banner-warn">Portfolio reconstruction is incomplete. Treat shock PnL as an estimate.</p>
+        }
+        <section class="metric-grid">
+          <app-metric-card label="Total exposure" [value]="stress()!.total_exposure" />
+          <app-metric-card label="HHI" [value]="stress()!.hhi" />
+          <app-metric-card label="Duplicated bets" [value]="stress()!.duplicated_bets" />
+          <app-metric-card label="Hedge universe" [value]="stress()!.hedge_universe" />
+        </section>
+        <table>
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th>Spot shock</th>
+              <th>Est. PnL</th>
+              <th>Est. equity Δ</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of stress()!.scenarios; track row.name) {
+              <tr>
+                <td>{{ row.name }}</td>
+                <td class="mono">{{ row.spot_shock }}</td>
+                <td class="mono" [class]="pnlClass(row.estimated_pnl)">{{ row.estimated_pnl }}</td>
+                <td class="mono">{{ row.estimated_equity_change_pct }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <p class="muted">{{ stress()!.note }} · options_available={{ stress()!.options_available }} · is_order={{ stress()!.is_order }}</p>
+      }
+    </section>
     <app-confirm-danger
       #limitsDialog
       title="Write risk limits"
@@ -102,6 +143,8 @@ export class RiskPage implements OnInit {
   readonly dialog = viewChild.required<ConfirmDanger>('limitsDialog');
   readonly resetDialog = viewChild.required<ConfirmDanger>('resetDialog');
   readonly risk = signal<RiskLimitsView | null>(null);
+  readonly stress = signal<StressReport | null>(null);
+  readonly pnlClass = pnlClass;
   draft = {
     max_notional_per_order: '',
     max_exposure_per_instrument: '',
@@ -122,6 +165,10 @@ export class RiskPage implements OnInit {
         max_drawdown: value.max_drawdown,
         max_orders_per_day: value.max_orders_per_day,
       };
+    });
+    this.api.stress().subscribe({
+      next: (value) => this.stress.set(value),
+      error: () => this.stress.set(null),
     });
   }
 

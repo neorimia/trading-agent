@@ -10,7 +10,7 @@ import yaml
 from pydantic import ValidationError
 
 from src.research.models import RawDocument, ResearchDocument, SourceConfig
-from src.research.registry import load_source_registry
+from src.research.registry import active_sources, load_source_registry
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REAL_REGISTRY = REPO_ROOT / "config" / "research_sources.yaml"
@@ -75,11 +75,20 @@ def test_source_config_accepts_valid_payload() -> None:
     assert source.tos_reviewed_at == datetime(2026, 9, 18, tzinfo=timezone.utc)
 
 
-def test_source_config_requires_tos_reviewed_at() -> None:
+def test_source_config_allows_missing_tos_reviewed_at() -> None:
     payload = _valid_source_payload()
     del payload["tos_reviewed_at"]
-    with pytest.raises(ValidationError):
-        SourceConfig.model_validate(payload)
+    source = SourceConfig.model_validate(payload)
+    assert source.tos_reviewed_at is None
+    assert source.review_status == "pending"
+    assert source.is_fetchable() is False
+
+
+def test_source_config_date_only_tos_reviewed_at_is_utc_midnight() -> None:
+    payload = _valid_source_payload()
+    payload["tos_reviewed_at"] = "2026-09-19"
+    source = SourceConfig.model_validate(payload)
+    assert source.tos_reviewed_at == datetime(2026, 9, 19, tzinfo=timezone.utc)
 
 
 def test_source_config_rejects_extra_fields() -> None:
@@ -131,6 +140,30 @@ def test_research_document_rejects_extra_fields() -> None:
         ResearchDocument.model_validate(payload)
 
 
+def test_research_document_accepts_crypto_categories() -> None:
+    for category in (
+        "protocol_upgrade",
+        "token_unlock",
+        "governance",
+        "listing",
+        "onchain_alert",
+        "funding_regime",
+        "regulatory",
+    ):
+        payload = _valid_research_document_payload()
+        payload["category"] = category
+        payload["assets_mentioned"] = ["ETHUSD"]
+        doc = ResearchDocument.model_validate(payload)
+        assert doc.category == category
+
+
+def test_research_document_rejects_unknown_category() -> None:
+    payload = _valid_research_document_payload()
+    payload["category"] = "earnings_call"
+    with pytest.raises(ValidationError):
+        ResearchDocument.model_validate(payload)
+
+
 def test_research_document_rejects_sentiment_out_of_range() -> None:
     payload = _valid_research_document_payload()
     payload["sentiment_score"] = 2.0
@@ -142,9 +175,42 @@ def test_research_document_rejects_sentiment_out_of_range() -> None:
 
 
 def test_real_registry_file_loads() -> None:
-    """Fișierul real din config/ nu are surse revizuite manual încă — trebuie să fie gol, nu inventat."""
     sources = load_source_registry(REAL_REGISTRY)
-    assert sources == []
+    ids = [source.source_id for source in sources]
+    assert ids == [
+        "fred",
+        "alfred",
+        "sec_edgar",
+        "bls",
+        "bea",
+        "ecb_data",
+        "eurostat",
+        "sec_press_rss",
+        "federal_reserve_press_rss",
+        "ecb_press_rss",
+    ]
+    assert [source.source_id for source in active_sources(sources)] == [
+        "fred",
+        "alfred",
+        "sec_edgar",
+        "bls",
+        "bea",
+    ]
+    pending_ids = {source.source_id for source in sources if not source.is_fetchable()}
+    assert pending_ids == {
+        "ecb_data",
+        "eurostat",
+        "sec_press_rss",
+        "federal_reserve_press_rss",
+        "ecb_press_rss",
+    }
+    by_id = {source.source_id: source for source in sources}
+    assert by_id["sec_edgar"].base_url == "https://data.sec.gov"
+    assert by_id["sec_edgar"].min_request_interval_s == 0.1
+    assert by_id["sec_edgar"].rate_limit_per_min is None
+    assert by_id["bls"].min_request_interval_s == 0.2
+    assert by_id["bea"].rate_limit_per_min == 100
+    assert by_id["fred"].rate_limit_per_min == 120
 
 
 def test_missing_registry_file_raises(tmp_path: Path) -> None:
@@ -165,12 +231,17 @@ def test_registry_valid_source_loads(tmp_path: Path) -> None:
     assert sources[0].source_id == "fred"
 
 
-def test_registry_source_without_tos_reviewed_at_is_rejected(tmp_path: Path) -> None:
+def test_registry_source_without_tos_reviewed_at_loads_but_is_not_active(
+    tmp_path: Path,
+) -> None:
     payload = _valid_source_payload()
     del payload["tos_reviewed_at"]
+    payload["review_status"] = "pending"
     path = _write_yaml(tmp_path / "sources.yaml", {"sources": [payload]})
-    with pytest.raises(ValueError, match="invalid"):
-        load_source_registry(path)
+    sources = load_source_registry(path)
+    assert len(sources) == 1
+    assert sources[0].tos_reviewed_at is None
+    assert active_sources(sources) == []
 
 
 def test_registry_rejects_duplicate_source_id(tmp_path: Path) -> None:
@@ -182,7 +253,7 @@ def test_registry_rejects_duplicate_source_id(tmp_path: Path) -> None:
 
 def test_registry_rejects_extra_field_on_a_source(tmp_path: Path) -> None:
     payload = _valid_source_payload()
-    payload["active"] = 1
+    payload["auto_activate"] = True
     path = _write_yaml(tmp_path / "sources.yaml", {"sources": [payload]})
     with pytest.raises(ValueError, match="invalid"):
         load_source_registry(path)

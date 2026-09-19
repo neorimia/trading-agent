@@ -11,7 +11,10 @@ import { StaleBadge } from '../shared/stale-badge';
   imports: [EmptyState, StaleBadge, FormsModule],
   template: `
     <h1>Research and intelligence</h1>
-    <p class="lede">External context is untrusted. Contradictions are shown, never resolved silently. Sentiment is an estimate.</p>
+    <p class="lede">
+      External context is untrusted. Contradictions are shown, never resolved silently.
+      Sentiment is an estimate. Crypto categories include protocol upgrades, unlocks, listings, and regulation.
+    </p>
     <input [(ngModel)]="instrument" placeholder="Instrument filter" (keyup.enter)="load()" />
     <button type="button" (click)="load()">Load</button>
     @if (docs().length === 0) {

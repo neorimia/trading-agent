@@ -1,44 +1,197 @@
-# Registry de surse pentru serviciul de research (Faza R0, workflow_research-financiar.md §3).
+# Registry de surse pentru serviciul de research.
 #
-# REGULĂ ABSOLUTĂ (workflow_research-financiar.md §1, regula 1): nicio sursă nu devine
-# utilizabilă fără `tos_reviewed_at` completat MANUAL, după o verificare reală a
-# robots.txt și a Termenilor de Serviciu ale sursei respective — niciodată implicit,
-# niciodată presupus. `load_source_registry()` respinge (ValueError) orice intrare
-# fără `tos_reviewed_at` valid, deci acest fișier rămâne cu `sources: []` până când
-# cineva face acea revizuire și completează datele de mai jos cu mâna.
-#
-# Surse candidate pentru MVP (design-research-financiar.md §9): FRED, SEC EDGAR,
-# 1 RSS de presă financiară. Niciuna nu a fost revizuită încă — exemplul de mai jos
-# e comentat intenționat, NU se încarcă. Necesar per sursă înainte de a-l activa:
-#   1. Citește robots.txt + ToS reale ale sursei (nu presupune).
-#   2. Confirmă rate limit-ul documentat oficial (rate_limit_per_min).
-#   3. Completează tos_reviewed_at cu data (ISO8601) la care s-a făcut chiar acea
-#      verificare — nu data de azi „din oficiu".
-#
-# sources:
-#   - source_id: fred
-#     name: "FRED (Federal Reserve Economic Data)"
-#     kind: api
-#     base_url: "https://api.stlouisfed.org/fred"
-#     credibility_score: 0.95
-#     robots_txt_status: not_applicable_api
-#     tos_reviewed_at: "<ISO8601 — data revizuirii reale>"
-#     rate_limit_per_min: 120
-#   - source_id: sec_edgar
-#     name: "SEC EDGAR full-text search"
-#     kind: api
-#     base_url: "https://www.sec.gov/cgi-bin/srqsb"
-#     credibility_score: 0.98
-#     robots_txt_status: not_applicable_api
-#     tos_reviewed_at: "<ISO8601 — data revizuirii reale>"
-#     rate_limit_per_min: 10
-#   - source_id: <rss-de-presa>
-#     name: "<nume sursă RSS>"
-#     kind: rss
-#     base_url: "<url feed>"
-#     credibility_score: <0.0-1.0>
-#     robots_txt_status: allowed
-#     tos_reviewed_at: "<ISO8601 — data revizuirii reale>"
-#     rate_limit_per_min: null
+# Prezența aici NU activează ingestia. Doar sursele cu tos_reviewed_at setat și
+# review_status în {reviewed, reviewed_with_dynamic_limit} sunt fetchable.
+# ECB / Eurostat / RSS-urile oficiale stau ca pending până la ToS complet.
+# Kraken nu e aici — e market data, nu research.
 
-sources: []
+sources:
+  - source_id: fred
+    name: "FRED - Federal Reserve Economic Data"
+    kind: api
+    base_url: "https://api.stlouisfed.org/fred"
+    docs_url: "https://fred.stlouisfed.org/docs/api/fred/"
+    terms_url: "https://fred.stlouisfed.org/docs/api/terms_of_use.html"
+    robots_txt_status: not_applicable_api
+    credibility_score: 0.95
+    tos_reviewed_at: "2026-09-19"
+    last_verified_at: "2026-09-19"
+    rate_limit_per_min: 120
+    rate_limit_source: "https://fred.stlouisfed.org/docs/api/fred/errors.html"
+    review_status: reviewed
+    attribution_required: true
+    redistribution_allowed: unknown
+    retention_policy: metadata_and_summary_only
+    notes:
+      - "Necesită API key."
+      - "Include attribution FRED."
+      - "Verifică restricțiile pentru seriile de date provenite de la terți."
+      - "Afișează disclaimer-ul cerut de termenii FRED."
+
+  - source_id: alfred
+    name: "ALFRED - Archival Federal Reserve Economic Data"
+    kind: api
+    base_url: "https://api.stlouisfed.org/fred"
+    docs_url: "https://fred.stlouisfed.org/docs/api/fred/"
+    terms_url: "https://fred.stlouisfed.org/docs/api/terms_of_use.html"
+    robots_txt_status: not_applicable_api
+    credibility_score: 0.95
+    tos_reviewed_at: "2026-09-19"
+    last_verified_at: "2026-09-19"
+    rate_limit_per_min: 120
+    rate_limit_source: "https://fred.stlouisfed.org/docs/api/fred/errors.html"
+    review_status: reviewed
+    attribution_required: true
+    redistribution_allowed: unknown
+    retention_policy: metadata_and_summary_only
+    notes:
+      - "Recomandat pentru backtesting."
+      - "Folosește realtime_start/realtime_end = as_of (anti look-ahead)."
+      - "Același API FRED; nu e un al doilea live feed."
+
+  - source_id: sec_edgar
+    name: "SEC EDGAR Data APIs"
+    kind: api
+    base_url: "https://data.sec.gov"
+    docs_url: "https://www.sec.gov/edgar/sec-api-documentation"
+    robots_url: "https://www.sec.gov/robots.txt"
+    robots_txt_status: not_applicable_api
+    credibility_score: 0.98
+    tos_reviewed_at: "2026-09-19"
+    last_verified_at: "2026-09-19"
+    rate_limit_per_min: null
+    min_request_interval_s: 0.1
+    rate_limit_source: "https://www.sec.gov/developer"
+    rate_limit_notes: "Prag aproximativ 10 request-uri/secundă; nu e o limită garantată pe minut."
+    review_status: reviewed_with_dynamic_limit
+    attribution_required: false
+    redistribution_allowed: unknown
+    retention_policy: metadata_and_summary_only
+    notes:
+      - "Folosește submissions și companyfacts pe allowlist equity. companyconcept/frames rămân post-MVP."
+      - "Trimite un User-Agent descriptiv și un email de contact."
+      - "Nu folosi endpoint-ul CGI pentru integrarea principală."
+      - "Respectă robots.txt pentru scraping-ul paginilor HTML."
+
+  - source_id: bls
+    name: "U.S. Bureau of Labor Statistics Public Data API"
+    kind: api
+    base_url: "https://api.bls.gov/publicAPI/v2"
+    docs_url: "https://www.bls.gov/developers/api_FAQs.htm"
+    robots_txt_status: not_applicable_api
+    credibility_score: 0.97
+    tos_reviewed_at: "2026-09-19"
+    last_verified_at: "2026-09-19"
+    rate_limit_per_min: null
+    min_request_interval_s: 0.2
+    rate_limit_notes: "Limita oficială este 50 request-uri/10 secunde. Nu trata 300/min ca limită documentată. Registered: până la 500 query-uri/zi."
+    review_status: reviewed
+    attribution_required: false
+    redistribution_allowed: unknown
+    retention_policy: metadata_and_summary_only
+    notes:
+      - "Potrivit pentru CPI, employment și wage data."
+      - "Valoarea 300/min este doar conversia teoretică; respectă 50/10 secunde."
+
+  - source_id: bea
+    name: "U.S. Bureau of Economic Analysis API"
+    kind: api
+    base_url: "https://apps.bea.gov/api/data"
+    docs_url: "https://apps.bea.gov/api/_pdf/bea_web_service_api_user_guide.pdf"
+    robots_txt_status: not_applicable_api
+    credibility_score: 0.97
+    tos_reviewed_at: "2026-09-19"
+    last_verified_at: "2026-09-19"
+    rate_limit_per_min: 100
+    rate_limit_notes: "100 request-uri/minut. Folosește Retry-After la 429."
+    review_status: reviewed
+    attribution_required: false
+    redistribution_allowed: unknown
+    retention_policy: metadata_and_summary_only
+    notes:
+      - "Util pentru GDP, personal income și corporate profits."
+
+  - source_id: ecb_data
+    name: "ECB Data Portal"
+    kind: api
+    base_url: "https://data-api.ecb.europa.eu/service"
+    docs_url: "https://data.ecb.europa.eu/help/api/data"
+    robots_txt_status: not_applicable_api
+    credibility_score: 0.98
+    tos_reviewed_at: null
+    rate_limit_per_min: null
+    review_status: docs_reviewed_terms_pending
+    attribution_required: false
+    redistribution_allowed: unknown
+    retention_policy: metadata_and_summary_only
+    notes:
+      - "Foarte util pentru cursuri valutare, dobânzi, inflație și indicatori europeni."
+      - "Oferă SDMX și istoricul reviziilor prin includeHistory."
+      - "Nu am găsit o limită numerică publică; throttling conservator după ToS."
+
+  - source_id: eurostat
+    name: "Eurostat Statistics API"
+    kind: api
+    base_url: "https://ec.europa.eu/eurostat/api/dissemination"
+    docs_url: "https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access/"
+    robots_txt_status: not_applicable_api
+    credibility_score: 0.97
+    tos_reviewed_at: null
+    rate_limit_per_min: null
+    review_status: docs_reviewed_terms_pending
+    attribution_required: false
+    redistribution_allowed: unknown
+    retention_policy: metadata_and_summary_only
+    notes:
+      - "Util pentru PIB, inflație, șomaj, comerț și indicatori UE."
+      - "Fair use fără o limită fixă simplă de request-uri/minut."
+      - "Păstrează local snapshot-urile; istoricul versiunilor nu e complet."
+
+  - source_id: sec_press_rss
+    name: "SEC Press Releases RSS"
+    kind: rss
+    base_url: "https://www.sec.gov/rss/news/press.xml"
+    robots_url: "https://www.sec.gov/robots.txt"
+    robots_txt_status: pending
+    credibility_score: 0.98
+    tos_reviewed_at: null
+    rate_limit_per_min: null
+    review_status: pending_manual_tos_review
+    attribution_required: false
+    redistribution_allowed: unknown
+    retention_policy: metadata_and_summary_only
+    notes:
+      - "Sursă oficială pentru comunicate SEC."
+      - "Nu presupune redistribuirea integrală a conținutului."
+      - "Păstrează titlul, URL-ul, timestamp-ul și un rezumat propriu."
+
+  - source_id: federal_reserve_press_rss
+    name: "Federal Reserve Press Releases RSS"
+    kind: rss
+    base_url: "https://www.federalreserve.gov/feeds/press_all.xml"
+    robots_txt_status: pending
+    credibility_score: 0.98
+    tos_reviewed_at: null
+    rate_limit_per_min: null
+    review_status: pending_manual_tos_review
+    attribution_required: false
+    redistribution_allowed: unknown
+    retention_policy: metadata_and_summary_only
+    notes:
+      - "Sursă oficială pentru decizii și comunicate Federal Reserve."
+
+  - source_id: ecb_press_rss
+    name: "European Central Bank Press RSS"
+    kind: rss
+    base_url: "https://www.ecb.europa.eu/rss/press.html"
+    robots_txt_status: pending
+    credibility_score: 0.98
+    tos_reviewed_at: null
+    rate_limit_per_min: null
+    review_status: pending_manual_tos_review
+    attribution_required: false
+    redistribution_allowed: unknown
+    retention_policy: metadata_and_summary_only
+    notes:
+      - "Sursă oficială pentru comunicate și decizii ECB."
+      - "Confirmă URL-ul feedului și condițiile de utilizare înainte de activare."

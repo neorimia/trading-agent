@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-from src.llm.schema import LLMProposal, RejectedProposal
+from src.llm.schema import LLMAnalysis, LLMProposal, RejectedAnalysis, RejectedProposal
 from src.llm.server import app, assert_no_broker_keys, validate_bind_host
 
 
@@ -96,5 +96,100 @@ def test_propose_forwards_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     with TestClient(app) as client:
         response = client.post("/propose", json=_payload())
+    assert response.status_code == 200
+    assert response.json()["reason"] == "schema_invalid"
+
+
+def _analysis_ok() -> LLMAnalysis:
+    return LLMAnalysis.model_validate(
+        {
+            "asset": "ETHUSD",
+            "timestamp": "2026-09-18T12:00:00+00:00",
+            "timeframe": "1d",
+            "analysis_type": "technical",
+            "factual_summary": "EMA fast above slow.",
+            "data_sources": [{"url": "kraken:ohlc"}],
+            "bullish_case": "hold",
+            "bearish_case": "break",
+            "neutral_case": "range",
+            "key_assumptions": ["spot"],
+            "catalysts": ["unknown"],
+            "risks": ["liq"],
+            "invalidation_conditions": ["close below slow"],
+            "confidence_score": 0.4,
+            "data_quality_score": 0.6,
+            "uncertainty": "no funding",
+            "recommended_action": "hold",
+            "action_type": "research_only",
+            "position_size_suggestion": None,
+            "required_human_approval": True,
+            "expiry_time": "2026-09-19T12:00:00+00:00",
+            "audit_metadata": {
+                "model_name": "qwen3:8b",
+                "prompt_hash": "aa",
+                "facts_bundle_hash": "bb",
+                "temperature": 0.0,
+                "schema_version": "analysis.v1",
+            },
+        }
+    )
+
+
+def test_analyze_returns_research_report(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("src.llm.server.generate_analysis", lambda context, config, **kwargs: _analysis_ok())
+    with TestClient(app) as client:
+        response = client.post(
+            "/analyze",
+            json={
+                "instrument": "ETHUSD",
+                "as_of": datetime(2026, 9, 18, 12, 0, tzinfo=timezone.utc).isoformat(),
+                "analysis_type": "technical",
+                "timeframe": "1d",
+                "facts_bundle": {"close": "2410"},
+            },
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["asset"] == "ETHUSD"
+    assert body["position_size_suggestion"] is None
+    assert body["required_human_approval"] is True
+    assert "reason" not in body
+
+
+def test_analyze_rejects_out_of_universe(monkeypatch: pytest.MonkeyPatch) -> None:
+    analysis = _analysis_ok()
+    monkeypatch.setattr(
+        "src.llm.server.generate_analysis",
+        lambda context, config, **kwargs: analysis.model_copy(update={"asset": "NOTREAL"}),
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/analyze",
+            json={
+                "instrument": "NOTREAL",
+                "as_of": datetime(2026, 9, 18, 12, 0, tzinfo=timezone.utc).isoformat(),
+                "analysis_type": "technical",
+                "facts_bundle": {},
+            },
+        )
+    assert response.status_code == 200
+    assert response.json()["reason"] == "instrument_not_in_universe"
+
+
+def test_analyze_forwards_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "src.llm.server.generate_analysis",
+        lambda context, config, **kwargs: RejectedAnalysis(reason="schema_invalid", raw_output="nope"),
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/analyze",
+            json={
+                "instrument": "ETHUSD",
+                "as_of": datetime(2026, 9, 18, 12, 0, tzinfo=timezone.utc).isoformat(),
+                "analysis_type": "technical",
+                "facts_bundle": {},
+            },
+        )
     assert response.status_code == 200
     assert response.json()["reason"] == "schema_invalid"

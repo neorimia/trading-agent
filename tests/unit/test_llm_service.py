@@ -9,12 +9,15 @@ from pathlib import Path
 import httpx
 import pytest
 
-from src.llm.schema import LLMProposal, RejectedProposal
+from src.llm.schema import LLMAnalysis, LLMProposal, RejectedAnalysis, RejectedProposal
 from src.llm.service import (
+    AnalysisInput,
     ModelConfig,
     ProposalInput,
+    generate_analysis,
     generate_proposal,
     load_universe,
+    parse_analysis_draft,
     parse_proposal,
     strip_think_blocks,
     validate_against_universe,
@@ -140,3 +143,82 @@ def test_generate_proposal_model_error() -> None:
     )
     assert isinstance(result, RejectedProposal)
     assert result.reason == "model_error"
+
+
+def _draft_payload(**overrides: object) -> dict:
+    body = {
+        "asset": "ETHUSD",
+        "timestamp": "2026-09-18T00:00:00+00:00",
+        "timeframe": "1d",
+        "analysis_type": "technical",
+        "factual_summary": "EMA fast above slow.",
+        "data_sources": [{"url": "kraken:ohlc", "as_of": "2026-09-18T00:00:00+00:00", "content_hash": "x"}],
+        "bullish_case": "hold above slow",
+        "bearish_case": "lose slow",
+        "neutral_case": "range",
+        "key_assumptions": ["spot"],
+        "catalysts": ["unknown"],
+        "risks": ["liquidity"],
+        "invalidation_conditions": ["close below slow"],
+        "confidence_score": 0.4,
+        "uncertainty": "no funding",
+        "recommended_action": "hold",
+        "position_size_suggestion": None,
+    }
+    body.update(overrides)
+    return body
+
+
+def test_analysis_draft_rejects_numeric_size() -> None:
+    raw = json.dumps(_draft_payload(position_size_suggestion=2.5))
+    result = parse_analysis_draft(raw)
+    assert isinstance(result, RejectedAnalysis)
+    assert result.reason == "schema_invalid"
+
+
+def test_analysis_draft_rejects_extra_size_field() -> None:
+    raw = json.dumps(_draft_payload(position_size=99))
+    result = parse_analysis_draft(raw)
+    assert isinstance(result, RejectedAnalysis)
+
+
+def test_generate_analysis_overwrites_governance_fields() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = _draft_payload(required_human_approval=False, action_type="proposal_candidate")
+        return httpx.Response(200, json={"message": {"content": json.dumps(body)}})
+
+    result = generate_analysis(
+        AnalysisInput(
+            instrument="ETHUSD",
+            as_of=datetime(2026, 9, 18, tzinfo=timezone.utc),
+            analysis_type="technical",
+            timeframe="1d",
+            facts_bundle={"close": "2410", "funding": "unknown"},
+        ),
+        ModelConfig(ollama_host="http://127.0.0.1:11434", model_name="qwen3:8b"),
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    assert isinstance(result, LLMAnalysis)
+    assert result.required_human_approval is True
+    assert result.action_type == "research_only"
+    assert result.position_size_suggestion is None
+    assert result.audit_metadata.schema_version == "analysis.v1"
+
+
+def test_generate_analysis_timeout() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.TimeoutException("slow")
+
+    result = generate_analysis(
+        AnalysisInput(
+            instrument="ETHUSD",
+            as_of=datetime(2026, 9, 18, tzinfo=timezone.utc),
+            analysis_type="technical",
+            timeframe="1d",
+            facts_bundle={"close": "2410"},
+        ),
+        ModelConfig(ollama_host="http://127.0.0.1:11434", model_name="qwen3:8b"),
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    assert isinstance(result, RejectedAnalysis)
+    assert result.reason == "timeout"

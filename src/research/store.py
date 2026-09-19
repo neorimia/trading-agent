@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS documents (
     fetched_at           TEXT NOT NULL,
     event_date           TEXT,
     category             TEXT NOT NULL CHECK (category IN
-                             ('news','earnings','filing','macro_indicator','market_analysis','sentiment','geopolitical')),
+                             ('news','earnings','filing','macro_indicator','market_analysis','sentiment','geopolitical',
+                              'protocol_upgrade','token_unlock','governance','listing','onchain_alert','funding_regime','regulatory')),
     language             TEXT NOT NULL DEFAULT 'en',
     extracted_text        TEXT NOT NULL,
     summary              TEXT,
@@ -179,6 +180,64 @@ def _iso_to_dt(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value)
 
 
+_DOCUMENTS_REBUILD = """
+CREATE TABLE documents (
+    doc_id               TEXT PRIMARY KEY,
+    url                  TEXT NOT NULL,
+    title                TEXT NOT NULL,
+    source_id            TEXT NOT NULL,
+    author               TEXT,
+    published_at         TEXT,
+    fetched_at           TEXT NOT NULL,
+    event_date           TEXT,
+    category             TEXT NOT NULL CHECK (category IN
+                             ('news','earnings','filing','macro_indicator','market_analysis','sentiment','geopolitical',
+                              'protocol_upgrade','token_unlock','governance','listing','onchain_alert','funding_regime','regulatory')),
+    language             TEXT NOT NULL DEFAULT 'en',
+    extracted_text        TEXT NOT NULL,
+    summary              TEXT,
+    sentiment_score      REAL,
+    impact_magnitude     TEXT CHECK (impact_magnitude IN ('low','medium','high') OR impact_magnitude IS NULL),
+    impact_direction     TEXT CHECK (impact_direction IN ('bullish','bearish','neutral','unclear') OR impact_direction IS NULL),
+    confidence_score     REAL NOT NULL DEFAULT 0.0,
+    last_verified_at     TEXT NOT NULL,
+    content_hash         TEXT NOT NULL,
+    UNIQUE (content_hash)
+);
+"""
+
+
+def _migrate_document_categories(connection: sqlite3.Connection) -> None:
+    row = connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='documents'"
+    ).fetchone()
+    if row is None or "protocol_upgrade" in (row[0] or ""):
+        return
+    connection.execute("ALTER TABLE documents RENAME TO documents_legacy")
+    connection.executescript(_DOCUMENTS_REBUILD)
+    connection.execute(
+        """
+        INSERT INTO documents (
+            doc_id, url, title, source_id, author, published_at, fetched_at, event_date,
+            category, language, extracted_text, summary, sentiment_score, impact_magnitude,
+            impact_direction, confidence_score, last_verified_at, content_hash
+        )
+        SELECT
+            doc_id, url, title, source_id, author, published_at, fetched_at, event_date,
+            category, language, extracted_text, summary, sentiment_score, impact_magnitude,
+            impact_direction, confidence_score, last_verified_at, content_hash
+        FROM documents_legacy
+        """
+    )
+    connection.execute("DROP TABLE documents_legacy")
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_documents_fetched_at ON documents(fetched_at)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_documents_event_date ON documents(event_date)"
+    )
+
+
 class MetadataStore:
     """Wrapper SQLite peste schema design-research-financiar.md §5."""
 
@@ -188,6 +247,7 @@ class MetadataStore:
         self._conn = sqlite3.connect(self._db_path)
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(_SCHEMA)
+        _migrate_document_categories(self._conn)
         self._conn.commit()
 
     def close(self) -> None:
@@ -279,11 +339,13 @@ class MetadataStore:
             """
             SELECT DISTINCT d.* FROM documents d
             JOIN document_assets a ON a.doc_id = d.doc_id
-            WHERE a.instrument = ? AND d.fetched_at <= ?
+            WHERE a.instrument = ?
+              AND d.fetched_at <= ?
+              AND (d.published_at IS NULL OR d.published_at <= ?)
             ORDER BY d.fetched_at DESC
             LIMIT ?
             """,
-            (instrument, _dt_to_iso(as_of), limit),
+            (instrument, _dt_to_iso(as_of), _dt_to_iso(as_of), limit),
         ).fetchall()
         return [self._row_to_document(row) for row in rows]
 

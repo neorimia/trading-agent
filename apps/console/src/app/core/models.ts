@@ -206,6 +206,132 @@ export interface AlertRow {
   persistent: boolean;
 }
 
+export type AnalysisType = 'priced_in' | 'technical' | 'news_impact' | 'daily_plan';
+
+export interface IndicatorSnapshot {
+  timeframe: string;
+  bar_count: number;
+  instrument?: string;
+  as_of: string;
+  open?: string;
+  high?: string;
+  low?: string;
+  close: string;
+  volume?: string;
+  ema_fast: string;
+  ema_slow: string;
+  rsi_14: string;
+  atr_14: string;
+  volume_z_20: string;
+  swing_high: string;
+  swing_low: string;
+  funding: string;
+  open_interest: string;
+}
+
+export interface IndicatorsResponse {
+  symbol: string;
+  timeframe: string;
+  snapshot: IndicatorSnapshot;
+  is_order: false;
+}
+
+export interface StressScenario {
+  name: string;
+  spot_shock: string;
+  estimated_pnl: string;
+  estimated_equity_change_pct: string;
+}
+
+export interface StressConcentration {
+  instrument: string;
+  notional: string;
+  weight: string;
+}
+
+export interface StressReport {
+  total_exposure: string;
+  hhi: string;
+  duplicated_bets: string;
+  concentration: StressConcentration[];
+  scenarios: StressScenario[];
+  hedge_universe: string;
+  options_available: boolean;
+  note: string;
+  as_of: string | null;
+  incomplete: boolean;
+  is_order: false;
+}
+
+export interface DailyPlanItem {
+  phase: string;
+  item: string;
+  value: unknown;
+}
+
+export interface DailyPlan {
+  instrument: string;
+  session_start_utc: string;
+  as_of: string;
+  checklist: DailyPlanItem[];
+  blocks_trading: boolean;
+  block_reason: string | null;
+  is_order: false;
+}
+
+export interface AnalysisDataSource {
+  url: string;
+  as_of?: string | null;
+  content_hash?: string | null;
+}
+
+export interface ParsedAnalysis {
+  asset: string;
+  timestamp: string;
+  timeframe: string;
+  analysis_type: string;
+  factual_summary: string;
+  data_sources: AnalysisDataSource[];
+  bullish_case: string;
+  bearish_case: string;
+  neutral_case: string;
+  key_assumptions: string[];
+  catalysts: string[];
+  risks: string[];
+  invalidation_conditions: string[];
+  confidence_score: number;
+  data_quality_score: number;
+  uncertainty: string;
+  recommended_action: string;
+  action_type: string;
+  position_size_suggestion: null;
+  required_human_approval: boolean;
+  expiry_time: string;
+  audit_metadata: {
+    model_name: string;
+    prompt_hash: string;
+    facts_bundle_hash: string;
+    temperature: number;
+    schema_version: string;
+  };
+}
+
+export interface AnalysisRunResponse {
+  is_order: false;
+  facts_bundle: Record<string, unknown>;
+  analysis: ParsedAnalysis | null;
+  rejected: { reason: string; raw_output: string } | null;
+}
+
+export interface StoredAnalysis {
+  timestamp: string;
+  correlation_id: string;
+  instrument: string;
+  analysis_type: string;
+  is_order: boolean;
+  result: Record<string, unknown>;
+}
+
 export interface AckResponse {
   ok: boolean;
   detail: string;

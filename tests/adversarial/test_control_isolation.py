@@ -87,6 +87,8 @@ def test_control_server_source_has_no_propose_route() -> None:
     text = (SRC_ROOT / "control" / "server.py").read_text(encoding="utf-8")
     assert '@app.post("/propose")' not in text
     assert "generate_proposal" not in text
+    assert "/v1/research/analyze" in text
+    assert 'f"{self._base_url}/propose"' not in text
 
 
 def test_main_refuses_wildcard_host() -> None:

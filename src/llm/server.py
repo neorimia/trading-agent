@@ -14,12 +14,21 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.llm.schema import LLMProposal, RejectedProposal
+from src.llm.schema import (
+    AnalysisType,
+    LLMAnalysis,
+    LLMProposal,
+    RejectedAnalysis,
+    RejectedProposal,
+)
 from src.llm.service import (
+    AnalysisInput,
     ProposalInput,
+    generate_analysis,
     generate_proposal,
     load_llm_settings,
     load_universe,
+    validate_analysis_against_universe,
     validate_against_universe,
 )
 
@@ -48,6 +57,19 @@ class ProposeRequest(BaseModel):
     instrument: str = Field(min_length=1)
     as_of: datetime
     market_summary: str
+    external_context: str | None = None
+
+
+class AnalyzeRequest(BaseModel):
+    """Corpul POST /analyze — research only, niciodată un ordin."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    instrument: str = Field(min_length=1)
+    as_of: datetime
+    analysis_type: AnalysisType
+    timeframe: str = Field(default="1d", min_length=1)
+    facts_bundle: dict = Field(default_factory=dict)
     external_context: str | None = None
 
 
@@ -93,6 +115,30 @@ def propose(body: ProposeRequest) -> LLMProposal | RejectedProposal:
     result = generate_proposal(context, config)
     if isinstance(result, LLMProposal):
         return validate_against_universe(result, universe)
+    return result
+
+
+@app.post("/analyze")
+def analyze(body: AnalyzeRequest) -> LLMAnalysis | RejectedAnalysis:
+    config, universe_path = load_llm_settings()
+    try:
+        universe = load_universe(universe_path)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    context = AnalysisInput(
+        instrument=body.instrument,
+        as_of=body.as_of,
+        analysis_type=body.analysis_type,
+        timeframe=body.timeframe,
+        facts_bundle=body.facts_bundle,
+        external_context=body.external_context,
+    )
+    result = generate_analysis(context, config)
+    if isinstance(result, LLMAnalysis):
+        return validate_analysis_against_universe(
+            result, universe, expected_instrument=body.instrument
+        )
     return result
 
 

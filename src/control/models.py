@@ -296,6 +296,16 @@ class StrategyToggleRequest(BaseModel):
     confirmation_token: str = Field(min_length=1)
 
 
+class OperatorAnalyzeRequest(BaseModel):
+    """Consolă → control. Nu e ordin. Doar tipurile Nivel 1."""
+
+    model_config = _STRICT
+
+    instrument: str = Field(min_length=1)
+    analysis_type: Literal["priced_in", "technical", "news_impact", "daily_plan"]
+    timeframe: str = Field(default="1d", min_length=1)
+
+
 class AlertRow(BaseModel):
     model_config = _STRICT
 

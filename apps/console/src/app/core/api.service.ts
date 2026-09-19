@@ -6,8 +6,12 @@ import {
   AckResponse,
   AgentEventRow,
   AlertRow,
+  AnalysisRunResponse,
+  AnalysisType,
   BarsResponse,
+  DailyPlan,
   HealthResponse,
+  IndicatorsResponse,
   MarketInstrument,
   OrderRow,
   PendingApproval,
@@ -17,7 +21,9 @@ import {
   RiskLimitsView,
   SecuritySettings,
   SignalResponse,
+  StoredAnalysis,
   StrategyRow,
+  StressReport,
 } from './models';
 
 function idempotent(key: string): { headers: HttpHeaders } {
@@ -128,6 +134,38 @@ export class ApiService {
       `/v1/strategies/${id}`,
       { enabled, confirmation_token: token },
       idempotent(`strategy-${id}-${enabled}`),
+    );
+  }
+
+  indicators(symbol: string, timeframe = '1d'): Observable<IndicatorsResponse> {
+    return this.http.get<IndicatorsResponse>(`/v1/market/${symbol}/indicators`, {
+      params: { timeframe },
+    });
+  }
+
+  stress(): Observable<StressReport> {
+    return this.http.get<StressReport>('/v1/portfolio/stress');
+  }
+
+  dailyPlan(instrument?: string): Observable<DailyPlan> {
+    const params = instrument ? { instrument } : undefined;
+    return this.http.get<DailyPlan>('/v1/research/daily-plan', { params });
+  }
+
+  analyses(instrument?: string): Observable<StoredAnalysis[]> {
+    const params = instrument ? { instrument } : undefined;
+    return this.http.get<StoredAnalysis[]>('/v1/research/analyses', { params });
+  }
+
+  analyze(
+    instrument: string,
+    analysisType: AnalysisType,
+    timeframe = '1d',
+  ): Observable<AnalysisRunResponse> {
+    return this.http.post<AnalysisRunResponse>(
+      '/v1/research/analyze',
+      { instrument, analysis_type: analysisType, timeframe },
+      idempotent(`analyze-${instrument}-${analysisType}-${Date.now()}`),
     );
   }
 }

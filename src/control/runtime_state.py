@@ -41,10 +41,20 @@ from src.control.settings import (
     STRATEGY_ENABLE_TOKEN,
 )
 from src.data.sources import Bar
+from src.engine.analysis_types import (
+    AnalysisContext,
+    AnalysisRunResponse,
+    ParsedAnalysis,
+    RejectedAnalysis,
+)
+from src.engine.daily_plan import build_daily_plan
+from src.engine.indicators import bars_upto, indicator_snapshot, technical_facts_bundle
 from src.engine.paper_config import load_paper_trading_config
 from src.engine.signals import ema, ema_cross_direction
+from src.engine.stress import stress_portfolio
 from src.execution.key_policy import load_live_key_policy
 from src.execution.reconciliation import LocalPortfolioSnapshot, ReconciliationReport
+from src.research.context_builder import build_external_context
 from src.research.models import ResearchDocument
 from src.research.store import MetadataStore
 from src.risk.config_schema import RiskLimits, load_risk_limits
@@ -969,3 +979,201 @@ def build_alerts(settings: ControlSettings, *, now: datetime | None = None) -> l
             )
         )
     return alerts
+
+
+LEVEL1_ANALYSIS_TYPES = frozenset({"priced_in", "technical", "news_impact", "daily_plan"})
+AnalyzeFn = Callable[[AnalysisContext], ParsedAnalysis | RejectedAnalysis]
+
+
+def _universe_symbols(path: Path) -> set[str]:
+    return {
+        str(item["symbol"]).strip()
+        for item in _universe_rows(path)
+        if isinstance(item.get("symbol"), str) and item["symbol"].strip()
+    }
+
+
+def _fetch_window(
+    fetch_bars: FetchBarsFn,
+    instrument: str,
+    timeframe: str,
+    now: datetime,
+) -> list[Bar]:
+    start = now - timedelta(days=90)
+    return fetch_bars(instrument, start, now, timeframe)
+
+
+def _research_external(settings: ControlSettings, instrument: str, as_of: datetime) -> str | None:
+    if not settings.paths.research_db.is_file():
+        return None
+    store = MetadataStore(settings.paths.research_db)
+    try:
+        documents = store.query_for_context(instrument, as_of, limit=5)
+        if not documents:
+            return None
+        pairs: list[tuple[str, str]] = []
+        for doc in documents:
+            for related_id, relation in store.related_documents(doc.doc_id):
+                if relation == "contradicts":
+                    pairs.append((doc.doc_id, related_id))
+        return build_external_context(
+            instrument, as_of, documents, contradicting_pairs=pairs
+        )
+    finally:
+        store.close()
+
+
+def _document_titles(settings: ControlSettings, instrument: str, as_of: datetime) -> list[str]:
+    if not settings.paths.research_db.is_file():
+        return []
+    store = MetadataStore(settings.paths.research_db)
+    try:
+        return [doc.title for doc in store.query_for_context(instrument, as_of, limit=5)]
+    finally:
+        store.close()
+
+
+def build_indicator_snapshot(
+    settings: ControlSettings,
+    symbol: str,
+    *,
+    timeframe: str,
+    fetch_bars: FetchBarsFn,
+    now: datetime | None = None,
+) -> dict:
+    moment = now if now is not None else _now()
+    if symbol not in _universe_symbols(settings.paths.universe):
+        raise ValueError("instrument_not_in_universe")
+    bars = bars_upto(_fetch_window(fetch_bars, symbol, timeframe, moment), moment)
+    return {
+        "symbol": symbol,
+        "timeframe": timeframe,
+        "snapshot": indicator_snapshot(bars, timeframe=timeframe),
+        "is_order": False,
+    }
+
+
+def build_stress_view(settings: ControlSettings, *, now: datetime | None = None) -> dict:
+    portfolio = build_portfolio(settings, now=now)
+    exposure = {
+        symbol: _dec(notional)
+        for symbol, notional in portfolio.exposure_per_instrument.items()
+    }
+    report = stress_portfolio(exposure)
+    report["as_of"] = portfolio.as_of.isoformat() if portfolio.as_of else None
+    report["incomplete"] = portfolio.incomplete
+    report["is_order"] = False
+    return report
+
+
+def build_daily_plan_view(
+    settings: ControlSettings,
+    *,
+    instrument: str,
+    fetch_bars: FetchBarsFn,
+    now: datetime | None = None,
+) -> dict:
+    moment = now if now is not None else _now()
+    if instrument not in _universe_symbols(settings.paths.universe):
+        raise ValueError("instrument_not_in_universe")
+    health = build_health(settings, now=moment, ping=lambda _url: True)
+    risk = build_risk(settings)
+    bars = bars_upto(_fetch_window(fetch_bars, instrument, "1d", moment), moment)
+    snapshot = indicator_snapshot(bars, timeframe="1d")
+    plan = build_daily_plan(
+        instrument=instrument,
+        as_of=moment,
+        indicators=snapshot,
+        remaining_daily_loss=risk.remaining_daily_loss,
+        remaining_drawdown=risk.remaining_drawdown,
+        remaining_orders_today=risk.remaining_orders_today,
+        calendar_events=[],
+        document_titles=_document_titles(settings, instrument, moment),
+        venue_stale=health.venue != "connected",
+    )
+    plan["is_order"] = False
+    return plan
+
+
+def run_operator_analysis(
+    settings: ControlSettings,
+    *,
+    instrument: str,
+    analysis_type: str,
+    timeframe: str,
+    fetch_bars: FetchBarsFn,
+    request_analysis: AnalyzeFn,
+    now: datetime | None = None,
+) -> AnalysisRunResponse:
+    """Nivel 1: apelează /analyze. Nu trece prin RiskEngine sau OrderGateway."""
+    moment = now if now is not None else _now()
+    if analysis_type not in LEVEL1_ANALYSIS_TYPES:
+        raise ValueError("analysis_type_not_in_level1")
+    if instrument not in _universe_symbols(settings.paths.universe):
+        raise ValueError("instrument_not_in_universe")
+    daily = _fetch_window(fetch_bars, instrument, "1d", moment)
+    selected = daily if timeframe == "1d" else _fetch_window(fetch_bars, instrument, timeframe, moment)
+    facts = technical_facts_bundle(
+        {"1d": daily, timeframe: selected},
+        instrument=instrument,
+        as_of=moment,
+    )
+    if analysis_type == "daily_plan":
+        facts["daily_plan"] = build_daily_plan_view(
+            settings, instrument=instrument, fetch_bars=fetch_bars, now=moment
+        )
+    external = _research_external(settings, instrument, moment)
+    context = AnalysisContext(
+        instrument=instrument,
+        as_of=moment,
+        analysis_type=analysis_type,  # type: ignore[arg-type]
+        timeframe=timeframe,
+        facts_bundle=facts,
+        external_context=external,
+    )
+    result = request_analysis(context)
+    analysis: ParsedAnalysis | None = result if isinstance(result, ParsedAnalysis) else None
+    rejected: RejectedAnalysis | None = result if isinstance(result, RejectedAnalysis) else None
+    payload = analysis.model_dump(mode="json") if analysis is not None else (
+        rejected.model_dump(mode="json") if rejected is not None else {}
+    )
+    _audit(settings.paths).record(
+        AuditEvent.now(
+            correlation_id=uuid4(),
+            event_type="analysis",
+            payload={
+                "instrument": instrument,
+                "analysis_type": analysis_type,
+                "is_order": False,
+                "result": payload,
+            },
+        )
+    )
+    return AnalysisRunResponse(
+        is_order=False,
+        facts_bundle=facts,
+        analysis=analysis,
+        rejected=rejected,
+    )
+
+
+def list_analyses(
+    settings: ControlSettings, *, instrument: str | None = None
+) -> list[dict]:
+    if not settings.paths.audit_db.is_file():
+        return []
+    rows = []
+    for event in _audit(settings.paths).list_events():
+        if event.event_type != "analysis":
+            continue
+        payload = event.payload
+        if instrument and payload.get("instrument") != instrument:
+            continue
+        rows.append(
+            {
+                "timestamp": event.timestamp.isoformat(),
+                "correlation_id": str(event.correlation_id),
+                **payload,
+            }
+        )
+    return rows[-50:]

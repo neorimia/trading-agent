@@ -6,15 +6,24 @@ e respins la validare, nu ignorat silențios.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime, timezone
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 _STRICT = ConfigDict(extra="forbid")
 
 SourceKind = Literal["rss", "api", "html_crawler", "browser_automation"]
-RobotsTxtStatus = Literal["allowed", "disallowed", "not_applicable_api"]
+RobotsTxtStatus = Literal["allowed", "disallowed", "not_applicable_api", "pending"]
+ReviewStatus = Literal[
+    "pending",
+    "pending_manual_tos_review",
+    "docs_reviewed_terms_pending",
+    "reviewed",
+    "reviewed_with_dynamic_limit",
+]
+RedistributionAllowed = Literal["yes", "no", "unknown"]
+ACTIVE_REVIEW_STATUSES = frozenset({"reviewed", "reviewed_with_dynamic_limit"})
 DocumentCategory = Literal[
     "news",
     "earnings",
@@ -23,13 +32,20 @@ DocumentCategory = Literal[
     "market_analysis",
     "sentiment",
     "geopolitical",
+    "protocol_upgrade",
+    "token_unlock",
+    "governance",
+    "listing",
+    "onchain_alert",
+    "funding_regime",
+    "regulatory",
 ]
 ImpactMagnitude = Literal["low", "medium", "high"]
 ImpactDirection = Literal["bullish", "bearish", "neutral", "unclear"]
 
 
 class SourceConfig(BaseModel):
-    """Intrare de registry. `tos_reviewed_at` e obligatoriu — vezi Regula absolută 1."""
+    """Intrare de registry. Prezența în YAML nu activează ingestia — vezi `is_fetchable`."""
 
     model_config = _STRICT
 
@@ -39,8 +55,38 @@ class SourceConfig(BaseModel):
     base_url: str = Field(min_length=1)
     credibility_score: float = Field(ge=0.0, le=1.0)
     robots_txt_status: RobotsTxtStatus
-    tos_reviewed_at: datetime
+    tos_reviewed_at: datetime | None = None
     rate_limit_per_min: int | None = Field(default=None, gt=0)
+    min_request_interval_s: float | None = Field(default=None, gt=0)
+    review_status: ReviewStatus = "pending"
+    docs_url: str | None = None
+    terms_url: str | None = None
+    robots_url: str | None = None
+    rate_limit_source: str | None = None
+    rate_limit_notes: str | None = None
+    last_verified_at: datetime | None = None
+    attribution_required: bool = False
+    redistribution_allowed: RedistributionAllowed = "unknown"
+    retention_policy: str = "metadata_and_summary_only"
+    notes: list[str] = Field(default_factory=list)
+
+    @field_validator("tos_reviewed_at", "last_verified_at", mode="before")
+    @classmethod
+    def _date_only_to_utc(cls, value: object) -> object:
+        if value is None or isinstance(value, datetime):
+            return value
+        if isinstance(value, date):
+            return datetime(value.year, value.month, value.day, tzinfo=timezone.utc)
+        if isinstance(value, str) and len(value) == 10 and value[4] == "-":
+            parsed = date.fromisoformat(value)
+            return datetime(parsed.year, parsed.month, parsed.day, tzinfo=timezone.utc)
+        return value
+
+    def is_fetchable(self) -> bool:
+        return (
+            self.tos_reviewed_at is not None
+            and self.review_status in ACTIVE_REVIEW_STATUSES
+        )
 
 
 class RawDocument(BaseModel):

@@ -24,6 +24,8 @@ def _research_document(
     content_hash: str = "hash-1",
     assets_mentioned: list[str] | None = None,
     fetched_at: datetime = datetime(2026, 9, 18, tzinfo=timezone.utc),
+    published_at: datetime | None = None,
+    category: str = "macro_indicator",
 ) -> ResearchDocument:
     return ResearchDocument(
         doc_id=doc_id,
@@ -31,11 +33,11 @@ def _research_document(
         title="Fed holds rates steady",
         source_id="fred",
         author=None,
-        published_at=None,
+        published_at=published_at,
         fetched_at=fetched_at,
         event_date=None,
         assets_mentioned=assets_mentioned or [],
-        category="macro_indicator",
+        category=category,  # type: ignore[arg-type]
         extracted_text="The Federal Reserve held interest rates steady.",
         summary=None,
         sentiment_score=None,
@@ -158,3 +160,28 @@ def test_query_for_context_respects_limit(tmp_path: Path) -> None:
     results = metadata.query_for_context("AAPL", as_of, limit=1)
     assert len(results) == 1
     assert results[0].doc_id == "doc-2"
+
+
+def test_query_for_context_excludes_future_published_at(tmp_path: Path) -> None:
+    metadata = MetadataStore(tmp_path / "metadata.db")
+    as_of = datetime(2026, 9, 18, tzinfo=timezone.utc)
+    known = _research_document(
+        doc_id="doc-known",
+        content_hash="hash-known",
+        assets_mentioned=["ETHUSD"],
+        fetched_at=datetime(2026, 9, 17, tzinfo=timezone.utc),
+        published_at=datetime(2026, 9, 17, tzinfo=timezone.utc),
+        category="protocol_upgrade",
+    )
+    leaked = _research_document(
+        doc_id="doc-leaked",
+        content_hash="hash-leaked",
+        assets_mentioned=["ETHUSD"],
+        fetched_at=datetime(2026, 9, 17, tzinfo=timezone.utc),
+        published_at=datetime(2026, 9, 19, tzinfo=timezone.utc),
+        category="token_unlock",
+    )
+    metadata.upsert(known)
+    metadata.upsert(leaked)
+    results = metadata.query_for_context("ETHUSD", as_of, limit=10)
+    assert [doc.doc_id for doc in results] == ["doc-known"]

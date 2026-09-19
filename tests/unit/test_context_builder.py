@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from src.research.context_builder import build_external_context
+from src.research.context_builder import FRED_ATTRIBUTION_DISCLAIMER, build_external_context
 from src.research.models import ResearchDocument
 
 
@@ -191,3 +191,22 @@ def test_naive_as_of_raises_value_error() -> None:
     doc = _document()
     with pytest.raises(ValueError, match="timezone-aware"):
         build_external_context("AAPL", datetime(2026, 9, 18), [doc])
+
+
+def test_fred_documents_append_required_attribution_disclaimer() -> None:
+    doc = _document(source_id="fred", url="https://fred.stlouisfed.org/series/FEDFUNDS#2026-09-18")
+    text = build_external_context("AAPL", AS_OF, [doc])
+    assert text.endswith(FRED_ATTRIBUTION_DISCLAIMER)
+    assert FRED_ATTRIBUTION_DISCLAIMER in text
+
+
+def test_alfred_documents_append_required_attribution_disclaimer() -> None:
+    doc = _document(source_id="alfred")
+    text = build_external_context("AAPL", AS_OF, [doc])
+    assert FRED_ATTRIBUTION_DISCLAIMER in text
+
+
+def test_non_fred_documents_do_not_append_fred_disclaimer() -> None:
+    doc = _document(source_id="reuters-rss")
+    text = build_external_context("AAPL", AS_OF, [doc])
+    assert FRED_ATTRIBUTION_DISCLAIMER not in text

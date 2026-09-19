@@ -23,6 +23,11 @@ from typing import Sequence
 from src.research.models import ResearchDocument
 
 DEFAULT_STALE_AFTER = timedelta(hours=24)
+FRED_SOURCE_IDS = frozenset({"fred", "alfred"})
+FRED_ATTRIBUTION_DISCLAIMER = (
+    "This product uses the FRED® API but is not endorsed or certified by "
+    "the Federal Reserve Bank of St. Louis."
+)
 
 
 def _require_utc(moment: datetime, field_name: str) -> datetime:
@@ -111,5 +116,8 @@ def build_external_context(
     max_verified = max(_require_utc(doc.last_verified_at, "last_verified_at") for doc in documents)
     if as_of - max_verified > stale_after:
         sections.insert(0, "STALE CONTEXT — verify before use:")
+
+    if any(doc.source_id in FRED_SOURCE_IDS for doc in documents):
+        sections.append(FRED_ATTRIBUTION_DISCLAIMER)
 
     return "\n\n".join(sections)

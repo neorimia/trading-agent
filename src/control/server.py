@@ -1,6 +1,6 @@
 """HTTP loopback — singurul punct de intrare al consolei de operator.
 
-Nu importă src.llm. Nu apelează /propose. Nu întoarce secrete.
+Nu importă src.llm. Nu apelează /propose. POST /analyze e research-only (Nivel 1).
 Host-ul e forțat pe loopback (127.0.0.1 / localhost / ::1).
 """
 
@@ -34,23 +34,29 @@ from src.control.models import (
     ApprovalDecisionRequest,
     HaltRequest,
     HealthResponse,
+    OperatorAnalyzeRequest,
     RiskLimitsWrite,
     StrategyToggleRequest,
     WsEnvelope,
 )
 from src.control.runtime_state import (
+    AnalyzeFn,
     FetchBarsFn,
     PidAliveFn,
     PingFn,
     build_alerts,
     build_bars,
+    build_daily_plan_view,
     build_health,
+    build_indicator_snapshot,
     build_market,
     build_portfolio,
     build_risk,
     build_security,
     build_signal,
+    build_stress_view,
     list_agent_events,
+    list_analyses,
     list_orders,
     list_pending,
     list_positions,
@@ -59,6 +65,7 @@ from src.control.runtime_state import (
     pid_is_alive,
     ping_http,
     reset_halt,
+    run_operator_analysis,
     set_strategy_enabled,
     trigger_halt,
     write_approval,
@@ -72,6 +79,9 @@ from src.control.settings import (
 )
 from src.data.kraken import KrakenPublicOHLCSource
 from src.data.sources import Bar
+from src.engine.analysis_client import LLMAnalysisClient
+from src.engine.analysis_types import AnalysisContext
+from src.engine.paper_config import load_paper_trading_config
 from src.execution.key_policy import redact_secrets
 
 LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
@@ -97,6 +107,7 @@ class ControlContext:
     process: AgentProcessController = field(default_factory=SubprocessAgentProcess)
     idempotency: dict[str, tuple[int, dict]] = field(default_factory=dict)
     now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)
+    request_analysis: AnalyzeFn | None = None
 
 
 def _ws_snapshot(ctx: ControlContext, sent_at: datetime) -> tuple:
@@ -208,6 +219,23 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
                 timeframe=timeframe,
                 start=start,
                 end=end,
+                fetch_bars=ctx.fetch_bars,
+                now=ctx.now(),
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    @app.get("/v1/market/{symbol}/indicators")
+    def market_indicators(
+        symbol: str,
+        timeframe: str = Query(default="1d"),
+        ctx: ControlContext = Depends(require_auth),
+    ):
+        try:
+            return build_indicator_snapshot(
+                ctx.settings,
+                symbol,
+                timeframe=timeframe,
                 fetch_bars=ctx.fetch_bars,
                 now=ctx.now(),
             )
@@ -368,6 +396,69 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
         ctx: ControlContext = Depends(require_auth),
     ):
         return list_research(ctx.settings, instrument=instrument, now=ctx.now())
+
+    @app.get("/v1/portfolio/stress")
+    def portfolio_stress(ctx: ControlContext = Depends(require_auth)):
+        return build_stress_view(ctx.settings, now=ctx.now())
+
+    @app.get("/v1/research/daily-plan")
+    def daily_plan(
+        instrument: str | None = Query(default=None),
+        ctx: ControlContext = Depends(require_auth),
+    ):
+        paper = load_paper_trading_config(ctx.settings.paths.paper_config)
+        symbol = instrument or paper.instrument
+        try:
+            return build_daily_plan_view(
+                ctx.settings,
+                instrument=symbol,
+                fetch_bars=ctx.fetch_bars,
+                now=ctx.now(),
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    @app.get("/v1/research/analyses")
+    def research_analyses(
+        instrument: str | None = Query(default=None),
+        ctx: ControlContext = Depends(require_auth),
+    ):
+        return list_analyses(ctx.settings, instrument=instrument)
+
+    @app.post("/v1/research/analyze")
+    def research_analyze(
+        body: OperatorAnalyzeRequest,
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+        ctx: ControlContext = Depends(require_operator),
+    ):
+        replay = require_idempotency(ctx, idempotency_key)
+        if replay is not None:
+            return replay["body"]
+
+        def _call(context: AnalysisContext):
+            if ctx.request_analysis is not None:
+                return ctx.request_analysis(context)
+            client = LLMAnalysisClient(ctx.settings.llm_health_url)
+            try:
+                return client.request_analysis(context)
+            finally:
+                client.close()
+
+        try:
+            result = run_operator_analysis(
+                ctx.settings,
+                instrument=body.instrument,
+                analysis_type=body.analysis_type,
+                timeframe=body.timeframe,
+                fetch_bars=ctx.fetch_bars,
+                request_analysis=_call,
+                now=ctx.now(),
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        payload = result.model_dump(mode="json")
+        store_idempotency(ctx, idempotency_key or "", 200, payload)
+        return payload
 
     @app.get("/v1/settings/security")
     def security(ctx: ControlContext = Depends(require_auth)):

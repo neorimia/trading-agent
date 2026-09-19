@@ -9,7 +9,7 @@ import { EmptyState } from '../shared/empty-state';
   imports: [EmptyState],
   template: `
     <h1>Agent activity</h1>
-    <p class="lede">Append-only audit trail. Proposals are not orders. Human decisions and errors stay visible.</p>
+    <p class="lede">Append-only audit trail. Proposals and analyses are not orders. Human decisions and errors stay visible.</p>
     @if (events().length === 0) {
       <app-empty-state title="No audit events" detail="Run a paper session to populate the log." />
     }

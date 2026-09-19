@@ -25,6 +25,7 @@ def _source(**overrides: object) -> SourceConfig:
         "robots_txt_status": "allowed",
         "tos_reviewed_at": datetime(2026, 9, 18, tzinfo=timezone.utc),
         "rate_limit_per_min": None,
+        "review_status": "reviewed",
     }
     payload.update(overrides)
     return SourceConfig.model_validate(payload)
@@ -97,3 +98,17 @@ def test_fetch_makes_no_real_network_call() -> None:
     connector = RssConnector(http_client=_client_for_fixture())
     documents = connector.fetch(_source(), datetime(2026, 1, 1, tzinfo=timezone.utc))
     assert len(documents) == 4
+
+
+def test_fetch_pending_rss_raises_without_http() -> None:
+    captured: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        return httpx.Response(200, content=b"")
+
+    connector = RssConnector(http_client=httpx.Client(transport=httpx.MockTransport(handler)))
+    pending = _source(review_status="pending_manual_tos_review", tos_reviewed_at=None)
+    with pytest.raises(ValueError, match="not fetchable"):
+        connector.fetch(pending, datetime(2026, 1, 1, tzinfo=timezone.utc))
+    assert captured == []

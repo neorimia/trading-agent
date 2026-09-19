@@ -1,0 +1,5 @@
+# Allowlist CIK pentru SEC submissions + companyfacts (MVP equity).
+# Simbolurile crypto (BTC/ETH) sunt ignorate de connector, chiar dacă apar aici.
+cik_by_symbol:
+  AAPL: "0000320193"
+  MSFT: "0000789019"

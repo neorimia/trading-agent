@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 
 import { ApiService } from '../core/api.service';
 import { AgentStateService } from '../core/agent-state.service';
-import { PortfolioResponse, pnlClass } from '../core/models';
+import { DailyPlan, DailyPlanItem, PortfolioResponse, pnlClass } from '../core/models';
 import { MetricCard } from '../shared/metric-card';
 import { EmptyState } from '../shared/empty-state';
 
@@ -60,6 +60,41 @@ import { EmptyState } from '../shared/empty-state';
         </table>
       }
     </section>
+    <section>
+      <h2>Daily market plan (UTC session)</h2>
+      <p class="lede">Deterministic checklist. Empty calendar means none listed — the model is not asked to invent events.</p>
+      <p>
+        <button type="button" (click)="loadPlan()">Refresh plan</button>
+      </p>
+      @if (!plan()) {
+        <app-empty-state title="Daily plan unavailable" detail="Control plane must be up. This is not an order ticket." />
+      } @else {
+        @if (plan()!.blocks_trading) {
+          <p class="banner-warn">Trading blocked: {{ plan()!.block_reason }}</p>
+        }
+        <p class="muted">
+          {{ plan()!.instrument }} · session {{ plan()!.session_start_utc }} · as of {{ plan()!.as_of }} · is_order={{ plan()!.is_order }}
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Phase</th>
+              <th>Item</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of plan()!.checklist; track row.phase + row.item) {
+              <tr>
+                <td>{{ row.phase }}</td>
+                <td>{{ row.item }}</td>
+                <td class="mono">{{ formatPlanValue(row) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
     <p><a routerLink="/orders">Open orders and pending approvals</a></p>
   `,
 })
@@ -67,10 +102,26 @@ export class DashboardPage implements OnInit {
   private readonly api = inject(ApiService);
   readonly state = inject(AgentStateService);
   readonly portfolio = signal<PortfolioResponse | null>(null);
+  readonly plan = signal<DailyPlan | null>(null);
   readonly pnlClass = pnlClass;
 
   ngOnInit(): void {
     this.api.portfolio().subscribe((value) => this.portfolio.set(value));
+    this.loadPlan();
+  }
+
+  loadPlan(): void {
+    this.api.dailyPlan().subscribe({
+      next: (value) => this.plan.set(value),
+      error: () => this.plan.set(null),
+    });
+  }
+
+  formatPlanValue(row: DailyPlanItem): string {
+    if (typeof row.value === 'string' || typeof row.value === 'number') {
+      return String(row.value);
+    }
+    return JSON.stringify(row.value);
   }
 
   exposureEntries(): [string, string][] {
