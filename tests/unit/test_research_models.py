@@ -189,21 +189,9 @@ def test_real_registry_file_loads() -> None:
         "federal_reserve_press_rss",
         "ecb_press_rss",
     ]
-    assert [source.source_id for source in active_sources(sources)] == [
-        "fred",
-        "alfred",
-        "sec_edgar",
-        "bls",
-        "bea",
-    ]
+    assert [source.source_id for source in active_sources(sources)] == ids
     pending_ids = {source.source_id for source in sources if not source.is_fetchable()}
-    assert pending_ids == {
-        "ecb_data",
-        "eurostat",
-        "sec_press_rss",
-        "federal_reserve_press_rss",
-        "ecb_press_rss",
-    }
+    assert pending_ids == set()
     by_id = {source.source_id: source for source in sources}
     assert by_id["sec_edgar"].base_url == "https://data.sec.gov"
     assert by_id["sec_edgar"].min_request_interval_s == 0.1
@@ -211,6 +199,10 @@ def test_real_registry_file_loads() -> None:
     assert by_id["bls"].min_request_interval_s == 0.2
     assert by_id["bea"].rate_limit_per_min == 100
     assert by_id["fred"].rate_limit_per_min == 120
+    assert by_id["sec_press_rss"].robots_txt_status == "allowed"
+    assert by_id["ecb_press_rss"].min_request_interval_s == 5
+    assert by_id["ecb_data"].is_fetchable() is True
+    assert by_id["eurostat"].is_fetchable() is True
 
 
 def test_missing_registry_file_raises(tmp_path: Path) -> None:

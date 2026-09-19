@@ -1,12 +1,14 @@
 """One-shot ingest: registry → active_sources → fetch → normalize → MetadataStore.
 
-Nu pornește RSS. Nu apelează /propose. Fail-loud pe chei lipsă.
+RSS: doar itemele din feed (titlu/link/summary), fără crawl HTML de articol.
+API fără adapter (ECB Data / Eurostat) e skip, nu crash. Nu apelează /propose.
 Cheile se citesc doar din procesul research (.env.research), niciodată din .env.engine.
 """
 
 from __future__ import annotations
 
 import html
+import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,9 +18,9 @@ import httpx
 import yaml
 from dotenv import load_dotenv
 
-from src.research.connectors import ApiConnector
+from src.research.connectors import ApiConnector, RssConnector
 from src.research.models import DocumentCategory, RawDocument, SourceConfig
-from src.research.registry import active_sources, load_source_registry, require_fetchable
+from src.research.registry import active_sources, require_fetchable
 from src.research.store import MetadataStore, normalize_document
 
 _API_CATEGORIES: dict[str, DocumentCategory] = {
@@ -28,6 +30,8 @@ _API_CATEGORIES: dict[str, DocumentCategory] = {
     "bea": "macro_indicator",
     "sec_edgar": "filing",
 }
+_KNOWN_API_IDS = frozenset(_API_CATEGORIES)
+logger = logging.getLogger(__name__)
 
 
 def load_research_env(*, env_path: Path | None = None) -> None:
@@ -57,20 +61,24 @@ def required_credentials(sources: Sequence[SourceConfig]) -> None:
         raise ValueError("FRED_API_KEY is required for fred/alfred ingest")
     if "bea" in ids and not os.environ.get("BEA_API_KEY"):
         raise ValueError("BEA_API_KEY is required for bea ingest")
-    if "sec_edgar" in ids and not os.environ.get("RESEARCH_USER_AGENT"):
+    if ids & {"sec_edgar", "sec_press_rss"} and not os.environ.get("RESEARCH_USER_AGENT"):
         raise ValueError("RESEARCH_USER_AGENT is required for sec_edgar ingest")
 
 
 def _title_for(raw: RawDocument) -> str:
+    if raw.title:
+        return raw.title
     return f"{raw.source_id} {raw.url}"
 
 
 def _category_for(source: SourceConfig) -> DocumentCategory:
+    if source.kind == "rss":
+        return "news"
     return _API_CATEGORIES.get(source.source_id, "macro_indicator")
 
 
 def _html_payload(raw: RawDocument, title: str) -> bytes:
-    summary = (
+    summary = raw.summary or (
         f"{title}. Official data point from source {raw.source_id} at {raw.url}. "
         "This record stores metadata and a short summary only."
     )
@@ -90,13 +98,26 @@ def ingest_source(
     since: datetime,
     now: datetime | None = None,
     known_instruments: Sequence[str] = (),
+    rss_connector: RssConnector | None = None,
 ) -> int:
-    """Fetch + normalize o singură sursă. Pending / RSS → ValueError, zero HTTP."""
+    """Fetch + normalize o sursă. Pending → ValueError. API fără adapter → 0, zero HTTP."""
     require_fetchable(source)
-    if source.kind != "api":
-        raise ValueError(f"ingest does not start RSS or non-api sources ({source.source_id})")
     fetched_at = now if now is not None else datetime.now(timezone.utc)
-    documents = connector.fetch(source, since, now=fetched_at)
+    if source.kind == "rss":
+        if rss_connector is None:
+            raise ValueError("rss_connector is required for rss ingest")
+        try:
+            documents = rss_connector.fetch(source, since, now=fetched_at)
+        except httpx.HTTPError as exc:
+            logger.warning("skip rss ingest for %s: %s", source.source_id, exc)
+            return 0
+    elif source.kind == "api":
+        if source.source_id not in _KNOWN_API_IDS:
+            logger.info("skip ingest for %s: no ApiConnector adapter", source.source_id)
+            return 0
+        documents = connector.fetch(source, since, now=fetched_at)
+    else:
+        raise ValueError(f"ingest does not start {source.kind} sources ({source.source_id})")
     written = 0
     for raw in documents:
         title = _title_for(raw)
@@ -120,6 +141,7 @@ def ingest_active(
     since: datetime,
     now: datetime | None = None,
     known_instruments: Sequence[str] = (),
+    rss_connector: RssConnector | None = None,
 ) -> int:
     written = 0
     for source in active_sources(sources):
@@ -130,6 +152,7 @@ def ingest_active(
             since=since,
             now=now,
             known_instruments=known_instruments,
+            rss_connector=rss_connector,
         )
     return written
 
@@ -146,4 +169,14 @@ def build_api_connector_from_env(
         bea_api_key=os.environ.get("BEA_API_KEY") or None,
         user_agent=os.environ.get("RESEARCH_USER_AGENT") or None,
         cik_by_symbol=cik_by_symbol or {},
+    )
+
+
+def build_rss_connector_from_env(
+    *,
+    http_client: httpx.Client | None = None,
+) -> RssConnector:
+    return RssConnector(
+        http_client=http_client,
+        user_agent=os.environ.get("RESEARCH_USER_AGENT") or None,
     )

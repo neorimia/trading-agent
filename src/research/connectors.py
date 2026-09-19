@@ -64,9 +64,20 @@ def _min_interval_s(source: SourceConfig) -> float | None:
 class RssConnector:
     """Poll pe feed RSS/Atom oficial — mirror stilistic al BinanceKlinesSource (owns_client)."""
 
-    def __init__(self, *, http_client: httpx.Client | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        http_client: httpx.Client | None = None,
+        user_agent: str | None = None,
+        time_fn: Callable[[], float] = time.monotonic,
+        sleep_fn: Callable[[float], None] = time.sleep,
+    ) -> None:
         self._http_client = http_client
         self._owns_client = http_client is None
+        self._user_agent = user_agent
+        self._time_fn = time_fn
+        self._sleep_fn = sleep_fn
+        self._last_request_at: float | None = None
 
     def close(self) -> None:
         if self._owns_client and self._http_client is not None:
@@ -75,8 +86,20 @@ class RssConnector:
 
     def _client(self) -> httpx.Client:
         if self._http_client is None:
-            self._http_client = httpx.Client(timeout=30.0)
+            headers = {"User-Agent": self._user_agent} if self._user_agent else {}
+            self._http_client = httpx.Client(timeout=30.0, headers=headers)
         return self._http_client
+
+    def _throttle(self, source: SourceConfig) -> None:
+        interval = _min_interval_s(source)
+        if interval is None:
+            return
+        now = self._time_fn()
+        if self._last_request_at is not None:
+            wait = interval - (now - self._last_request_at)
+            if wait > 0:
+                self._sleep_fn(wait)
+        self._last_request_at = self._time_fn()
 
     def fetch(
         self,
@@ -88,7 +111,8 @@ class RssConnector:
         require_fetchable(source)
         if source.kind != "rss":
             raise ValueError(f"RssConnector cannot fetch source kind {source.kind!r}")
-        response = self._client().get(source.base_url)
+        self._throttle(source)
+        response = self._client().get(source.base_url, follow_redirects=True)
         response.raise_for_status()
         feed = feedparser.parse(response.content)
 
@@ -103,12 +127,20 @@ class RssConnector:
             )
             if published is not None and published <= since:
                 continue
+            title = entry.get("title") or None
+            summary = entry.get("summary") or entry.get("description") or None
+            if isinstance(title, str):
+                title = title.strip() or None
+            if isinstance(summary, str):
+                summary = summary.strip() or None
             documents.append(
                 RawDocument(
                     url=link,
                     source_id=source.source_id,
                     fetched_at=fetched_at,
                     raw_payload_ref=_raw_payload_ref(link, fetched_at),
+                    title=title,
+                    summary=summary,
                 )
             )
         return documents

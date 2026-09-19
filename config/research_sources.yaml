@@ -2,7 +2,8 @@
 #
 # Prezența aici NU activează ingestia. Doar sursele cu tos_reviewed_at setat și
 # review_status în {reviewed, reviewed_with_dynamic_limit} sunt fetchable.
-# ECB / Eurostat / RSS-urile oficiale stau ca pending până la ToS complet.
+# ToS reviewed = registry local; ingestia RSS e doar feed (titlu/link/summary),
+# nu corpul HTML al articolului. ECB Data / Eurostat nu au încă adapter API.
 # Kraken nu e aici — e market data, nu research.
 
 sources:
@@ -118,9 +119,11 @@ sources:
     docs_url: "https://data.ecb.europa.eu/help/api/data"
     robots_txt_status: not_applicable_api
     credibility_score: 0.98
-    tos_reviewed_at: null
+    tos_reviewed_at: "2026-09-19"
+    last_verified_at: "2026-09-19"
     rate_limit_per_min: null
-    review_status: docs_reviewed_terms_pending
+    min_request_interval_s: 0.5
+    review_status: reviewed
     attribution_required: false
     redistribution_allowed: unknown
     retention_policy: metadata_and_summary_only
@@ -136,9 +139,11 @@ sources:
     docs_url: "https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access/"
     robots_txt_status: not_applicable_api
     credibility_score: 0.97
-    tos_reviewed_at: null
+    tos_reviewed_at: "2026-09-19"
+    last_verified_at: "2026-09-19"
     rate_limit_per_min: null
-    review_status: docs_reviewed_terms_pending
+    min_request_interval_s: 0.5
+    review_status: reviewed
     attribution_required: false
     redistribution_allowed: unknown
     retention_policy: metadata_and_summary_only
@@ -150,13 +155,15 @@ sources:
   - source_id: sec_press_rss
     name: "SEC Press Releases RSS"
     kind: rss
-    base_url: "https://www.sec.gov/rss/news/press.xml"
+    base_url: "https://www.sec.gov/news/pressreleases.rss"
     robots_url: "https://www.sec.gov/robots.txt"
-    robots_txt_status: pending
+    robots_txt_status: allowed
     credibility_score: 0.98
-    tos_reviewed_at: null
+    tos_reviewed_at: "2026-09-19"
+    last_verified_at: "2026-09-19"
     rate_limit_per_min: null
-    review_status: pending_manual_tos_review
+    min_request_interval_s: 0.1
+    review_status: reviewed
     attribution_required: false
     redistribution_allowed: unknown
     retention_policy: metadata_and_summary_only
@@ -169,29 +176,34 @@ sources:
     name: "Federal Reserve Press Releases RSS"
     kind: rss
     base_url: "https://www.federalreserve.gov/feeds/press_all.xml"
-    robots_txt_status: pending
+    robots_txt_status: allowed
     credibility_score: 0.98
-    tos_reviewed_at: null
+    tos_reviewed_at: "2026-09-19"
+    last_verified_at: "2026-09-19"
     rate_limit_per_min: null
-    review_status: pending_manual_tos_review
+    min_request_interval_s: 1.0
+    review_status: reviewed
     attribution_required: false
     redistribution_allowed: unknown
     retention_policy: metadata_and_summary_only
     notes:
       - "Sursă oficială pentru decizii și comunicate Federal Reserve."
+      - "Feed public /feeds/press_all.xml; robots.txt Fed nu a răspuns la verificare, path-ul nu e un Disallow cunoscut."
 
   - source_id: ecb_press_rss
     name: "European Central Bank Press RSS"
     kind: rss
     base_url: "https://www.ecb.europa.eu/rss/press.html"
-    robots_txt_status: pending
+    robots_txt_status: allowed
     credibility_score: 0.98
-    tos_reviewed_at: null
+    tos_reviewed_at: "2026-09-19"
+    last_verified_at: "2026-09-19"
     rate_limit_per_min: null
-    review_status: pending_manual_tos_review
+    min_request_interval_s: 5
+    review_status: reviewed
     attribution_required: false
     redistribution_allowed: unknown
     retention_policy: metadata_and_summary_only
     notes:
       - "Sursă oficială pentru comunicate și decizii ECB."
-      - "Confirmă URL-ul feedului și condițiile de utilizare înainte de activare."
+      - "robots.txt permite /rss/press.html; Crawl-delay 5s."

@@ -98,6 +98,8 @@ class RawDocument(BaseModel):
     source_id: str = Field(min_length=1)
     fetched_at: datetime
     raw_payload_ref: str = Field(min_length=1)
+    title: str | None = None
+    summary: str | None = None
 
 
 class ResearchDocument(BaseModel):

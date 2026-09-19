@@ -52,6 +52,10 @@ def test_fetch_returns_raw_documents_from_local_fixture() -> None:
     assert all(doc.source_id == "sample_press" for doc in documents)
     assert all(doc.fetched_at == now for doc in documents)
     assert all(doc.raw_payload_ref for doc in documents)
+    titles = {doc.title for doc in documents}
+    assert "Fresh macro update" in titles
+    assert all(doc.title for doc in documents)
+    assert all(doc.summary for doc in documents)
 
 
 def test_fetch_filters_entries_older_than_since() -> None:
