@@ -1,7 +1,7 @@
 {
   "pyproject.toml": {
-    "mtime": 1789742753.2156396,
-    "ast_hash": "ad52c4f6df97fd4b5370ca6cdebca5b6",
+    "mtime": 1789817372.0446694,
+    "ast_hash": "aa4cebc11e08a940c9ed793cf267db33",
     "semantic_hash": ""
   },
   "scripts/__init__.py": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "claudedocs/workflow_faza-0-4.md": {
-    "mtime": 1789742130.65489,
-    "ast_hash": "f0bbc3967d38123e3425e3d1676c6c0c",
+    "mtime": 1789817770.7021778,
+    "ast_hash": "c203ede16bdb84ab5b2b13a6293fd491",
     "semantic_hash": ""
   },
   "config/universe.yaml": {
@@ -942,6 +942,11 @@
   "config/strategies.yaml": {
     "mtime": 1789744819.1501765,
     "ast_hash": "727d8d681c659e9b803bd5055da9044e",
+    "semantic_hash": ""
+  },
+  ".github/workflows/ci.yml": {
+    "mtime": 1789817724.9023309,
+    "ast_hash": "4d95b75b123637986cbefb80085eb356",
     "semantic_hash": ""
   }
 }

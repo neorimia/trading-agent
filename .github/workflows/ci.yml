@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Unit + adversarial + integration suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.9.7"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install dependencies (locked, no dev extras beyond test group)
+        run: uv sync --group dev --locked
+
+      - name: Prepare env files (isolation from real secrets, mirrors README setup)
+        run: |
+          cp .env.engine.example .env.engine
+          cp .env.llm.example .env.llm
+          cp .env.control.example .env.control
+
+      # Faza 0-4 DoD (design-componente §9): pytest -m "not llm_live and not network_live"
+      # llm_live (Ollama) / network_live (public APIs) self-skip when unreachable, but
+      # are excluded here for deterministic, hang-free CI runs.
+      - name: Run pytest (unit + adversarial + integration, excludes llm_live/network_live)
+        run: uv run pytest -m "not llm_live and not network_live"
+
+  secrets-scan:
+    name: Secret scan (gitleaks, full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: gitleaks detect
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

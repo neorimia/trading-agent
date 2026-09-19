@@ -229,10 +229,10 @@ Sincronizarea `llm.schema` ↔ `engine.proposal_types` se verifică separat prin
 
 ## 8. Checklist global — Definition of Done Faza 0–4 (per instrucțiuni §9)
 
-- [ ] Toate DoD-urile individuale (Faza 0–5) bifate.
-- [ ] Zero chei/credențiale live în cod, config sau istoric git.
+- [ ] Toate DoD-urile individuale (Faza 0–5) bifate. Blocat de revizuirea PO/Risk owner (Faza 5, mai jos).
+- [x] Zero chei/credențiale live în cod, config sau istoric git. `gitleaks detect --source . -v` (2026-09-19) → `no leaks found`, 12 commits scanate.
 - [x] Toate limitele de risc în config validat, niciodată în prompt/cod LLM. `config/risk_limits.yaml` + `load_risk_limits()` (Faza 3); `ParsedProposal` nu are câmpuri de sizing/risc.
-- [ ] Suite unit + adversarial rulează în CI la fiecare commit relevant.
+- [x] Suite unit + adversarial rulează în CI la fiecare commit relevant. `.github/workflows/ci.yml` (2026-09-19) — job `test` rulează `uv run pytest -m "not llm_live and not network_live"` (322 passed local, aceeași comandă) pe push/PR către `main`; job `secrets-scan` rulează `gitleaks-action` pe tot istoricul.
 - [ ] Rapoartele de calificare NautilusTrader, backtest și paper trading există, revizuite de PO/Risk owner.
 - [x] Kill switch testat manual, rezultat documentat. Vezi DoD Task 3 (0.430 ms, HALT respinge propuneri noi; cancel-all așteaptă Faza 5).
 - [ ] Zero cod care presupune/pregătește silențios trecerea la live.
