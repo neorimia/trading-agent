@@ -35,6 +35,8 @@ def test_real_paper_config_loads() -> None:
     assert config.path == "B"
     assert config.dry_run is True
     assert config.venue == "KRAKEN"
+    assert config.timeframe == "1h"
+    assert config.stale_data_threshold_s == 10800
     assert config.session_count_target == 30
 
 

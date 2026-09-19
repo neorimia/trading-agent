@@ -8,12 +8,13 @@ path: B
 dry_run: true
 venue: KRAKEN
 instrument: ETHUSD
-timeframe: 1d
+# 1h: o sesiune la fiecare lumânare închisă. Stream-ul e agnostic; 1d rămâne valid pentru batch.
+timeframe: 1h
 starting_cash: "10000"
 lookback_bars: 20
 fast_ema_period: 10
 slow_ema_period: 20
 approval_timeout_s: 3600
-stale_data_threshold_s: 172800
+stale_data_threshold_s: 10800
 heartbeat_threshold_s: 30
 session_count_target: 30

@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from src.data.kraken import KrakenPublicOHLCSource
 from src.data.sources import CsvBarDataSource, timeframe_delta
+from src.audit.audit_log import AuditLog
 from src.engine.adapters.kraken_paper import (
     assert_no_kraken_trading_keys,
     build_paper_node_config,

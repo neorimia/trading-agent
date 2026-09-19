@@ -10,5 +10,5 @@ strategies:
   - id: llm_assisted
     name: LLM-assisted (proposal only)
     kind: llm
-    enabled: false
+    enabled: true
     params: {}

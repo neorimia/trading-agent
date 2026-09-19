@@ -70,16 +70,21 @@ uv run pytest -m llm_live    # doar apelul real către Qwen3-8B
 
 Al patrulea proces pe loopback (`127.0.0.1:8767`). Citește runtime/audit/config și scrie doar acțiuni de operator (halt, aprobări paper, start/stop paper). Nu apelează LLM `/propose` și nu expune secrete.
 
+Pornește tot stack-ul local (LLM `:8765`, research `:8766`, control `:8767`, consolă `:4200`, apoi paper stream prin `POST /v1/agent/start`):
+
 ```bash
-uv run python -m src.control.server
+uv run python scripts/dev/start_stack.py
 ```
 
-Consola (Angular 21, PrimeNG 21) rulează separat:
+`--no-paper` lasă Start agent pe butonul din UI. `--no-console` sare `ng serve`. Ctrl-C oprește paper/monitor, apoi procesele HTTP. Nu setează `LIVE_TRADING_ENABLED`. Loguri: `runtime/logs/`.
+
+Servicii individuale, dacă nu vrei launcher-ul:
 
 ```bash
-cd apps/console
-npm install
-npm start   # http://127.0.0.1:4200 — proxy /v1 către :8767
+uv run python -m src.llm.server          # :8765
+uv run python -m src.research.server     # :8766
+uv run python -m src.control.server      # :8767
+cd apps/console && npm start             # :4200 — proxy /v1 către :8767
 ```
 
 Emergency stop e permanent în chrome. Start live și approve live rămân blocate. Detalii: [`apps/console/README.md`](apps/console/README.md).

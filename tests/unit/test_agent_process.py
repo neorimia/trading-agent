@@ -7,11 +7,19 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
+
 from src.control.agent_process import SubprocessAgentProcess
+from src.control.runtime_state import pid_is_alive
 from src.control.settings import load_control_settings
 from src.monitor.broker_monitor import load_broker_monitor
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.fixture(autouse=True)
+def _fast_child_ready(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("src.control.agent_process._CHILD_READY_S", 0.0)
 
 
 def _settings(tmp_path: Path):
@@ -31,14 +39,19 @@ def _settings(tmp_path: Path):
     return load_control_settings(root=tmp_path, environ=environ)
 
 
+def _alive_proc(pid: int) -> MagicMock:
+    proc = MagicMock()
+    proc.pid = pid
+    proc.poll.return_value = None
+    return proc
+
+
 def test_start_passes_sanitized_env_and_stream_mode(tmp_path: Path, monkeypatch) -> None:
     calls: list[dict[str, object]] = []
 
     def fake_popen(command, **kwargs):  # noqa: ANN001, ANN003
         calls.append({"command": command, "env": kwargs.get("env")})
-        proc = MagicMock()
-        proc.pid = 91000 + len(calls)
-        return proc
+        return _alive_proc(91000 + len(calls))
 
     monkeypatch.setattr("src.control.agent_process.subprocess.Popen", fake_popen)
     settings = _settings(tmp_path)
@@ -81,9 +94,7 @@ def test_start_without_keys_skips_monitor(tmp_path: Path, monkeypatch) -> None:
 
     def fake_popen(command, **kwargs):  # noqa: ANN001, ANN003
         calls.append(command)
-        proc = MagicMock()
-        proc.pid = 70001
-        return proc
+        return _alive_proc(70001)
 
     monkeypatch.setattr("src.control.agent_process.subprocess.Popen", fake_popen)
     settings = _settings(tmp_path)
@@ -98,9 +109,7 @@ def test_withdraw_enabled_does_not_spawn_monitor(tmp_path: Path, monkeypatch) ->
 
     def fake_popen(command, **kwargs):  # noqa: ANN001, ANN003
         calls.append(command)
-        proc = MagicMock()
-        proc.pid = 70002
-        return proc
+        return _alive_proc(70002)
 
     monkeypatch.setattr("src.control.agent_process.subprocess.Popen", fake_popen)
     settings = _settings(tmp_path)
@@ -124,8 +133,7 @@ def test_concurrent_start_spawns_once(tmp_path: Path, monkeypatch) -> None:
 
     def fake_popen(command, **kwargs):  # noqa: ANN001, ANN003
         time.sleep(0.05)
-        proc = MagicMock()
-        proc.pid = 80000 + len(pids)
+        proc = _alive_proc(80000 + len(pids))
         pids.append(proc.pid)
         return proc
 
@@ -143,3 +151,45 @@ def test_concurrent_start_spawns_once(tmp_path: Path, monkeypatch) -> None:
     assert len(pids) == 1
     assert results == {pids[0]}
     assert settings.paths.agent_pid.read_text(encoding="utf-8") == str(pids[0])
+
+
+def test_start_fails_if_paper_exits_immediately(tmp_path: Path, monkeypatch) -> None:
+    def fake_popen(command, **kwargs):  # noqa: ANN001, ANN003
+        proc = MagicMock()
+        proc.pid = 42
+        proc.poll.return_value = 1
+        return proc
+
+    monkeypatch.setattr("src.control.agent_process.subprocess.Popen", fake_popen)
+    settings = _settings(tmp_path)
+    with pytest.raises(RuntimeError, match="exited immediately"):
+        SubprocessAgentProcess().start(settings, {"PATH": "/usr/bin"})
+    assert not settings.paths.agent_pid.is_file()
+    assert (settings.paths.runtime_dir / "logs" / "paper.log").is_file()
+
+
+def test_pid_is_alive_false_for_zombie(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("src.control.runtime_state._pid_is_zombie", lambda pid: True)
+    monkeypatch.setattr("src.control.runtime_state.os.kill", lambda pid, sig: None)
+    assert pid_is_alive(123) is False
+
+
+def test_pid_is_alive_true_when_not_zombie(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("src.control.runtime_state._pid_is_zombie", lambda pid: False)
+    monkeypatch.setattr("src.control.runtime_state.os.kill", lambda pid, sig: None)
+    assert pid_is_alive(123) is True
+
+
+def test_pid_is_zombie_reads_ps_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.control.runtime_state import _pid_is_zombie
+
+    class Result:
+        stdout = "Z\n"
+
+    monkeypatch.setattr(
+        "src.control.runtime_state.subprocess.run",
+        lambda *args, **kwargs: Result(),
+    )
+    assert _pid_is_zombie(9) is True
+    Result.stdout = "S\n"
+    assert _pid_is_zombie(9) is False

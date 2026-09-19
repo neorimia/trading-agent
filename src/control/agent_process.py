@@ -7,6 +7,8 @@ import os
 import signal
 import subprocess
 import sys
+import time
+from pathlib import Path
 from typing import Protocol
 from uuid import uuid4
 
@@ -23,6 +25,8 @@ from src.execution.key_policy import (
 )
 from src.monitor.broker_monitor import BrokerMonitorSnapshot, write_broker_monitor
 from src.runtime_io import write_text_atomic
+
+_CHILD_READY_S = 0.3
 
 
 class AgentProcessController(Protocol):
@@ -43,6 +47,38 @@ def _stop_pid_file(pid_path) -> int | None:
     if pid_path.is_file():
         pid_path.unlink()
     return pid
+
+
+def _spawn_supervised(
+    command: list[str],
+    *,
+    cwd: Path,
+    env: dict[str, str],
+    log_path: Path,
+    wait_s: float | None = None,
+) -> subprocess.Popen[bytes]:
+    timeout = _CHILD_READY_S if wait_s is None else wait_s
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    handle = log_path.open("ab")
+    process = subprocess.Popen(
+        command,
+        cwd=str(cwd),
+        env=env,
+        stdout=handle,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,
+    )
+    deadline = time.monotonic() + timeout
+    while True:
+        code = process.poll()
+        if code is not None:
+            handle.close()
+            raise RuntimeError(
+                f"child exited immediately with code {code}; see {log_path}"
+            )
+        if time.monotonic() >= deadline:
+            return process
+        time.sleep(min(0.05, max(0.0, deadline - time.monotonic())))
 
 
 class SubprocessAgentProcess:
@@ -78,13 +114,11 @@ class SubprocessAgentProcess:
                 command.append("--skip-llm")
             child_env = paper_child_env(env_src)
             assert_no_kraken_trading_keys(child_env)
-            process = subprocess.Popen(
+            process = _spawn_supervised(
                 command,
-                cwd=str(settings.paths.repo_root),
+                cwd=settings.paths.repo_root,
                 env=child_env,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
+                log_path=settings.paths.runtime_dir / "logs" / "paper.log",
             )
             write_text_atomic(settings.paths.agent_pid, str(process.pid))
             AuditLog(settings.paths.audit_db).record(
@@ -126,13 +160,11 @@ class SubprocessAgentProcess:
                 str(settings.paths.runtime_dir),
             ]
             child_env = monitor_child_env(env_src)
-            process = subprocess.Popen(
+            process = _spawn_supervised(
                 command,
-                cwd=str(settings.paths.repo_root),
+                cwd=settings.paths.repo_root,
                 env=child_env,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
+                log_path=settings.paths.runtime_dir / "logs" / "monitor.log",
             )
             write_text_atomic(settings.paths.broker_monitor_pid, str(process.pid))
             AuditLog(settings.paths.audit_db).record(

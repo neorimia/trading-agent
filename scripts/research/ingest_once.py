@@ -1,4 +1,7 @@
-"""One-shot research ingest. Nu e daemon, nu pornește RSS, nu apelează /propose."""
+"""One-shot research ingest. Nu e daemon, nu apelează /propose.
+
+RSS: doar feed-ul oficial. API fără adapter e skip.
+"""
 
 from __future__ import annotations
 
@@ -13,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from src.research.ingest import (
     build_api_connector_from_env,
+    build_rss_connector_from_env,
     ingest_active,
     load_cik_by_symbol,
     load_research_env,
@@ -50,6 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     now = datetime.now(timezone.utc)
     since = now - timedelta(days=args.since_days)
     connector = build_api_connector_from_env(cik_by_symbol=cik_by_symbol)
+    rss_connector = build_rss_connector_from_env()
     metadata = MetadataStore(args.metadata_db)
     try:
         written = ingest_active(
@@ -58,9 +63,11 @@ def main(argv: list[str] | None = None) -> int:
             metadata=metadata,
             since=since,
             now=now,
+            rss_connector=rss_connector,
         )
     finally:
         connector.close()
+        rss_connector.close()
         metadata.close()
     print(f"ingested {written} documents")
     return 0

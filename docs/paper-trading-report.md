@@ -103,4 +103,4 @@ Nu autorizează:
 - `dry_run: false`
 - capital pe Kraken Spot
 
-Următorul ciclu (cod 2026-09-19, nu live): paper `--mode stream` pe OHLC public + sidecar `KrakenLiveBroker` `monitor` (Balance/OpenOrders). Paper recon **nu** compară cu soldul Kraken. `LIVE_TRADING_ENABLED` rămâne oprit. 30 sesiuni aici = 30 cicluri bar→decizie, nu 30 zile calendaristice.
+Următorul ciclu (cod 2026-09-19, nu live): paper `--mode stream` pe OHLC public + sidecar `KrakenLiveBroker` `monitor` (Balance/OpenOrders). Paper recon **nu** compară cu soldul Kraken. Timeframe operațional: `1h` (`stale_data_threshold_s: 10800`); batch-ul de 30 sesiuni din acest raport rămâne pe intervalul 1d de atunci. `LIVE_TRADING_ENABLED` rămâne oprit. 30 sesiuni aici = 30 cicluri bar→decizie, nu 30 zile calendaristice.
