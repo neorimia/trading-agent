@@ -1,47 +1,62 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
+import { IconField } from 'primeng/iconfield';
+import { InputIcon } from 'primeng/inputicon';
+import { InputText } from 'primeng/inputtext';
+import { TableModule } from 'primeng/table';
 
 import { ApiService } from '../core/api.service';
 import { MarketInstrument, pnlClass } from '../core/models';
-import { StaleBadge } from '../shared/stale-badge';
 import { EmptyState } from '../shared/empty-state';
+import { PageHeader } from '../shared/page-header';
+import { PageSkeleton } from '../shared/page-skeleton';
+import { StaleBadge } from '../shared/stale-badge';
 
 const WATCH_KEY = 'console_watchlist';
 
 @Component({
   selector: 'app-market-page',
-  imports: [FormsModule, RouterLink, StaleBadge, EmptyState],
+  imports: [FormsModule, RouterLink, StaleBadge, EmptyState, Button, IconField, InputIcon, InputText, TableModule, PageHeader, PageSkeleton],
   template: `
-    <h1>Market overview</h1>
-    <p class="lede">Universe allowlist only. Prices are bar closes, not a live tape.</p>
-    <div class="toolbar">
-      <input [(ngModel)]="query" placeholder="Filter symbol" />
-    </div>
-    @if (filtered().length === 0) {
-      <app-empty-state title="No instruments" detail="Check universe.yaml and the control plane." />
-    } @else {
-      <table>
-        <thead>
-          <tr>
-            <th></th>
-            <th>Symbol</th>
-            <th>Venue</th>
-            <th>Price</th>
-            <th>Change</th>
-            <th>Volume</th>
-            <th>Vol.</th>
-            <th>Spread</th>
-            <th>Age</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of filtered(); track row.symbol) {
+    <div class="reveal">
+      <app-page-header title="Market overview" lede="Universe allowlist only. Prices are bar closes, not a live tape." />
+      <div class="toolbar">
+        <p-iconfield iconPosition="left">
+          <p-inputicon class="pi pi-search" />
+          <input pInputText [(ngModel)]="query" placeholder="Filter symbol" aria-label="Filter symbol" />
+        </p-iconfield>
+      </div>
+      @if (!ready()) {
+        <app-page-skeleton />
+      } @else if (filtered().length === 0) {
+        <app-empty-state title="No instruments" detail="Check universe.yaml and the control plane." icon="pi-search" />
+      } @else {
+        <p-table [value]="filtered()" sortField="symbol" [sortOrder]="1">
+          <ng-template #header>
+            <tr>
+              <th></th>
+              <th pSortableColumn="symbol">Symbol <p-sortIcon field="symbol" /></th>
+              <th pSortableColumn="venue">Venue <p-sortIcon field="venue" /></th>
+              <th>Price</th>
+              <th>Change</th>
+              <th>Volume</th>
+              <th>Vol.</th>
+              <th>Spread</th>
+              <th>Age</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-row>
             <tr>
               <td>
-                <button type="button" class="linkish" (click)="toggle(row.symbol)">
-                  {{ watched().has(row.symbol) ? '★' : '☆' }}
-                </button>
+                <p-button
+                  [icon]="watched().has(row.symbol) ? 'pi pi-star-fill' : 'pi pi-star'"
+                  [text]="true"
+                  [rounded]="true"
+                  [ariaLabel]="(watched().has(row.symbol) ? 'Unwatch ' : 'Watch ') + row.symbol"
+                  (onClick)="toggle(row.symbol)"
+                />
               </td>
               <td><a [routerLink]="['/market', row.symbol]">{{ row.symbol }}</a></td>
               <td>{{ row.venue }}</td>
@@ -50,23 +65,30 @@ const WATCH_KEY = 'console_watchlist';
               <td class="mono">{{ row.volume ?? '—' }}</td>
               <td class="mono est">{{ row.volatility ?? '—' }} <span class="est-label">est.</span></td>
               <td>{{ row.spread ?? 'n/a' }}</td>
-              <td><app-stale-badge [stale]="row.stale" /></td>
+              <td><app-stale-badge [stale]="row.stale" [reason]="row.status" /></td>
             </tr>
-          }
-        </tbody>
-      </table>
-    }
+          </ng-template>
+        </p-table>
+      }
+    </div>
   `,
 })
 export class MarketPage implements OnInit {
   private readonly api = inject(ApiService);
   readonly rows = signal<MarketInstrument[]>([]);
+  readonly ready = signal(false);
   query = '';
   readonly watched = signal<Set<string>>(new Set(JSON.parse(localStorage.getItem(WATCH_KEY) || '[]')));
   readonly pnlClass = pnlClass;
 
   ngOnInit(): void {
-    this.api.market().subscribe((value) => this.rows.set(value));
+    this.api.market().subscribe({
+      next: (value) => {
+        this.rows.set(value);
+        this.ready.set(true);
+      },
+      error: () => this.ready.set(true),
+    });
   }
 
   filtered(): MarketInstrument[] {

@@ -2,10 +2,10 @@ import { ApplicationConfig, ErrorHandler, provideBrowserGlobalErrorListeners } f
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { providePrimeNG } from 'primeng/config';
-import Aura from '@primeuix/themes/aura';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth.interceptor';
+import { ConsolePreset } from './core/console.preset';
 import { ConsoleErrorHandler } from './core/error-handler';
 
 export const appConfig: ApplicationConfig = {
@@ -15,7 +15,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor])),
     providePrimeNG({
       theme: {
-        preset: Aura,
+        preset: ConsolePreset,
         options: { darkModeSelector: '.theme-dark' },
       },
       ripple: false,

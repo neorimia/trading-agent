@@ -1,37 +1,49 @@
 import { Component, EventEmitter, Output, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Dialog } from 'primeng/dialog';
+import { AutoFocus } from 'primeng/autofocus';
 import { Button } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
 import { InputText } from 'primeng/inputtext';
 import { Textarea } from 'primeng/textarea';
 
 @Component({
   selector: 'app-confirm-danger',
-  imports: [Dialog, Button, InputText, Textarea, FormsModule],
+  imports: [Dialog, Button, InputText, Textarea, FormsModule, AutoFocus],
   template: `
     <p-dialog
       [header]="title()"
       [visible]="visible()"
       [modal]="true"
       [closable]="true"
+      [dismissableMask]="true"
+      styleClass="confirm-dialog"
       (visibleChange)="visible.set($event)"
     >
       <p>{{ body() }}</p>
       @if (requireTyped()) {
         <label class="field-label" [attr.for]="'confirm-token'">Type {{ requireTyped() }} to confirm</label>
-        <input pInputText id="confirm-token" [(ngModel)]="typed" />
+        <input pInputText id="confirm-token" class="w-full" [(ngModel)]="typed" autocomplete="off" />
       }
       <label class="field-label" [attr.for]="'confirm-reason'">Reason</label>
-      <textarea pTextarea id="confirm-reason" [(ngModel)]="reason" rows="3"></textarea>
-      <div class="dialog-actions">
-        <p-button label="Cancel" severity="secondary" (onClick)="visible.set(false)" />
-        <p-button
-          [label]="confirmLabel()"
-          severity="danger"
-          [disabled]="!canConfirm()"
-          (onClick)="confirm()"
-        />
-      </div>
+      <textarea
+        pTextarea
+        id="confirm-reason"
+        class="w-full"
+        [(ngModel)]="reason"
+        rows="3"
+        [pAutoFocus]="true"
+      ></textarea>
+      <ng-template #footer>
+        <div class="dialog-actions">
+          <p-button label="Cancel" severity="secondary" (onClick)="visible.set(false)" />
+          <p-button
+            [label]="confirmLabel()"
+            severity="danger"
+            [disabled]="!canConfirm()"
+            (onClick)="confirm()"
+          />
+        </div>
+      </ng-template>
     </p-dialog>
   `,
 })

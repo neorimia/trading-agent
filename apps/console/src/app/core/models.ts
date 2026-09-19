@@ -42,6 +42,8 @@ export interface PortfolioResponse {
   as_of: string | null;
 }
 
+export type MarketDataStatus = 'ok' | 'stale' | 'research_only' | 'no_adapter' | 'data_unavailable';
+
 export interface MarketInstrument {
   symbol: string;
   venue: string;
@@ -54,6 +56,7 @@ export interface MarketInstrument {
   as_of: string | null;
   stale: boolean;
   in_universe: boolean;
+  status: MarketDataStatus;
 }
 
 export interface BarPoint {

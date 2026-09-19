@@ -1,137 +1,125 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Message } from 'primeng/message';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 
-import { ApiService } from '../core/api.service';
 import { AgentStateService } from '../core/agent-state.service';
-import { DailyPlan, DailyPlanItem, PortfolioResponse, BrokerMonitorSnapshot, pnlClass } from '../core/models';
-import { MetricCard } from '../shared/metric-card';
+import { ApiService } from '../core/api.service';
+import { DailyPlan, PortfolioResponse, BrokerMonitorSnapshot, pnlClass } from '../core/models';
 import { EmptyState } from '../shared/empty-state';
+import { MetricCard } from '../shared/metric-card';
+import { PageHeader } from '../shared/page-header';
+import { PageSkeleton } from '../shared/page-skeleton';
+import { SessionPlan } from '../shared/session-plan';
+import { PlanStatus } from '../shared/session-plan.util';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [MetricCard, EmptyState, RouterLink],
+  imports: [MetricCard, EmptyState, RouterLink, Message, TableModule, Tag, PageHeader, PageSkeleton, SessionPlan],
   template: `
-    <h1>Dashboard</h1>
-    <p class="lede">Operator overview. Numbers are facts from the local engine, not forecasts.</p>
-    @if (!portfolio()) {
-      <app-empty-state title="Portfolio unavailable" detail="Start the control plane to load local state." />
-    } @else {
-      @if (portfolio()!.incomplete) {
-        <p class="banner-warn">Portfolio reconstruction is incomplete. Treat P&amp;L as an estimate.</p>
-      }
-      <h2>Paper book (simulated)</h2>
-      <section class="metric-grid">
-        <app-metric-card label="Equity" [value]="portfolio()!.equity" />
-        <app-metric-card label="Cash" [value]="portfolio()!.cash" />
-        <app-metric-card
-          label="Realized P&L"
-          [value]="portfolio()!.realized_pnl"
-          [valueClass]="pnlClass(portfolio()!.realized_pnl)"
-        />
-        <app-metric-card
-          label="Unrealized P&L"
-          [value]="portfolio()!.unrealized_pnl"
-          [valueClass]="pnlClass(portfolio()!.unrealized_pnl)"
-          hint="est. from last bar"
-        />
-        <app-metric-card label="Drawdown" [value]="portfolio()!.drawdown" />
-        <app-metric-card label="Orders today" [value]="'' + portfolio()!.orders_today" />
-      </section>
-    }
-    <section>
-      <h2>Kraken account (monitor)</h2>
-      <p class="lede">Query-only Balance/OpenOrders. This is not the paper book and cannot place orders.</p>
-      @if (monitor().status === 'not_configured') {
-        <app-empty-state
-          title="Monitor not configured"
-          detail="Paper still runs without keys. Add Query-only Kraken spot keys (Withdraw off) to observe the real account."
-        />
-      } @else if (monitor().status === 'error') {
-        <p class="banner-warn">Monitor error: {{ monitor().error || 'poll failed' }}</p>
+    <div class="reveal">
+      <app-page-header title="Dashboard" lede="Operator overview. Numbers are facts from the local engine, not forecasts.">
+        <a routerLink="/orders">Open orders</a>
+      </app-page-header>
+      @if (!ready()) {
+        <app-page-skeleton />
+      } @else if (!portfolio()) {
+        <app-empty-state title="Portfolio unavailable" detail="Start the control plane to load local state." icon="pi-wallet" />
       } @else {
-        <p class="muted">status={{ monitor().status }} · polled {{ monitor().polled_at || '—' }}</p>
-        @if (krakenBalanceEntries().length === 0) {
-          <app-empty-state title="No Kraken balances" detail="Spot query returned an empty book." />
-        } @else {
-          <table>
-            <thead>
-              <tr>
-                <th>Asset</th>
-                <th>Quantity</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of krakenBalanceEntries(); track row[0]) {
+        @if (portfolio()!.incomplete) {
+          <p-message severity="warn" text="Portfolio reconstruction is incomplete. Treat P&L as an estimate." />
+        }
+        <h2>Paper book (simulated)</h2>
+        <section class="pnl-strip">
+          <app-metric-card label="Equity" [value]="portfolio()!.equity" size="hero" />
+          <section class="metric-grid">
+            <app-metric-card label="Cash" [value]="portfolio()!.cash" />
+            <app-metric-card
+              label="Realized P&L"
+              [value]="portfolio()!.realized_pnl"
+              [valueClass]="pnlClass(portfolio()!.realized_pnl)"
+            />
+            <app-metric-card
+              label="Unrealized P&L"
+              [value]="portfolio()!.unrealized_pnl"
+              [valueClass]="pnlClass(portfolio()!.unrealized_pnl)"
+              hint="est. from last bar"
+            />
+            <app-metric-card label="Drawdown" [value]="portfolio()!.drawdown" />
+            <app-metric-card label="Orders today" [value]="'' + portfolio()!.orders_today" />
+          </section>
+        </section>
+      }
+      <section class="split">
+        <article class="panel secondary">
+          <h2>Exposure</h2>
+          @if (!ready()) {
+            <p class="muted">Loading book…</p>
+          } @else if (exposureEntries().length === 0) {
+            <app-empty-state title="No open exposure" detail="The local book is flat." icon="pi-minus-circle" />
+          } @else {
+            <p-table [value]="exposureEntries()" [tableStyle]="{ 'min-width': '16rem' }">
+              <ng-template #header>
+                <tr>
+                  <th>Key</th>
+                  <th>Notional</th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-row>
                 <tr>
                   <td>{{ row[0] }}</td>
                   <td class="mono">{{ row[1] }}</td>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </ng-template>
+            </p-table>
+          }
+        </article>
+        <app-session-plan
+          [plan]="plan()"
+          [status]="planStatus()"
+          [loading]="planLoading()"
+          (refresh)="loadPlan()"
+        />
+      </section>
+      <section class="panel">
+        <h2>Kraken account (monitor)</h2>
+        <p class="lede">Query-only Balance/OpenOrders. This is not the paper book and cannot place orders.</p>
+        @if (monitor().status === 'not_configured') {
+          <app-empty-state
+            title="Monitor not configured"
+            detail="Paper still runs without keys. Add Query-only Kraken spot keys (Withdraw off) to observe the real account."
+            icon="pi-key"
+          />
+        } @else if (monitor().status === 'error') {
+          <p-message severity="warn" [text]="'Monitor error: ' + (monitor().error || 'poll failed')" />
+        } @else {
+          <p class="doc-meta">
+            <p-tag [value]="monitor().status" severity="success" />
+            <span class="muted">polled {{ monitor().polled_at || 'n/a' }}</span>
+          </p>
+          @if (krakenBalanceEntries().length === 0) {
+            <app-empty-state title="No Kraken balances" detail="Spot query returned an empty book." icon="pi-wallet" />
+          } @else {
+            <p-table [value]="krakenBalanceEntries()">
+              <ng-template #header>
+                <tr>
+                  <th>Asset</th>
+                  <th>Quantity</th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-row>
+                <tr>
+                  <td>{{ row[0] }}</td>
+                  <td class="mono">{{ row[1] }}</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          }
+          <p class="muted">Open client order ids: {{ monitor().open_client_order_ids.join(', ') || 'none' }}</p>
         }
-        <p class="muted">Open client order ids: {{ monitor().open_client_order_ids.join(', ') || 'none' }}</p>
-      }
-    </section>
-    <section>
-      <h2>Exposure</h2>
-      @if (exposureEntries().length === 0) {
-        <app-empty-state title="No open exposure" detail="The local book is flat." />
-      } @else {
-        <table>
-          <thead>
-            <tr>
-              <th>Key</th>
-              <th>Notional</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of exposureEntries(); track row[0]) {
-              <tr>
-                <td>{{ row[0] }}</td>
-                <td class="mono">{{ row[1] }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      }
-    </section>
-    <section>
-      <h2>Daily market plan (UTC session)</h2>
-      <p class="lede">Deterministic checklist. Empty calendar means none listed — the model is not asked to invent events.</p>
-      <p>
-        <button type="button" (click)="loadPlan()">Refresh plan</button>
-      </p>
-      @if (!plan()) {
-        <app-empty-state title="Daily plan unavailable" detail="Control plane must be up. This is not an order ticket." />
-      } @else {
-        @if (plan()!.blocks_trading) {
-          <p class="banner-warn">Trading blocked: {{ plan()!.block_reason }}</p>
-        }
-        <p class="muted">
-          {{ plan()!.instrument }} · session {{ plan()!.session_start_utc }} · as of {{ plan()!.as_of }} · is_order={{ plan()!.is_order }}
-        </p>
-        <table>
-          <thead>
-            <tr>
-              <th>Phase</th>
-              <th>Item</th>
-              <th>Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of plan()!.checklist; track row.phase + row.item) {
-              <tr>
-                <td>{{ row.phase }}</td>
-                <td>{{ row.item }}</td>
-                <td class="mono">{{ formatPlanValue(row) }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      }
-    </section>
-    <p><a routerLink="/orders">Open orders and pending approvals</a></p>
+      </section>
+    </div>
   `,
 })
 export class DashboardPage implements OnInit {
@@ -139,10 +127,19 @@ export class DashboardPage implements OnInit {
   readonly state = inject(AgentStateService);
   readonly portfolio = signal<PortfolioResponse | null>(null);
   readonly plan = signal<DailyPlan | null>(null);
+  readonly planStatus = signal<PlanStatus>('loading');
+  readonly planLoading = signal(false);
+  readonly ready = signal(false);
   readonly pnlClass = pnlClass;
 
   ngOnInit(): void {
-    this.api.portfolio().subscribe((value) => this.portfolio.set(value));
+    this.api.portfolio().subscribe({
+      next: (value) => {
+        this.portfolio.set(value);
+        this.ready.set(true);
+      },
+      error: () => this.ready.set(true),
+    });
     this.loadPlan();
   }
 
@@ -155,17 +152,22 @@ export class DashboardPage implements OnInit {
   }
 
   loadPlan(): void {
-    this.api.dailyPlan().subscribe({
-      next: (value) => this.plan.set(value),
-      error: () => this.plan.set(null),
-    });
-  }
-
-  formatPlanValue(row: DailyPlanItem): string {
-    if (typeof row.value === 'string' || typeof row.value === 'number') {
-      return String(row.value);
+    this.planLoading.set(true);
+    if (!this.plan()) {
+      this.planStatus.set('loading');
     }
-    return JSON.stringify(row.value);
+    this.api.dailyPlan().subscribe({
+      next: (value) => {
+        this.plan.set(value);
+        this.planStatus.set('ready');
+        this.planLoading.set(false);
+      },
+      error: () => {
+        this.plan.set(null);
+        this.planStatus.set('error');
+        this.planLoading.set(false);
+      },
+    });
   }
 
   exposureEntries(): [string, string][] {

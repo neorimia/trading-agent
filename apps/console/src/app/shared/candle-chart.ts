@@ -35,7 +35,7 @@ export class CandleChart implements AfterViewInit, OnDestroy {
     this.chart = createChart(el, {
       height: 360,
       layout: {
-        background: { color: '#16181d' },
+        background: { color: '#0e1014' },
         textColor: '#c8cdd6',
         fontFamily: 'IBM Plex Sans, sans-serif',
       },

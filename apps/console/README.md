@@ -6,19 +6,10 @@ Angular 21 + PrimeNG 21 (Node 24.14 cannot run Angular CLI 22).
 
 ## Run locally
 
-From the repository root, start the control plane first:
+From the repository root, start the full stack (control + console + paper via API):
 
 ```bash
-cp .env.control.example .env.control
-uv run python -m src.control.server
-```
-
-Then, in another terminal:
-
-```bash
-cd apps/console
-npm install
-npm start
+uv run python scripts/dev/start_stack.py
 ```
 
 Open `http://127.0.0.1:4200/`. Emergency stop is always in the chrome. Live start and live approve stay blocked. Observer role can view but not mutate.

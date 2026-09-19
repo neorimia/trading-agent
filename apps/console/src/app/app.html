@@ -1,13 +1,28 @@
+<a class="skip-link" href="#content">Skip to content</a>
 <div class="app theme-dark" [class.mode-live]="!state.paper()" [class.mode-paper]="state.paper()">
   <header class="chrome">
     <div class="brand">
       <strong>Local trading agent</strong>
-      <span class="mode-pill">{{ state.health().trading_mode }}</span>
-      <span class="status">
-        <span class="dot" [class.on]="state.health().agent === 'running'" [class.off]="state.health().agent !== 'running'"></span>
-        {{ state.health().agent }}
-      </span>
-      <span class="status">venue {{ state.health().venue }}</span>
+      <p-tag [value]="state.health().trading_mode" [severity]="state.paper() ? 'info' : 'warn'" styleClass="mode-tag" />
+      <div class="telemetry" aria-label="Subsystem status">
+        <span class="status">
+          <span class="dot" [class.on]="state.health().agent === 'running'" [class.off]="state.health().agent !== 'running'"></span>
+          agent {{ state.health().agent }}
+        </span>
+        <span class="status">
+          <span class="dot" [class.on]="state.health().venue === 'connected'" [class.off]="state.health().venue !== 'connected'"></span>
+          venue {{ state.health().venue }}
+        </span>
+        <span class="status">
+          <span class="dot" [class.on]="state.health().llm === 'up'" [class.off]="state.health().llm !== 'up'"></span>
+          llm {{ state.health().llm }}
+        </span>
+        <span class="status">
+          <span class="dot" [class.on]="state.health().research === 'up'" [class.off]="state.health().research !== 'up'"></span>
+          research {{ state.health().research }}
+        </span>
+        <span class="status mono">beat {{ heartbeatLabel() }}</span>
+      </div>
     </div>
     <div class="chrome-actions">
       @if (state.health().agent !== 'running') {
@@ -24,47 +39,73 @@
     </div>
   </header>
 
-  @if (!state.canMutate()) {
-    <div class="banner-warn">Observer role: viewing only. Mutations are disabled.</div>
-  }
-  @if (state.connectionError(); as err) {
-    <div class="banner-error">{{ err }}</div>
-  }
-  @if (state.halted()) {
-    <div class="banner-error">
-      HALTED{{ state.health().halt_reason ? ': ' + state.health().halt_reason : '' }}.
-      Resume is a manual reset on the risk page. Trading actions are blocked.
-    </div>
-  }
-  @if (state.health().venue !== 'connected') {
-    <div class="banner-warn">Exchange data is {{ state.health().venue }}. New orders are blocked.</div>
-  }
-  @for (alert of state.alerts(); track alert.id) {
-    <div [class]="alert.severity === 'error' ? 'banner-error' : 'banner-warn'">
-      <strong>{{ alert.title }}</strong> — {{ alert.detail }}
-    </div>
-  }
-  @if (errors.critical(); as crash) {
-    <div class="banner-error">Console error: {{ crash }}</div>
-  }
+  <div class="banner-stack">
+    @if (!state.canMutate()) {
+      <p-message severity="warn" text="Observer role: viewing only. Mutations are disabled." />
+    }
+    @if (state.connectionError(); as err) {
+      <p-message severity="error" [text]="err" />
+    }
+    @if (state.halted()) {
+      <p-message
+        severity="error"
+        [text]="
+          'HALTED' +
+          (state.health().halt_reason ? ': ' + state.health().halt_reason : '') +
+          '. Resume is a manual reset on the risk page. Trading actions are blocked.'
+        "
+      />
+    }
+    @if (state.health().venue !== 'connected') {
+      <p-message severity="warn" [text]="'Exchange data is ' + state.health().venue + '. New orders are blocked.'" />
+    }
+    @for (alert of state.alerts(); track alert.id) {
+      <p-message [severity]="alert.severity === 'error' ? 'error' : 'warn'" [text]="alert.title + ' - ' + alert.detail" />
+    }
+    @if (errors.critical(); as crash) {
+      <p-message severity="error" [text]="'Console error: ' + crash" />
+    }
+  </div>
 
   <div class="body">
-    <nav>
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
-      <a routerLink="/market" routerLinkActive="active">Market</a>
-      <a routerLink="/strategies" routerLinkActive="active">Strategies</a>
+    <nav aria-label="Console">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <i class="pi pi-th-large" aria-hidden="true"></i>
+        Dashboard
+      </a>
+      <a routerLink="/market" routerLinkActive="active">
+        <i class="pi pi-chart-bar" aria-hidden="true"></i>
+        Market
+      </a>
+      <a routerLink="/strategies" routerLinkActive="active">
+        <i class="pi pi-sitemap" aria-hidden="true"></i>
+        Strategies
+      </a>
       <a routerLink="/orders" routerLinkActive="active">
+        <i class="pi pi-list" aria-hidden="true"></i>
         Orders
         @if (state.pending().length) {
-          <span class="count">{{ state.pending().length }}</span>
+          <p-badge [value]="state.pending().length" severity="warn" />
         }
       </a>
-      <a routerLink="/risk" routerLinkActive="active">Risk</a>
-      <a routerLink="/research" routerLinkActive="active">Research</a>
-      <a routerLink="/agent" routerLinkActive="active">Activity</a>
-      <a routerLink="/settings" routerLinkActive="active">Settings</a>
+      <a routerLink="/risk" routerLinkActive="active">
+        <i class="pi pi-shield" aria-hidden="true"></i>
+        Risk
+      </a>
+      <a routerLink="/research" routerLinkActive="active">
+        <i class="pi pi-book" aria-hidden="true"></i>
+        Research
+      </a>
+      <a routerLink="/agent" routerLinkActive="active">
+        <i class="pi pi-clock" aria-hidden="true"></i>
+        Activity
+      </a>
+      <a routerLink="/settings" routerLinkActive="active">
+        <i class="pi pi-cog" aria-hidden="true"></i>
+        Settings
+      </a>
     </nav>
-    <main>
+    <main id="content" tabindex="-1">
       <router-outlet />
     </main>
   </div>

@@ -1,6 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { Button } from 'primeng/button';
+import { Message } from 'primeng/message';
+import { Select } from 'primeng/select';
+import { Tag } from 'primeng/tag';
 
 import { AgentStateService } from '../core/agent-state.service';
 import { ApiService } from '../core/api.service';
@@ -18,6 +22,8 @@ import {
 } from '../core/models';
 import { CandleChart } from '../shared/candle-chart';
 import { EmptyState } from '../shared/empty-state';
+import { PageHeader } from '../shared/page-header';
+import { PageSkeleton } from '../shared/page-skeleton';
 import { StaleBadge } from '../shared/stale-badge';
 
 const ANALYSIS_TYPES: AnalysisType[] = ['priced_in', 'technical', 'news_impact', 'daily_plan'];
@@ -25,128 +31,146 @@ const TIMEFRAMES = ['1h', '4h', '1d'];
 
 @Component({
   selector: 'app-asset-page',
-  imports: [CandleChart, EmptyState, StaleBadge, FormsModule],
+  imports: [CandleChart, EmptyState, StaleBadge, FormsModule, Button, Message, Select, Tag, PageHeader, PageSkeleton],
   template: `
-    <h1>{{ symbol }}</h1>
-    <p class="lede">
-      Candles use bar close time (lookahead-safe). Analyses are research reports, not orders.
-      Position size stays engine-owned.
-    </p>
-    <div class="toolbar">
-      <label>
-        Timeframe
-        <select [(ngModel)]="timeframe" (ngModelChange)="loadMarket()">
-          @for (tf of timeframes; track tf) {
-            <option [ngValue]="tf">{{ tf }}</option>
-          }
-        </select>
-      </label>
-    </div>
-    @if (bars().length === 0) {
-      <app-empty-state title="No bars" detail="The venue feed returned no completed candles." />
-    } @else {
-      <app-candle-chart [bars]="bars()" />
-    }
-    <section class="split">
-      <article class="card secondary">
-        <h2>Technical snapshot</h2>
-        <p class="muted">Deterministic indicators. Funding and open interest are unknown until a derivatives adapter exists.</p>
-        @if (!snapshot()) {
-          <app-empty-state title="Indicators not ready" />
-        } @else {
-          <table>
-            <tbody>
-              @for (row of snapshotRows(); track row[0]) {
-                <tr>
-                  <td>{{ row[0] }}</td>
-                  <td class="mono">{{ row[1] }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        }
-      </article>
-      <article class="card">
-        <h2>Agent signal (proposal)</h2>
-        @if (!signal()) {
-          <app-empty-state title="No signal" />
-        } @else {
-          <p>Source: {{ signal()!.source }} · confidence {{ signal()!.confidence ?? 'n/a' }}</p>
-          <p>Direction: {{ signal()!.direction ?? 'none' }}</p>
-          <p>{{ signal()!.rationale }}</p>
-          <p class="muted">{{ signal()!.sources.join(', ') }}</p>
-        }
-        <h2>Position / orders</h2>
-        @for (pos of positions(); track pos.instrument) {
-          <p>Qty {{ pos.quantity }} · last {{ pos.last_price }} · stop {{ pos.stop_loss }} ({{ pos.stop_source }})</p>
-        }
-        @for (order of orders(); track order.correlation_id) {
-          <p class="mono">{{ order.status }} {{ order.side }} {{ order.quantity }} @ {{ order.fill_price ?? '—' }}</p>
-        }
-      </article>
-    </section>
-    <section class="card">
-      <h2>Run research analysis</h2>
-      <p class="muted">Level 1 copilot. Never places an order. recommended_action is not executable.</p>
-      <div class="toolbar">
+    <div class="reveal">
+      <app-page-header
+        [title]="symbol"
+        lede="Candles use bar close time (lookahead-safe). Analyses are research reports, not orders. Position size stays engine-owned."
+      >
         <label>
-          Type
-          <select [(ngModel)]="analysisType">
-            @for (kind of analysisTypes; track kind) {
-              <option [ngValue]="kind">{{ kind }}</option>
-            }
-          </select>
+          Timeframe
+          <p-select
+            [options]="timeframes"
+            [(ngModel)]="timeframe"
+            (ngModelChange)="loadMarket()"
+            appendTo="body"
+            size="small"
+          />
         </label>
-        <button type="button" [disabled]="!state.canMutate() || running()" (click)="runAnalysis()">
-          {{ running() ? 'Running…' : 'Run analysis' }}
-        </button>
-      </div>
-      @if (runError()) {
-        <p class="banner-warn">{{ runError() }}</p>
+      </app-page-header>
+      @if (!ready()) {
+        <app-page-skeleton />
+      } @else if (bars().length === 0) {
+        <app-empty-state title="No bars" detail="The venue feed returned no completed candles." icon="pi-chart-line" />
+      } @else {
+        <app-candle-chart [bars]="bars()" />
       }
-      @if (rejected()) {
-        <p class="banner-warn">Rejected: {{ rejected() }}</p>
-      }
-      @if (analysis(); as report) {
-        <article>
-          <p class="badge-fact">research report · not an order · expiry {{ report.expiry_time }}</p>
-          <p>data quality {{ report.data_quality_score }} · confidence {{ report.confidence_score }} · {{ report.action_type }}</p>
-          <p><strong>Facts:</strong> {{ report.factual_summary }}</p>
-          <p><strong>Bull:</strong> {{ report.bullish_case }}</p>
-          <p><strong>Bear:</strong> {{ report.bearish_case }}</p>
-          <p><strong>Neutral:</strong> {{ report.neutral_case }}</p>
-          <p><strong>Recommended (not an order):</strong> {{ report.recommended_action }}</p>
-          <p class="muted">Size suggestion: not applicable (engine-owned). Human approval required: {{ report.required_human_approval }}</p>
-          <p class="muted">Sources: {{ sourceList(report) }}</p>
-          <p class="muted">prompt {{ report.audit_metadata.prompt_hash }} · facts {{ report.audit_metadata.facts_bundle_hash }}</p>
-          <p class="est">{{ report.uncertainty }}</p>
-        </article>
-      }
-    </section>
-    <section>
-      <h2>Stored analyses</h2>
-      @if (stored().length === 0) {
-        <app-empty-state title="No analyses yet" detail="Run analysis to persist a research report in the audit log." />
-      }
-      @for (row of stored(); track row.correlation_id) {
-        <article class="card secondary">
-          <p class="mono">{{ row.timestamp }} · {{ row.analysis_type }} · is_order={{ row.is_order }}</p>
-        </article>
-      }
-    </section>
-    <section>
-      <h2>Research documents</h2>
-      @for (doc of docs(); track doc.doc_id) {
-        <article class="card">
-          <h3>{{ doc.title }}</h3>
-          <app-stale-badge [stale]="doc.stale" />
-          <p>confidence {{ doc.confidence_score }} · {{ doc.source_id }} · {{ doc.category }}</p>
-          @if (doc.contradicts.length) {
-            <p class="banner-warn">Contradicting documents: {{ doc.contradicts.join(', ') }}</p>
+      <section class="split">
+        <article class="panel secondary">
+          <h2>Technical snapshot</h2>
+          <p class="muted">Deterministic indicators. Funding and open interest are unknown until a derivatives adapter exists.</p>
+          @if (!snapshot()) {
+            <app-empty-state title="Indicators not ready" icon="pi-sliders-h" />
+          } @else {
+            <dl class="facts">
+              @for (row of snapshotRows(); track row[0]) {
+                <div>
+                  <dt>{{ row[0] }}</dt>
+                  <dd class="mono">{{ row[1] }}</dd>
+                </div>
+              }
+            </dl>
           }
         </article>
-      }
-    </section>
+        <article class="panel">
+          <h2>Agent signal (proposal)</h2>
+          @if (!signal()) {
+            <app-empty-state title="No signal" icon="pi-bolt" />
+          } @else {
+            <p>Source: {{ signal()!.source }} · confidence {{ signal()!.confidence ?? 'n/a' }}</p>
+            <p>Direction: {{ signal()!.direction ?? 'none' }}</p>
+            <p>{{ signal()!.rationale }}</p>
+            <p class="muted">{{ signal()!.sources.join(', ') }}</p>
+          }
+          <h2>Position / orders</h2>
+          @for (pos of positions(); track pos.instrument) {
+            <p>Qty {{ pos.quantity }} · last {{ pos.last_price }} · stop {{ pos.stop_loss }} ({{ pos.stop_source }})</p>
+          }
+          @for (order of orders(); track order.correlation_id) {
+            <p class="mono">{{ order.status }} {{ order.side }} {{ order.quantity }} @ {{ order.fill_price ?? '-' }}</p>
+          }
+        </article>
+      </section>
+      <section class="panel">
+        <h2>Run research analysis</h2>
+        <p class="muted">Level 1 copilot. Never places an order. recommended_action is not executable.</p>
+        <div class="toolbar">
+          <label>
+            Type
+            <p-select [options]="analysisTypes" [(ngModel)]="analysisType" appendTo="body" size="small" />
+          </label>
+          <p-button
+            [label]="running() ? 'Running…' : 'Run analysis'"
+            [disabled]="!state.canMutate() || running()"
+            [loading]="running()"
+            (onClick)="runAnalysis()"
+          />
+        </div>
+        @if (runError()) {
+          <p-message severity="warn" [text]="runError()!" />
+        }
+        @if (rejected()) {
+          <p-message severity="warn" [text]="'Rejected: ' + rejected()" />
+        }
+        @if (analysis(); as report) {
+          <article class="report-grid">
+            <p-tag value="research report · not an order" severity="info" />
+            <p class="muted">expiry {{ report.expiry_time }} · data quality {{ report.data_quality_score }} · confidence {{ report.confidence_score }} · {{ report.action_type }}</p>
+            <div class="report-block">
+              <h3>Facts</h3>
+              <p>{{ report.factual_summary }}</p>
+            </div>
+            <div class="report-block">
+              <h3>Bull</h3>
+              <p>{{ report.bullish_case }}</p>
+            </div>
+            <div class="report-block">
+              <h3>Bear</h3>
+              <p>{{ report.bearish_case }}</p>
+            </div>
+            <div class="report-block">
+              <h3>Neutral</h3>
+              <p>{{ report.neutral_case }}</p>
+            </div>
+            <div class="report-block">
+              <h3>Recommended (not an order)</h3>
+              <p>{{ report.recommended_action }}</p>
+            </div>
+            <p class="muted">Size suggestion: not applicable (engine-owned). Human approval required: {{ report.required_human_approval }}</p>
+            <p class="muted">Sources: {{ sourceList(report) }}</p>
+            <p class="muted">prompt {{ report.audit_metadata.prompt_hash }} · facts {{ report.audit_metadata.facts_bundle_hash }}</p>
+            <p class="est">{{ report.uncertainty }}</p>
+          </article>
+        }
+      </section>
+      <section>
+        <h2>Stored analyses</h2>
+        @if (stored().length === 0) {
+          <app-empty-state title="No analyses yet" detail="Run analysis to persist a research report in the audit log." icon="pi-file" />
+        }
+        @for (row of stored(); track row.correlation_id) {
+          <article class="panel secondary">
+            <p class="mono">{{ row.timestamp }} · {{ row.analysis_type }} · is_order={{ row.is_order }}</p>
+          </article>
+        }
+      </section>
+      <section>
+        <h2>Research documents</h2>
+        @for (doc of docs(); track doc.doc_id) {
+          <article class="panel">
+            <h3>{{ doc.title }}</h3>
+            <div class="doc-meta">
+              <app-stale-badge [stale]="doc.stale" />
+              <span>confidence {{ doc.confidence_score }} · {{ doc.source_id }} · {{ doc.category }}</span>
+            </div>
+            @if (doc.contradicts.length) {
+              <p-message severity="warn" [text]="'Contradicting documents: ' + doc.contradicts.join(', ')" />
+            }
+          </article>
+        }
+      </section>
+    </div>
   `,
 })
 export class AssetPage implements OnInit {
@@ -154,7 +178,7 @@ export class AssetPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   readonly state = inject(AgentStateService);
   symbol = '';
-  timeframe = '1d';
+  timeframe = '1h';
   analysisType: AnalysisType = 'technical';
   readonly timeframes = TIMEFRAMES;
   readonly analysisTypes = ANALYSIS_TYPES;
@@ -169,6 +193,7 @@ export class AssetPage implements OnInit {
   readonly runError = signal<string | null>(null);
   readonly running = signal(false);
   readonly stored = signal<StoredAnalysis[]>([]);
+  readonly ready = signal(false);
 
   ngOnInit(): void {
     this.symbol = this.route.snapshot.paramMap.get('symbol') ?? '';
@@ -185,7 +210,13 @@ export class AssetPage implements OnInit {
   }
 
   loadMarket(): void {
-    this.api.bars(this.symbol, this.timeframe).subscribe((value) => this.bars.set(value.bars));
+    this.api.bars(this.symbol, this.timeframe).subscribe({
+      next: (value) => {
+        this.bars.set(value.bars);
+        this.ready.set(true);
+      },
+      error: () => this.ready.set(true),
+    });
     this.api.indicators(this.symbol, this.timeframe).subscribe({
       next: (value) => this.snapshot.set(value.snapshot),
       error: () => this.snapshot.set(null),
