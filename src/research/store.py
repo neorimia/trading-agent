@@ -250,6 +250,28 @@ class MetadataStore:
             return None
         return self._row_to_document(row)
 
+    def list_documents(
+        self, *, instrument: str | None = None, limit: int = 50
+    ) -> list[ResearchDocument]:
+        """Listare pentru control plane — read-only, fără rețea."""
+        if instrument:
+            rows = self._conn.execute(
+                """
+                SELECT DISTINCT d.* FROM documents d
+                JOIN document_assets a ON a.doc_id = d.doc_id
+                WHERE a.instrument = ?
+                ORDER BY d.fetched_at DESC
+                LIMIT ?
+                """,
+                (instrument, limit),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT * FROM documents ORDER BY fetched_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [self._row_to_document(row) for row in rows]
+
     def query_for_context(
         self, instrument: str, as_of: datetime, *, limit: int
     ) -> list[ResearchDocument]:

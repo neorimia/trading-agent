@@ -1,0 +1,14 @@
+# Operator-facing registry. Engine still sizes via RiskEngine; UI cannot skip approval.
+strategies:
+  - id: baseline_ema_cross
+    name: Baseline EMA cross
+    kind: ema_cross
+    enabled: true
+    params:
+      fast_ema_period: 10
+      slow_ema_period: 20
+  - id: llm_assisted
+    name: LLM-assisted (proposal only)
+    kind: llm
+    enabled: false
+    params: {}

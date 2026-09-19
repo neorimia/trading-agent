@@ -53,21 +53,35 @@ class AuditLog:
             )
             connection.commit()
 
-    def list_events(self) -> list[AuditEvent]:
+    def list_events(self, *, after_id: int = 0, limit: int | None = None) -> list[AuditEvent]:
         """Citire pentru rapoarte/watchdog — nu e mutație."""
+        return [event for _, event in self.list_event_rows(after_id=after_id, limit=limit)]
+
+    def list_event_rows(
+        self, *, after_id: int = 0, limit: int | None = None
+    ) -> list[tuple[int, AuditEvent]]:
+        """Citire paginată cu id-ul de cursor. Fără mutație."""
+        query = (
+            "SELECT id, timestamp, correlation_id, event_type, payload "
+            "FROM audit_events WHERE id > ? ORDER BY id ASC"
+        )
+        params: tuple[object, ...] = (after_id,)
+        if limit is not None:
+            query += " LIMIT ?"
+            params = (after_id, limit)
         with _connect(self._db_path) as connection:
-            rows = connection.execute(
-                "SELECT timestamp, correlation_id, event_type, payload "
-                "FROM audit_events ORDER BY id ASC"
-            ).fetchall()
-        events: list[AuditEvent] = []
+            rows = connection.execute(query, params).fetchall()
+        events: list[tuple[int, AuditEvent]] = []
         for row in rows:
             events.append(
-                AuditEvent(
-                    timestamp=datetime.fromisoformat(row["timestamp"]),
-                    correlation_id=UUID(row["correlation_id"]),
-                    event_type=row["event_type"],
-                    payload=json.loads(row["payload"]),
+                (
+                    int(row["id"]),
+                    AuditEvent(
+                        timestamp=datetime.fromisoformat(row["timestamp"]),
+                        correlation_id=UUID(row["correlation_id"]),
+                        event_type=row["event_type"],
+                        payload=json.loads(row["payload"]),
+                    ),
                 )
             )
         return events

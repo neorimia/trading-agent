@@ -4,6 +4,12 @@
 !.env.example
 !.env.engine.example
 !.env.llm.example
+!.env.control.example
+
+# Consola Angular
+apps/console/node_modules/
+apps/console/dist/
+apps/console/.angular/
 *.key
 *.pem
 

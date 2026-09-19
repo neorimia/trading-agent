@@ -39,6 +39,7 @@ uv run pre-commit install
 # Copiază șabloanele de mediu (fișierele reale NU intră niciodată în git)
 cp .env.engine.example .env.engine
 cp .env.llm.example .env.llm
+cp .env.control.example .env.control
 # apoi completează manual valorile relevante în fiecare fișier
 
 # Verifică instalarea
@@ -64,6 +65,24 @@ Testele de izolare AST și contractul de schemă rulează în suita standard. Te
 uv run pytest
 uv run pytest -m llm_live    # doar apelul real către Qwen3-8B
 ```
+
+## Consolă de operator (control plane + Angular)
+
+Al patrulea proces pe loopback (`127.0.0.1:8767`). Citește runtime/audit/config și scrie doar acțiuni de operator (halt, aprobări paper, start/stop paper). Nu apelează LLM `/propose` și nu expune secrete.
+
+```bash
+uv run python -m src.control.server
+```
+
+Consola (Angular 21, PrimeNG 21) rulează separat:
+
+```bash
+cd apps/console
+npm install
+npm start   # http://127.0.0.1:4200 — proxy /v1 către :8767
+```
+
+Emergency stop e permanent în chrome. Start live și approve live rămân blocate. Detalii: [`apps/console/README.md`](apps/console/README.md).
 
 **Scanner de secrete:** `gitleaks` rulează automat la fiecare `git commit` (hook local din `.pre-commit-config.yaml`, scanează doar diff-ul staged). Poate fi rulat manual oricând cu:
 
@@ -99,20 +118,24 @@ Scaffolding-ul de mai jos există deja în repo (Faza 0); fișierele `.py`/`.yam
 
 ```
 trading-agent/
-├── .env.example / .env.engine.example / .env.llm.example
+├── .env.example / .env.engine.example / .env.llm.example / .env.control.example
 ├── .gitignore / .pre-commit-config.yaml
 ├── pyproject.toml / uv.lock / requirements*.txt
+├── apps/console/              # consolă Angular (operator), proxy către :8767
 ├── config/
-│   ├── risk_limits.yaml           # limite deterministe, validate la pornire (Faza 3)
-│   └── universe.yaml              # allowlist de instrumente (Faza 2)
+│   ├── risk_limits.yaml       # limite deterministe, validate la pornire (Faza 3)
+│   ├── universe.yaml          # allowlist de instrumente (Faza 2)
+│   └── strategies.yaml        # enable/disable strategii (restart required)
 ├── src/
-│   ├── data/                      # ingestie și validare date
-│   ├── engine/                    # integrare NautilusTrader
-│   ├── risk/                      # risk_engine.py — sursa unică de adevăr pentru limite
-│   ├── llm/                       # serviciu LLM izolat, doar propuneri
-│   ├── execution/                 # order gateway, idempotency, reconciliere
-│   ├── monitor/                   # monitor independent, kill switch
-│   └── audit/                     # bază de date append-only (SQLite/JSONL)
+│   ├── data/                  # ingestie și validare date
+│   ├── engine/                # integrare NautilusTrader
+│   ├── risk/                  # risk_engine.py — sursa unică de adevăr pentru limite
+│   ├── llm/                   # serviciu LLM izolat, doar propuneri
+│   ├── research/              # context extern, metadata store
+│   ├── execution/             # order gateway, idempotency, reconciliere
+│   ├── monitor/               # monitor independent, kill switch
+│   ├── audit/                 # bază de date append-only (SQLite/JSONL)
+│   └── control/               # control plane FastAPI loopback (:8767)
 ├── backtests/reports/
 ├── tests/{unit,integration,adversarial}/
 └── docs/qualification-report.md

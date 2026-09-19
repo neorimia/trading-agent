@@ -1,0 +1,86 @@
+<div class="app theme-dark" [class.mode-live]="!state.paper()" [class.mode-paper]="state.paper()">
+  <header class="chrome">
+    <div class="brand">
+      <strong>Local trading agent</strong>
+      <span class="mode-pill">{{ state.health().trading_mode }}</span>
+      <span class="status">
+        <span class="dot" [class.on]="state.health().agent === 'running'" [class.off]="state.health().agent !== 'running'"></span>
+        {{ state.health().agent }}
+      </span>
+      <span class="status">venue {{ state.health().venue }}</span>
+    </div>
+    <div class="chrome-actions">
+      @if (state.health().agent !== 'running') {
+        <p-button label="Start agent" [disabled]="!state.canMutate() || !state.paper()" (onClick)="askStart()" />
+      } @else {
+        <p-button label="Stop" severity="secondary" [disabled]="!state.canMutate()" (onClick)="onStop()" />
+      }
+      <p-button
+        label="Emergency stop"
+        severity="danger"
+        [disabled]="!state.canMutate()"
+        (onClick)="askHalt()"
+      />
+    </div>
+  </header>
+
+  @if (!state.canMutate()) {
+    <div class="banner-warn">Observer role: viewing only. Mutations are disabled.</div>
+  }
+  @if (state.connectionError(); as err) {
+    <div class="banner-error">{{ err }}</div>
+  }
+  @if (state.halted()) {
+    <div class="banner-error">
+      HALTED{{ state.health().halt_reason ? ': ' + state.health().halt_reason : '' }}.
+      Resume is a manual reset on the risk page. Trading actions are blocked.
+    </div>
+  }
+  @if (state.health().venue !== 'connected') {
+    <div class="banner-warn">Exchange data is {{ state.health().venue }}. New orders are blocked.</div>
+  }
+  @for (alert of state.alerts(); track alert.id) {
+    <div [class]="alert.severity === 'error' ? 'banner-error' : 'banner-warn'">
+      <strong>{{ alert.title }}</strong> — {{ alert.detail }}
+    </div>
+  }
+  @if (errors.critical(); as crash) {
+    <div class="banner-error">Console error: {{ crash }}</div>
+  }
+
+  <div class="body">
+    <nav>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
+      <a routerLink="/market" routerLinkActive="active">Market</a>
+      <a routerLink="/strategies" routerLinkActive="active">Strategies</a>
+      <a routerLink="/orders" routerLinkActive="active">
+        Orders
+        @if (state.pending().length) {
+          <span class="count">{{ state.pending().length }}</span>
+        }
+      </a>
+      <a routerLink="/risk" routerLinkActive="active">Risk</a>
+      <a routerLink="/research" routerLinkActive="active">Research</a>
+      <a routerLink="/agent" routerLinkActive="active">Activity</a>
+      <a routerLink="/settings" routerLinkActive="active">Settings</a>
+    </nav>
+    <main>
+      <router-outlet />
+    </main>
+  </div>
+
+  <app-confirm-danger
+    #haltDialog
+    title="Emergency stop"
+    body="Writes the halt flag and the engine will refuse new orders. Flatten/cancel depends on the engine process still running."
+    confirmLabel="Halt now"
+    (confirmed)="onHalt($event)"
+  />
+  <app-confirm-danger
+    #startDialog
+    title="Start paper agent"
+    body="Starts the paper loop with file-based human approval. Live start is blocked."
+    confirmLabel="Start paper"
+    (confirmed)="onStart()"
+  />
+</div>
