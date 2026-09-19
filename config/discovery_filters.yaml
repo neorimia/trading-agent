@@ -1,0 +1,38 @@
+# Pipeline de eligibilitate pentru asset discovery (design-asset-discovery-research.md §3).
+#
+# Declarativ, nu hardcodat — fiecare regulă e o funcție pură în src/discovery/filters.py.
+# Un candidat respins nu dispare silențios: rezultatul (motiv, valoare observată) se
+# păstrează mereu, indiferent de passed=True/False.
+#
+# `portfolio_limit` (max_portfolio_concentration_pct) nu poate fi evaluat în Faza 1: ar
+# necesita import din src.risk, interzis prin regula de izolare a modulului discovery.
+# Rămâne în config pentru Faza 5 (§10.9), când starea de portofoliu va fi transmisă explicit
+# ca input read-only, nu importată direct.
+
+filters:
+  - id: min_liquidity
+    kind: min_notional_volume_24h
+    threshold_usd: 500000
+  - id: max_spread
+    kind: max_spread_bps
+    threshold_bps: 50
+  - id: min_history
+    kind: min_history_days
+    threshold_days: 90
+  - id: no_price_anomaly
+    kind: max_price_zscore
+    threshold: 4.0
+  - id: no_volume_anomaly
+    kind: max_volume_zscore
+    threshold: 5.0
+  - id: tradable_status
+    kind: status_in
+    allowed: [online]
+  - id: operational_risk
+    kind: max_operational_risk_score
+    threshold: 0.7
+  - id: portfolio_limit
+    kind: max_portfolio_concentration_pct
+    threshold_pct: 20
+  - id: executable_venue
+    kind: has_execution_venue
