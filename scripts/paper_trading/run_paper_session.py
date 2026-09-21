@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 import signal
@@ -29,9 +30,9 @@ from src.engine.proposal_types import ParsedProposal, ProposalContext, RejectedP
 from src.engine.strategy_paper import PaperTradingLoop
 from src.execution.broker import SimulatedBroker
 from src.execution.human_approval import ApprovalGate, ScriptedApprovalOperator
-from src.execution.idempotency_store import IdempotencyStore
 from src.execution.order_gateway import OrderGateway
 from src.execution.reconciliation import Reconciliation
+from src.execution.repository import open_idempotency_store, open_portfolio_store
 from src.monitor.heartbeat import Heartbeat
 from src.monitor.watchdog import Watchdog
 from src.risk.circuit_breaker import CircuitBreaker
@@ -166,7 +167,50 @@ def build_loop(runtime: Path, config, proposal_client, operator) -> tuple[PaperT
         config.starting_cash, config.instrument, "crypto", spread_bps=BASE_SPREAD_BPS
     )
     broker = SimulatedBroker()
-    store = IdempotencyStore(runtime / "execution" / "idempotency.sqlite")
+
+    # EXECUTION_STORE_BACKEND=json|postgres (default json), mirrors MARKET_DATA_STORE_BACKEND
+    # / RESEARCH_STORE_BACKEND (docs/database-cutover-playbook.md). The rollback path (json)
+    # is unaffected by any of this — only the postgres branch resolves ids and constructs a
+    # PostgresPortfolioStore.
+    execution_backend = os.environ.get("EXECUTION_STORE_BACKEND", "json").strip().lower()
+    database_url = os.environ.get("EXECUTION_DATABASE_URL")
+    portfolio_id = None
+    strategy_version_id = None
+    risk_limits_version_id = None
+    postgres_portfolio_store = None
+    is_llm = not isinstance(proposal_client, BaselineProposalClient)
+    if execution_backend == "postgres":
+        from src.execution.postgres_store import (
+            resolve_active_strategy_version_id,
+            resolve_open_risk_limits_version_id,
+            resolve_portfolio_id,
+        )
+
+        if not database_url:
+            raise SystemExit(
+                "EXECUTION_DATABASE_URL is required when EXECUTION_STORE_BACKEND=postgres"
+            )
+        # The runtime directory name is the seeded portfolio name (scripts/db/seed.py
+        # PAPER_PORTFOLIOS: paper, paper-kraken, paper-csv, paper-faza5).
+        portfolio_id = resolve_portfolio_id(database_url, runtime.name)
+        strategy_id = "llm_assisted" if is_llm else "baseline_ema_cross"
+        strategy_version_id = resolve_active_strategy_version_id(database_url, strategy_id)
+        risk_limits_version_id = resolve_open_risk_limits_version_id(database_url)
+        postgres_portfolio_store = open_portfolio_store(
+            database_url=database_url,
+            portfolio_id=portfolio_id,
+            signal_source="llm" if is_llm else "ema_cross",
+            risk_limits_version_id=risk_limits_version_id,
+        )
+
+    store = open_idempotency_store(
+        backend=execution_backend,
+        sqlite_path=runtime / "execution" / "idempotency.sqlite",
+        database_url=database_url,
+        portfolio_id=portfolio_id,
+        strategy_version_id=strategy_version_id,
+        risk_limits_version_id=risk_limits_version_id,
+    )
     gateway = OrderGateway(store, broker)
     audit = AuditLog(runtime / "audit" / "audit.sqlite")
     heartbeat = Heartbeat(runtime / "heartbeat" / "paper-engine.json")
@@ -201,6 +245,8 @@ def build_loop(runtime: Path, config, proposal_client, operator) -> tuple[PaperT
         reconciliation=reconciliation,
         last_bar_path=last_bar,
         local_state_path=local_state,
+        postgres_portfolio=postgres_portfolio_store,
+        strategy_version_id=strategy_version_id,
     )
     return loop, broker
 

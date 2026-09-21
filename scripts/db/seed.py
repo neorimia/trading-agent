@@ -11,6 +11,7 @@ from pathlib import Path
 
 import psycopg
 import yaml
+from psycopg.rows import dict_row
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -18,6 +19,20 @@ if str(REPO_ROOT) not in sys.path:
 
 from src.db.config import require_database_url
 from src.research.registry import load_source_registry
+
+# The 4 `runtime/paper*` directories the design doc calls out (docs/database-design.md
+# §8.4) as 4 comparable rulări/scenarii — seeded as portfolios regardless of whether
+# the directory currently exists on disk (fresh checkouts have none of them yet).
+# "paper-csv" is the CSV-fixture backtest harness (src/data/sources.py
+# CsvBarDataSource) and never talks to Kraken, so it gets no exchange_account_id.
+PAPER_PORTFOLIOS: tuple[str, ...] = ("paper", "paper-kraken", "paper-csv", "paper-faza5")
+_KRAKEN_PORTFOLIO_ACCOUNT_LABEL = "paper-kraken-spot"
+
+
+def _optional_decimal(raw: object) -> Decimal | None:
+    if raw is None:
+        return None
+    return Decimal(str(raw))
 
 
 def _instrument_assets(symbol: str, asset_class: str) -> tuple[str, str | None]:
@@ -238,6 +253,187 @@ def seed_reference_data(
     }
 
 
+def seed_execution_reference_data(
+    connection: psycopg.Connection,
+    *,
+    strategies_path: Path,
+    strategy_versions_dir: Path,
+    risk_limits_path: Path,
+    paper_config_path: Path,
+) -> dict[str, int]:
+    """Versioned strategy/risk config + paper portfolios (design Phases 3+4).
+
+    Must run after `seed_reference_data` (needs `exchanges`) and requires
+    `migrations/versions/0003_execution_risk.py` to already be applied.
+
+    Strategy version rows come only from the immutable
+    `config/strategy_versions/<id>/vN.json` snapshots — never invented from the
+    mutable `strategies.yaml` alone. A strategy with no matching snapshot file fails
+    the seed loudly instead of fabricating version history.
+
+    `risk_limits` versioning: if the current YAML values differ from the open row
+    (`effective_to IS NULL`), the open row is closed (`effective_to = now()`) and a
+    new version is inserted; if they match, this is a no-op. Never an UPDATE of an
+    already-active version's values (docs/database-design.md §8.9).
+    """
+    strategies_raw = yaml.safe_load(strategies_path.read_text(encoding="utf-8"))
+    strategies = strategies_raw.get("strategies", [])
+    if not isinstance(strategies, list):
+        raise ValueError("strategies.yaml must contain a strategies list")
+
+    with connection.cursor(row_factory=dict_row) as cur:
+        for item in strategies:
+            if not isinstance(item, dict):
+                raise ValueError("each strategy must be a mapping")
+            strategy_id = str(item["id"]).strip()
+            kind = str(item["kind"]).strip()
+            cur.execute(
+                """
+                INSERT INTO strategies (strategy_id, name, kind, enabled)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (strategy_id) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    kind = EXCLUDED.kind,
+                    enabled = EXCLUDED.enabled,
+                    updated_at = now()
+                """,
+                (strategy_id, str(item["name"]), kind, bool(item.get("enabled", False))),
+            )
+            version = int(item.get("version", 1))
+            version_path = strategy_versions_dir / strategy_id / f"v{version}.json"
+            if not version_path.is_file():
+                raise ValueError(
+                    f"missing immutable strategy version snapshot for {strategy_id!r}: "
+                    f"{version_path} — seed never invents a version from "
+                    "strategies.yaml alone"
+                )
+            snapshot = json.loads(version_path.read_text(encoding="utf-8"))
+            cur.execute(
+                """
+                INSERT INTO strategy_versions (
+                    strategy_id, version, params, change_note, is_active
+                ) VALUES (%s, %s, %s::jsonb, %s, %s)
+                ON CONFLICT (strategy_id, version) DO NOTHING
+                """,
+                (
+                    strategy_id,
+                    int(snapshot["version"]),
+                    json.dumps(snapshot.get("params", {})),
+                    snapshot.get("change_note"),
+                    bool(snapshot.get("enabled", True)),
+                ),
+            )
+
+        risk_raw = yaml.safe_load(risk_limits_path.read_text(encoding="utf-8"))
+        if not isinstance(risk_raw, dict):
+            raise ValueError("risk_limits.yaml must contain a mapping")
+        circuit = risk_raw.get("circuit_breaker") or {}
+        candidate = {
+            "max_notional_per_order": Decimal(str(risk_raw["max_notional_per_order"])),
+            "max_exposure_per_instrument": Decimal(str(risk_raw["max_exposure_per_instrument"])),
+            "max_exposure_per_asset_class": Decimal(str(risk_raw["max_exposure_per_asset_class"])),
+            "max_daily_loss": Decimal(str(risk_raw["max_daily_loss"])),
+            "max_drawdown": Decimal(str(risk_raw["max_drawdown"])),
+            "max_orders_per_day": int(risk_raw["max_orders_per_day"]),
+            "max_consecutive_errors": int(circuit["max_consecutive_errors"]),
+            "max_consecutive_losses": int(circuit["max_consecutive_losses"]),
+            "halt_on_unknown_order_result": bool(circuit["halt_on_unknown_order_result"]),
+            "max_risk_per_trade": _optional_decimal(risk_raw.get("max_risk_per_trade")),
+            "min_reward_risk_ratio": _optional_decimal(risk_raw.get("min_reward_risk_ratio")),
+            "max_spread_bps": _optional_decimal(risk_raw.get("max_spread_bps")),
+            "min_bar_volume": _optional_decimal(risk_raw.get("min_bar_volume")),
+            "max_correlated_exposure": _optional_decimal(risk_raw.get("max_correlated_exposure")),
+        }
+        cur.execute(
+            """
+            SELECT risk_limits_version_id, max_notional_per_order,
+                   max_exposure_per_instrument, max_exposure_per_asset_class,
+                   max_daily_loss, max_drawdown, max_orders_per_day,
+                   max_consecutive_errors, max_consecutive_losses,
+                   halt_on_unknown_order_result, max_risk_per_trade,
+                   min_reward_risk_ratio, max_spread_bps, min_bar_volume,
+                   max_correlated_exposure
+            FROM risk_limits WHERE effective_to IS NULL
+            """
+        )
+        current = cur.fetchone()
+        changed = current is None or any(
+            current[key] != value for key, value in candidate.items()
+        )
+        risk_limits_inserted = 0
+        if changed:
+            if current is not None:
+                cur.execute(
+                    "UPDATE risk_limits SET effective_to = now() "
+                    "WHERE risk_limits_version_id = %s",
+                    (current["risk_limits_version_id"],),
+                )
+            cur.execute(
+                """
+                INSERT INTO risk_limits (
+                    effective_from, max_notional_per_order, max_exposure_per_instrument,
+                    max_exposure_per_asset_class, max_daily_loss, max_drawdown,
+                    max_orders_per_day, max_consecutive_errors, max_consecutive_losses,
+                    halt_on_unknown_order_result, max_risk_per_trade,
+                    min_reward_risk_ratio, max_spread_bps, min_bar_volume,
+                    max_correlated_exposure, changed_by
+                ) VALUES (
+                    now(), %(max_notional_per_order)s, %(max_exposure_per_instrument)s,
+                    %(max_exposure_per_asset_class)s, %(max_daily_loss)s, %(max_drawdown)s,
+                    %(max_orders_per_day)s, %(max_consecutive_errors)s,
+                    %(max_consecutive_losses)s, %(halt_on_unknown_order_result)s,
+                    %(max_risk_per_trade)s, %(min_reward_risk_ratio)s, %(max_spread_bps)s,
+                    %(min_bar_volume)s, %(max_correlated_exposure)s, %(changed_by)s
+                )
+                """,
+                {**candidate, "changed_by": "seed:risk_limits.yaml"},
+            )
+            risk_limits_inserted = 1
+
+        paper_raw: dict[str, object] = {}
+        if paper_config_path.is_file():
+            loaded = yaml.safe_load(paper_config_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                paper_raw = loaded
+        starting_cash = Decimal(str(paper_raw.get("starting_cash", "10000")))
+        venue = str(paper_raw.get("venue", "KRAKEN")).strip().upper()
+
+        cur.execute(
+            """
+            INSERT INTO exchange_accounts (exchange_id, label, trading_mode, scope)
+            VALUES ((SELECT exchange_id FROM exchanges WHERE code = %s), %s, 'paper', 'spot')
+            ON CONFLICT (exchange_id, trading_mode, scope, label) DO UPDATE SET
+                label = EXCLUDED.label
+            RETURNING exchange_account_id
+            """,
+            (venue, _KRAKEN_PORTFOLIO_ACCOUNT_LABEL),
+        )
+        account_row = cur.fetchone()
+        if account_row is None:
+            raise ValueError(f"unknown exchange code {venue!r} for paper exchange account")
+        kraken_account_id = account_row["exchange_account_id"]
+
+        for name in PAPER_PORTFOLIOS:
+            account_id = None if name == "paper-csv" else kraken_account_id
+            cur.execute(
+                """
+                INSERT INTO portfolios (
+                    name, trading_mode, exchange_account_id, base_currency, starting_cash
+                ) VALUES (%s, 'paper', %s, 'USD', %s)
+                ON CONFLICT (name) DO UPDATE SET
+                    exchange_account_id = EXCLUDED.exchange_account_id,
+                    starting_cash = EXCLUDED.starting_cash
+                """,
+                (name, account_id, starting_cash),
+            )
+
+    return {
+        "strategies": len(strategies),
+        "risk_limits_versions_inserted": risk_limits_inserted,
+        "portfolios": len(PAPER_PORTFOLIOS),
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database-url", default=os.environ.get("MIGRATION_DATABASE_URL"))
@@ -247,6 +443,23 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=REPO_ROOT / "config/research_sources.yaml",
     )
+    parser.add_argument("--strategies", type=Path, default=REPO_ROOT / "config/strategies.yaml")
+    parser.add_argument(
+        "--strategy-versions",
+        type=Path,
+        default=REPO_ROOT / "config/strategy_versions",
+    )
+    parser.add_argument(
+        "--risk-limits", type=Path, default=REPO_ROOT / "config/risk_limits.yaml"
+    )
+    parser.add_argument(
+        "--paper-config", type=Path, default=REPO_ROOT / "config/paper_trading.yaml"
+    )
+    parser.add_argument(
+        "--skip-execution",
+        action="store_true",
+        help="only seed reference/research data (0001+0002); skip Phase 3+4 tables",
+    )
     args = parser.parse_args(argv)
     url = require_database_url(args.database_url, variable="MIGRATION_DATABASE_URL")
     with psycopg.connect(url) as connection:
@@ -255,6 +468,16 @@ def main(argv: list[str] | None = None) -> int:
             universe_path=args.universe,
             sources_path=args.research_sources,
         )
+        if not args.skip_execution:
+            counts.update(
+                seed_execution_reference_data(
+                    connection,
+                    strategies_path=args.strategies,
+                    strategy_versions_dir=args.strategy_versions,
+                    risk_limits_path=args.risk_limits,
+                    paper_config_path=args.paper_config,
+                )
+            )
     print(json.dumps(counts, sort_keys=True))
     return 0
 

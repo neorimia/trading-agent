@@ -73,6 +73,8 @@ class ControlSettings:
     research_health_url: str
     research_store_backend: str
     control_database_url: str | None
+    execution_store_backend: str
+    execution_portfolio_name: str
     ollama_url: str
     live_trading_enabled: bool
     broker_paper_mode: bool
@@ -150,6 +152,14 @@ def load_control_settings(
         raise ValueError(
             "CONTROL_DATABASE_URL is required when RESEARCH_STORE_BACKEND=postgres"
         )
+    execution_backend = env.get("EXECUTION_STORE_BACKEND", "json").strip().lower()
+    if execution_backend not in {"json", "postgres"}:
+        raise ValueError("EXECUTION_STORE_BACKEND must be 'json' or 'postgres'")
+    if execution_backend == "postgres" and control_database_url is None:
+        raise ValueError(
+            "CONTROL_DATABASE_URL is required when EXECUTION_STORE_BACKEND=postgres"
+        )
+    execution_portfolio_name = env.get("EXECUTION_PORTFOLIO_NAME", "paper").strip() or "paper"
     timeout_s = 3600.0
     stale_s = 172800.0
     heartbeat_s = 30.0
@@ -175,6 +185,8 @@ def load_control_settings(
         ).rstrip("/"),
         research_store_backend=research_backend,
         control_database_url=control_database_url,
+        execution_store_backend=execution_backend,
+        execution_portfolio_name=execution_portfolio_name,
         ollama_url=env.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/"),
         live_trading_enabled=_flag(env.get(LIVE_TRADING_FLAG), default=False),
         broker_paper_mode=_flag(env.get("BROKER_PAPER_MODE"), default=True),

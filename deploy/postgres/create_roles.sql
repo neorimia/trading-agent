@@ -5,7 +5,8 @@
 \endif
 
 -- Supply passwords with psql variables:
--- psql ... -v research_password='...' -v control_password='...' -f create_roles.sql
+-- psql ... -v research_password='...' -v control_password='...' \
+--      -v market_data_password='...' -v execution_password='...' -f create_roles.sql
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'research_writer') THEN
@@ -17,15 +18,21 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'market_data_writer') THEN
         CREATE ROLE market_data_writer LOGIN;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'execution_writer') THEN
+        CREATE ROLE execution_writer LOGIN;
+    END IF;
 END
 $$;
 
 ALTER ROLE research_writer PASSWORD :'research_password';
 ALTER ROLE control_reader PASSWORD :'control_password';
 ALTER ROLE market_data_writer PASSWORD :'market_data_password';
+ALTER ROLE execution_writer PASSWORD :'execution_password';
 
-GRANT CONNECT ON DATABASE :"database_name" TO research_writer, control_reader, market_data_writer;
-GRANT USAGE ON SCHEMA public TO research_writer, control_reader, market_data_writer;
+GRANT CONNECT ON DATABASE :"database_name"
+    TO research_writer, control_reader, market_data_writer, execution_writer;
+GRANT USAGE ON SCHEMA public
+    TO research_writer, control_reader, market_data_writer, execution_writer;
 
 -- research_writer resolves canonical_symbol -> instrument_id (and back) on every
 -- upsert/list/context read, so it needs read-only access to the shared instrument
@@ -54,6 +61,7 @@ GRANT SELECT ON
     instruments,
     instrument_symbols,
     exchanges,
+    exchange_accounts,
     research_sources,
     research_documents,
     research_document_occurrences,
@@ -63,7 +71,18 @@ GRANT SELECT ON
     market_data_sources,
     ohlcv_candles,
     order_book_snapshots,
-    trades
+    trades,
+    strategies,
+    strategy_versions,
+    risk_limits,
+    portfolios,
+    balances,
+    positions,
+    signals,
+    orders,
+    order_events,
+    executions,
+    risk_events
 TO control_reader;
 
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO research_writer;
@@ -84,3 +103,31 @@ TO market_data_writer;
 -- deleted by application code (docs/database-design.md §15 — append-mostly time
 -- series, corrections happen in place). No DELETE grant.
 GRANT SELECT, INSERT, UPDATE ON ohlcv_candles TO market_data_writer;
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO market_data_writer;
+
+-- execution_writer (paper/live engine process, docs/database-design.md Phase 3+4).
+-- Reference tables it resolves ids from on every write but never writes to itself.
+GRANT SELECT ON
+    instruments,
+    assets,
+    exchanges,
+    exchange_accounts,
+    strategies,
+    strategy_versions,
+    risk_limits,
+    portfolios
+TO execution_writer;
+
+-- Mutable current-state tables: engine UPSERTs balances/positions and updates
+-- orders.status as fills arrive (docs/database-design.md §8.4-8.5). No DELETE —
+-- closed positions/rejected orders stay as rows, never removed.
+GRANT SELECT, INSERT, UPDATE ON balances, positions, orders TO execution_writer;
+
+-- Append-only jurnals: order_events, executions, signals, risk_events are never
+-- updated or deleted by application code once written (docs/database-design.md
+-- §13/§15 — same "no UPDATE/DELETE" posture as audit_log, enforced at the role
+-- level here rather than by convention alone).
+GRANT SELECT, INSERT ON order_events, executions, signals, risk_events TO execution_writer;
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO execution_writer;

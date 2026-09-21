@@ -284,6 +284,36 @@ def _audit(paths) -> AuditLog:
     return AuditLog(paths.audit_db)
 
 
+def _postgres_execution_snapshot(
+    settings: ControlSettings,
+) -> tuple[dict[str, Decimal], Decimal | None] | None:
+    """Postgres read path (design Phases 3+4, docs/database-cutover-playbook.md):
+    `control_reader` SELECTs on `positions`/`balances` instead of parsing
+    `local_positions.json`. Returns `None` on any failure (unknown portfolio,
+    unreachable database, backend not switched) so callers fall back to the JSON/
+    audit reconstruction unconditionally — this is a strictly additive read
+    enhancement, only exercised when `EXECUTION_STORE_BACKEND=postgres`."""
+    if settings.execution_store_backend != "postgres" or not settings.control_database_url:
+        return None
+    try:
+        from src.execution.postgres_store import PostgresPortfolioStore, resolve_portfolio_id
+
+        portfolio_id = resolve_portfolio_id(
+            settings.control_database_url, settings.execution_portfolio_name
+        )
+        store = PostgresPortfolioStore(
+            settings.control_database_url,
+            portfolio_id=portfolio_id,
+            signal_source="none",
+            risk_limits_version_id=None,
+        )
+        positions = store.read_open_positions()
+        cash = store.read_cash("USD")
+        return positions, cash
+    except Exception:
+        return None
+
+
 def build_portfolio(settings: ControlSettings, *, now: datetime | None = None) -> PortfolioResponse:
     moment = now if now is not None else _now()
     default_instrument: str | None = None
@@ -348,6 +378,13 @@ def build_portfolio(settings: ControlSettings, *, now: datetime | None = None) -
             incomplete = False
         except ValidationError:
             pass
+    postgres_snapshot = _postgres_execution_snapshot(settings)
+    if postgres_snapshot is not None:
+        pg_positions, pg_cash = postgres_snapshot
+        positions = pg_positions
+        incomplete = False
+        if pg_cash is not None:
+            cash = pg_cash
     last_bar_at, last_instrument, last_close = _last_bar(settings.paths.last_bar)
     last_price = last_close if last_close is not None else Decimal("0")
     instrument = last_instrument or default_instrument

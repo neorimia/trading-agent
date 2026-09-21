@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
 from src.audit.audit_log import AuditLog
@@ -35,6 +35,9 @@ from src.risk.circuit_breaker import CircuitBreaker
 from src.risk.kill_switch import KillSwitch
 from src.runtime_io import write_text_atomic
 from src.risk.risk_engine import RiskEngine
+
+if TYPE_CHECKING:
+    from src.execution.postgres_store import PostgresPortfolioStore
 
 
 def _payload(model: Any) -> dict[str, Any]:
@@ -90,6 +93,9 @@ class PaperTradingLoop:
         process_id: str = "paper-engine",
         broker_state_path: Path | None = None,
         tracker_state_path: Path | None = None,
+        postgres_portfolio: "PostgresPortfolioStore | None" = None,
+        cash_asset: str = "USD",
+        strategy_version_id: UUID | None = None,
     ) -> None:
         self._config = config
         self._risk = risk_engine
@@ -113,6 +119,9 @@ class PaperTradingLoop:
             "paper_tracker.json"
         )
         self._process_id = process_id
+        self._postgres = postgres_portfolio
+        self._cash_asset = cash_asset
+        self._strategy_version_id = strategy_version_id
         self._history: list[Bar] = []
         self._in_flight: list[str] = []
         self._last_price: Decimal | None = None
@@ -381,7 +390,12 @@ class PaperTradingLoop:
                 payload=_payload(proposal),
             )
         )
-        decision = self._risk.evaluate(proposal, self._tracker.snapshot(bar.close))
+        if self._postgres is not None:
+            self._postgres.record_signal(
+                proposal, strategy_version_id=self._strategy_version_id
+            )
+        portfolio_state = self._tracker.snapshot(bar.close)
+        decision = self._risk.evaluate(proposal, portfolio_state)
         self._audit.record(
             AuditEvent.now(
                 correlation_id=correlation,
@@ -389,6 +403,12 @@ class PaperTradingLoop:
                 payload=_payload(decision),
             )
         )
+        if self._postgres is not None:
+            self._postgres.record_risk_event(
+                decision,
+                portfolio_state=portfolio_state,
+                correlation_id=correlation,
+            )
         record = SessionRecord(
             session_index=len(self._history),
             correlation_id=correlation,
@@ -424,7 +444,7 @@ class PaperTradingLoop:
             quantity=decision.quantity,
             order_type="market",
         )
-        result = self._gateway.submit(order)
+        result = self._gateway.submit(order, correlation_id=correlation)
         self._audit.record(
             AuditEvent.now(
                 correlation_id=correlation,
@@ -500,6 +520,11 @@ class PaperTradingLoop:
                 payload={"reason": reason},
             )
         )
+        if self._postgres is not None:
+            price = self._last_price if self._last_price is not None else Decimal("1")
+            self._postgres.record_halt_event(
+                reason, portfolio_state=self._tracker.snapshot(price), correlation_id=correlation
+            )
         self._in_flight.clear()
 
     def _write_last_bar(self, bar: Bar) -> None:
@@ -533,4 +558,26 @@ class PaperTradingLoop:
         write_text_atomic(
             self._tracker_state_path,
             json.dumps(self._tracker.dump_state()),
+        )
+        if self._postgres is not None:
+            self._persist_postgres_snapshot()
+
+    def _persist_postgres_snapshot(self) -> None:
+        """Same fields as the JSON files above, written to `balances`/`positions`
+        instead (design §8.4). Always additive — the JSON files above are the
+        rollback path and are written unconditionally regardless of backend."""
+        assert self._postgres is not None
+        price = self._last_price if self._last_price is not None else Decimal("1")
+        state = self._tracker.dump_state()
+        broker_qty = None
+        if isinstance(self._broker, SimulatedBroker):
+            broker_qty = self._broker.snapshot().positions.get(self._config.instrument)
+        self._postgres.persist_snapshot(
+            instrument=self._config.instrument,
+            cash_asset=self._cash_asset,
+            cash=Decimal(str(state["cash"])),
+            open_quantity=Decimal(str(state["open_qty"])),
+            avg_entry_price=Decimal(str(state["avg_price"])),
+            last_price=price,
+            broker_open_quantity=broker_qty,
         )

@@ -141,11 +141,14 @@ def assert_paper_start_allowed(root: Path, environ: dict[str, str] | None = None
 
 
 def postgres_backend_enabled(root: Path) -> bool:
-    """True when research, control, or market data is configured to use PostgreSQL."""
+    """True when research, control, market data, or execution is configured to use
+    PostgreSQL."""
     for env_name, key in (
         (".env.research", "RESEARCH_STORE_BACKEND"),
         (".env.control", "RESEARCH_STORE_BACKEND"),
         (".env.engine", "MARKET_DATA_STORE_BACKEND"),
+        (".env.engine", "EXECUTION_STORE_BACKEND"),
+        (".env.control", "EXECUTION_STORE_BACKEND"),
     ):
         backend = read_dotenv_value(root / env_name, key).strip().lower()
         if backend == "postgres":
@@ -160,6 +163,7 @@ def postgres_database_urls(root: Path) -> list[str]:
         (".env.research", "RESEARCH_DATABASE_URL"),
         (".env.control", "CONTROL_DATABASE_URL"),
         (".env.engine", "MARKET_DATA_DATABASE_URL"),
+        (".env.engine", "EXECUTION_DATABASE_URL"),
     ):
         value = read_dotenv_value(root / env_name, key).strip()
         if value and value not in urls:

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
-from src.execution.types import OrderResult
+from src.execution.types import OrderRequest, OrderResult
 
 
 class DuplicateClientOrderId(Exception):
@@ -44,8 +44,20 @@ class IdempotencyStore:
         with _connect(self._db_path) as connection:
             connection.commit()
 
-    def reserve(self, client_order_id: UUID) -> None:
-        """INSERT înainte de submit. Duplicate → DuplicateClientOrderId."""
+    def reserve(
+        self,
+        client_order_id: UUID,
+        *,
+        order: OrderRequest | None = None,
+        correlation_id: UUID | None = None,
+    ) -> None:
+        """INSERT înainte de submit. Duplicate → DuplicateClientOrderId.
+
+        `order`/`correlation_id` are accepted for interface parity with
+        `PostgresIdempotencyStore` (src/execution/postgres_store.py), which needs the
+        full order + correlation to populate `orders`/`order_events`. SQLite ignores
+        them — the on-disk reservation table only ever needed the id.
+        """
         key = str(client_order_id)
         with _connect(self._db_path) as connection:
             existing = connection.execute(

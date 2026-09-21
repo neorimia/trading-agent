@@ -37,7 +37,7 @@ jobs:
         run: uv run pytest -m "not llm_live and not network_live and not postgres"
 
   postgres-integration:
-    name: PostgreSQL migrations + research/market data contract
+    name: PostgreSQL migrations + research/market data/execution contract
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -61,6 +61,7 @@ jobs:
       TEST_DATABASE_URL: postgresql://research_writer:test-writer-only@127.0.0.1:5432/trading_agent_test
       CONTROL_DATABASE_URL: postgresql://control_reader:test-reader-only@127.0.0.1:5432/trading_agent_test
       MARKET_DATA_DATABASE_URL: postgresql://market_data_writer:test-market-data-writer-only@127.0.0.1:5432/trading_agent_test
+      EXECUTION_DATABASE_URL: postgresql://execution_writer:test-execution-writer-only@127.0.0.1:5432/trading_agent_test
     steps:
       - uses: actions/checkout@v4
 
@@ -88,6 +89,7 @@ jobs:
             -v research_password=test-writer-only \
             -v control_password=test-reader-only \
             -v market_data_password=test-market-data-writer-only \
+            -v execution_password=test-execution-writer-only \
             -f deploy/postgres/create_roles.sql
 
       - name: Run PostgreSQL integration tests

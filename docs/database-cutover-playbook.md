@@ -56,6 +56,34 @@ silent best-effort dual writes are prohibited.
   reservations. Any mismatch is quarantined rather than guessed.
 - Live trading remains blocked until restart reconciliation closes the
   `reserve` to `store_result` crash window.
+- **Status: implemented, not yet switched.** `EXECUTION_STORE_BACKEND=json|postgres`
+  (default `json`, `EXECUTION_DATABASE_URL` for role `execution_writer`) —
+  `PostgresIdempotencyStore` / `PostgresPortfolioStore`
+  (`src/execution/postgres_store.py`) are drop-ins for `IdempotencyStore` and the
+  JSON control-file writers used by `PaperTradingLoop`
+  (`src/engine/strategy_paper.py`), wired through `scripts/paper_trading/
+  run_paper_session.py`, `scripts/start_stack.py`, and the control-plane read path
+  (`src/control/runtime_state.py`, additive/defensive — only overrides JSON/audit
+  reads when explicitly enabled). Importer: `scripts/db/import_execution.py
+  --runtime-root <frozen copy> --strategy-id <id>` — one frozen `runtime/paper*`
+  directory per invocation, run once per portfolio (`paper`, `paper-kraken`,
+  `paper-csv`, `paper-faza5`). `--strategy-id` is required: audit payloads carry no
+  strategy identity (fixed per process via an unlogged CLI flag), so the importer
+  never guesses it. Quarantines (JSONL, truncated per run — reruns reproduce, never
+  accumulate): `unmapped_symbol`, `order_submitted_without_risk_decision`,
+  `local_vs_broker_mismatch`, and `idempotency_no_audit_match` — the exact
+  `reserve` → `store_result` crash-window gap called out above, closed going
+  forward by Phase 3+4's single-transaction writes but historically unprovable, so
+  it is quarantined rather than reconstructed. Validated against all four real
+  `runtime/paper*` directories (frozen copies): zero quarantine entries, idempotent
+  reruns (repeat imports produce zero new rows and identical destination counts).
+  Degraded directories predating tracker-state persistence (`paper-kraken`,
+  `paper-csv` — no `paper_tracker.json`/`simulated_broker.json`) import the known
+  position quantity only; cash and `exchange_reported` balances stay unwritten
+  rather than fabricated (`PostgresPortfolioStore.persist_snapshot(cash=None, ...)`).
+  Cutover itself (stopping writers, flipping the backend flag, resuming) has not
+  happened — remains gated on the `reserve`/`store_result` restart-reconciliation
+  work called out above, per gate 6/7.
 
 ### 3. Strategies, risk, and signals
 
@@ -64,6 +92,25 @@ silent best-effort dual writes are prohibited.
 - Targets: strategies, strategy versions, versioned risk limits/events, signals.
 - Gate: every imported decision resolves to the exact strategy/risk version active at
   its timestamp; unresolved history is reported.
+- **Status: implemented, not yet switched.** Migrated by the same `migrations/
+  versions/0003_execution_risk.py` as domain 2 (interdependent — `orders`/
+  `signals`/`risk_events` FK into `strategy_versions`/`risk_limits`). Seeded by
+  `scripts/db/seed.py::seed_execution_reference_data`: `strategy_versions` rows come
+  only from immutable `config/strategy_versions/<id>/vN.json` snapshots, never
+  fabricated from the mutable `strategies.yaml` alone; `risk_limits` versioning
+  closes the currently-open row (`effective_to = now()`) and inserts a new one only
+  when the YAML values actually differ, never updates an active version's values in
+  place. `scripts/db/import_execution.py` imports `signals` (from audit `proposal`
+  events) and `risk_events` (from `risk_decision`/`halt` events) alongside orders —
+  see domain 2. Documented, unresolved gap: there is no historical
+  version-at-timestamp tracking yet, so every imported row links to the *current*
+  seeded `strategy_version_id`/`risk_limits_version_id`, not whatever version was
+  active at the original decision's timestamp; the importer report sets
+  `unresolved_history: true` accordingly. `risk_events.portfolio_state_snapshot`
+  (`NOT NULL`) has no historical source either — the audit trail logs only
+  `RiskDecision`/halt-reason, never the `PortfolioState` object `RiskEngine.
+  evaluate()` saw — so imported rows carry an explicit
+  `{"reconstructed": false, ...}` marker instead of a fabricated snapshot.
 
 ### 4. Backtest and paper runs
 
