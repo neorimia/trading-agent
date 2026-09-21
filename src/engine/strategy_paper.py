@@ -191,7 +191,20 @@ class PaperTradingLoop:
                     if bar.timestamp <= last_ts:
                         self._ensure_history(bar)
                         continue
-                    record = self.run_bar(bar)
+                    try:
+                        record = self.run_bar(bar)
+                    except Exception as exc:  # noqa: BLE001 - fail-closed, not fail-crash
+                        correlation = uuid4()
+                        self._audit.record(
+                            AuditEvent.now(
+                                correlation_id=correlation,
+                                event_type="run_bar_error",
+                                payload={"error": repr(exc), "bar_timestamp": bar.timestamp.isoformat()},
+                            )
+                        )
+                        self._record_halt(correlation, "run_bar_error")
+                        last_ts = bar.timestamp
+                        break
                     last_ts = bar.timestamp
                     if record is not None:
                         result.sessions.append(record)

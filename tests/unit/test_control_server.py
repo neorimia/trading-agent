@@ -15,11 +15,15 @@ from fastapi.testclient import TestClient
 from src.audit.audit_log import AuditLog
 from src.audit.events import AuditEvent
 from src.control.agent_process import NullAgentProcess
+from src.control.runtime_state import halt_if_heartbeat_stale
 from src.control.server import ControlContext, create_app, validate_bind_host
 from src.control.settings import load_control_settings
 from src.data.market_data_registry import MarketDataAdapterRegistry
 from src.data.sources import Bar
-from src.engine.analysis_types import ParsedAnalysis
+from src.discovery.models import AssetCandidate, CandidateFactors, DiscoveryRun, SourceRef
+from src.discovery.store import append_run as append_discovery_run
+from src.engine.analysis_types import ParsedAnalysis, RejectedAnalysis
+from src.monitor.heartbeat import Heartbeat
 from src.research.models import ResearchDocument
 from src.research.store import MetadataStore
 from src.risk.kill_switch import KillSwitch
@@ -137,6 +141,42 @@ def test_emergency_halt_writes_flag(tmp_path: Path) -> None:
     assert KillSwitch(ctx.settings.paths.halt_flag).is_active()
     assert health.json()["agent"] == "halted"
     assert health.json()["halt_reason"] == "operator_stop"
+
+
+def test_halt_if_heartbeat_stale_triggers_halt_for_running_agent(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    ctx.settings.paths.agent_pid.parent.mkdir(parents=True, exist_ok=True)
+    ctx.settings.paths.agent_pid.write_text("4242", encoding="utf-8")
+    stale_moment = datetime(2026, 9, 18, 11, 0, tzinfo=timezone.utc)  # 1h before ctx.now()
+    Heartbeat(ctx.settings.paths.heartbeat).write("paper-engine", stale_moment)
+
+    triggered = halt_if_heartbeat_stale(ctx.settings, now=ctx.now(), ping=ctx.ping, alive=ctx.alive)
+
+    assert triggered is True
+    assert KillSwitch(ctx.settings.paths.halt_flag).is_active()
+
+
+def test_halt_if_heartbeat_stale_leaves_fresh_heartbeat_alone(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    ctx.settings.paths.agent_pid.parent.mkdir(parents=True, exist_ok=True)
+    ctx.settings.paths.agent_pid.write_text("4242", encoding="utf-8")
+    Heartbeat(ctx.settings.paths.heartbeat).write("paper-engine", ctx.now())
+
+    triggered = halt_if_heartbeat_stale(ctx.settings, now=ctx.now(), ping=ctx.ping, alive=ctx.alive)
+
+    assert triggered is False
+    assert KillSwitch(ctx.settings.paths.halt_flag).is_active() is False
+
+
+def test_halt_if_heartbeat_stale_ignores_stopped_agent(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    stale_moment = datetime(2026, 9, 18, 11, 0, tzinfo=timezone.utc)
+    Heartbeat(ctx.settings.paths.heartbeat).write("paper-engine", stale_moment)
+
+    triggered = halt_if_heartbeat_stale(ctx.settings, now=ctx.now(), ping=ctx.ping, alive=ctx.alive)
+
+    assert triggered is False
+    assert KillSwitch(ctx.settings.paths.halt_flag).is_active() is False
 
 
 def test_halt_is_idempotent(tmp_path: Path) -> None:
@@ -663,6 +703,201 @@ def test_observer_cannot_run_analysis(tmp_path: Path) -> None:
             "/v1/research/analyze",
             json={"instrument": "ETHUSD", "analysis_type": "technical", "timeframe": "1d"},
             headers={"Idempotency-Key": "analyze-obs"},
+        )
+    assert response.status_code == 403
+
+
+def _discovery_factors(**overrides: object) -> CandidateFactors:
+    defaults = dict(
+        notional_volume_24h_usd="1000000",
+        spread_bps=5.0,
+        liquidity_score=0.8,
+        spread_score=0.9,
+        volatility=0.02,
+        data_quality_score=1.0,
+        operational_risk_score=0.1,
+        correlation_btc=0.5,
+        correlation_eth=0.4,
+        min_order_notional_usd="10",
+        listing_age_days=400,
+        exchange_status="online",
+    )
+    defaults.update(overrides)
+    return CandidateFactors.model_validate(defaults)
+
+
+def _seed_discovery_candidate(ctx: ControlContext, **overrides: object) -> AssetCandidate:
+    now = ctx.now()
+    defaults = dict(
+        asset="XXBTZUSD",
+        asset_class="crypto",
+        exchange="KRAKEN",
+        timestamp=now,
+        research_horizon="swing (days-weeks)",
+        candidate_status="research",
+        opportunity_score=0.7,
+        risk_score=0.2,
+        confidence_score=0.8,
+        data_quality_score=1.0,
+        factors=_discovery_factors(),
+        sources=[SourceRef(source_id="kraken_public_api", url="https://api.kraken.com/0/public", fetched_at=now)],
+        expires_at=now,
+    )
+    defaults.update(overrides)
+    candidate = AssetCandidate.model_validate(defaults)
+    append_discovery_run(
+        DiscoveryRun(run_at=now, exchange=candidate.exchange, candidates=[candidate], rejected=[]),
+        ctx.settings.paths.discovery_store,
+    )
+    return candidate
+
+
+def _discovery_analysis(**overrides: object) -> ParsedAnalysis:
+    defaults = dict(
+        asset="XXBTZUSD",
+        timestamp="2026-09-18T12:00:00+00:00",
+        timeframe="swing (days-weeks)",
+        analysis_type="discovery",
+        factual_summary="Liquidity and spread pass the eligibility filters.",
+        data_sources=[],
+        bullish_case="Liquidity score is above the peer median.",
+        bearish_case="Volatility is elevated versus the reference window.",
+        neutral_case="Correlation with BTC limits diversification benefit.",
+        key_assumptions=["Kraken spot only"],
+        catalysts=["unknown"],
+        risks=["operational risk score above median"],
+        invalidation_conditions=["exchange status leaves online"],
+        confidence_score=0.4,
+        data_quality_score=0.8,
+        uncertainty="News sentiment and catalyst score are not yet computed.",
+        recommended_action="research_more",
+        action_type="research_only",
+        position_size_suggestion=None,
+        required_human_approval=True,
+        expiry_time="2026-09-19T12:00:00+00:00",
+        audit_metadata={
+            "model_name": "qwen3:8b",
+            "prompt_hash": "aa",
+            "facts_bundle_hash": "bb",
+            "temperature": 0.0,
+            "schema_version": "analysis.v1",
+        },
+    )
+    defaults.update(overrides)
+    return ParsedAnalysis.model_validate(defaults)
+
+
+def test_discovery_candidates_empty_store(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.get("/v1/discovery/candidates")
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_discovery_candidates_lists_seeded_candidate(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    _seed_discovery_candidate(ctx)
+    with _client(ctx) as client:
+        response = client.get("/v1/discovery/candidates")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["id"] == "KRAKEN:XXBTZUSD"
+    assert "composite_rank" in body[0]
+
+
+def test_discovery_candidate_detail_returns_candidate(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    _seed_discovery_candidate(ctx)
+    with _client(ctx) as client:
+        response = client.get("/v1/discovery/candidates/XXBTZUSD")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["asset"] == "XXBTZUSD"
+    assert "composite_rank" in body
+
+
+def test_discovery_candidate_detail_missing_is_404(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.get("/v1/discovery/candidates/UNKNOWN")
+    assert response.status_code == 404
+
+
+def test_discovery_summarize_missing_candidate_is_404(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path, request_discovery_summary=lambda context: _discovery_analysis())
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/discovery/candidates/UNKNOWN/summarize",
+            headers={"Idempotency-Key": "disc-missing"},
+        )
+    assert response.status_code == 404
+
+
+def test_discovery_summarize_accepts_clean_narrative(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path, request_discovery_summary=lambda context: _discovery_analysis())
+    _seed_discovery_candidate(ctx)
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/discovery/candidates/XXBTZUSD/summarize",
+            headers={"Idempotency-Key": "disc-1"},
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["bullish_case"] == ["Liquidity score is above the peer median."]
+    assert body["missing_data"] == []
+    assert body["sources"][-1]["source_id"] == "llm_discovery_summary"
+    assert "composite_rank" in body
+
+
+def test_discovery_summarize_rejects_forbidden_phrase(tmp_path: Path) -> None:
+    ctx = _ctx(
+        tmp_path,
+        request_discovery_summary=lambda context: _discovery_analysis(
+            bullish_case="This will definitely go up."
+        ),
+    )
+    _seed_discovery_candidate(ctx)
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/discovery/candidates/XXBTZUSD/summarize",
+            headers={"Idempotency-Key": "disc-forbidden"},
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["bullish_case"] == []
+    assert "llm_summary_rejected:forbidden_phrase" in body["missing_data"]
+
+
+def test_discovery_summarize_surfaces_llm_rejection(tmp_path: Path) -> None:
+    ctx = _ctx(
+        tmp_path,
+        request_discovery_summary=lambda context: RejectedAnalysis(reason="timeout", raw_output=""),
+    )
+    _seed_discovery_candidate(ctx)
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/discovery/candidates/XXBTZUSD/summarize",
+            headers={"Idempotency-Key": "disc-rejected"},
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["bullish_case"] == []
+    assert "llm_summary_rejected:timeout" in body["missing_data"]
+
+
+def test_discovery_summarize_requires_operator(tmp_path: Path) -> None:
+    ctx = _ctx(
+        tmp_path,
+        environ={"CONTROL_OPERATOR_ROLE": "observer"},
+        request_discovery_summary=lambda context: _discovery_analysis(),
+    )
+    _seed_discovery_candidate(ctx)
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/discovery/candidates/XXBTZUSD/summarize",
+            headers={"Idempotency-Key": "disc-obs"},
         )
     assert response.status_code == 403
 

@@ -87,6 +87,12 @@ def _contradicting_pairs(
     return pairs
 
 
+@app.get("/health")
+def health() -> dict[str, str]:
+    """Liveness only — does not touch the metadata DB or Ollama."""
+    return {"status": "up"}
+
+
 @app.get("/context", response_model=ContextResponse | None)
 def get_context(request: Request) -> ContextResponse | Response:
     try:

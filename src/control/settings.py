@@ -52,6 +52,7 @@ class RuntimePaths:
     paper_config: Path
     research_db: Path
     backtest_reports: Path
+    discovery_store: Path
 
 
 @dataclass(frozen=True)
@@ -65,6 +66,7 @@ class ControlSettings:
     environment: str
     llm_health_url: str
     research_health_url: str
+    ollama_url: str
     live_trading_enabled: bool
     broker_paper_mode: bool
     heartbeat_threshold_s: float
@@ -110,6 +112,7 @@ def build_paths(
             env.get("RESEARCH_METADATA_DB_PATH", str(base / "data" / "research" / "metadata.db"))
         ),
         backtest_reports=base / "backtests" / "reports",
+        discovery_store=Path(env.get("DISCOVERY_STORE_PATH", str(base / "data" / "discovery"))),
     )
 
 
@@ -151,6 +154,7 @@ def load_control_settings(
         research_health_url=env.get(
             "RESEARCH_SERVICE_URL", "http://127.0.0.1:8766"
         ).rstrip("/"),
+        ollama_url=env.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/"),
         live_trading_enabled=_flag(env.get(LIVE_TRADING_FLAG), default=False),
         broker_paper_mode=_flag(env.get("BROKER_PAPER_MODE"), default=True),
         heartbeat_threshold_s=heartbeat_s,

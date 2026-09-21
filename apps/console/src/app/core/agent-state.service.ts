@@ -14,6 +14,7 @@ const EMPTY_HEALTH: HealthResponse = {
   venue: 'down',
   llm: 'down',
   research: 'down',
+  ollama: 'down',
   trading_mode: 'paper',
   heartbeat_age_s: null,
   last_bar_at: null,

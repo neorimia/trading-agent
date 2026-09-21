@@ -1,0 +1,27 @@
+# Rotate runtime/logs/*.log (docs/SERVER_DEPLOYMENT_AUDIT.md "Should have soon
+# after" item #10).
+#
+# Under systemd (deploy/systemd/*.service), trading-llm/research/control stdout+stderr
+# go to journald, not these files — journald's own retention is controlled separately
+# via /etc/systemd/journald.conf (SystemMaxUse=, MaxRetentionSec=), not logrotate.
+# This file covers what DOES still write here under systemd:
+#   - runtime/paper*/logs/*.log written by the paper child process itself
+#     (src/control/agent_process.py: SubprocessAgentProcess spawns it with
+#     log_path=runtime_dir/logs/paper.log)
+#   - runtime/logs/research-ingest-cron.log from deploy/cron/research-ingest.cron
+#   - any *.log left over from ad hoc scripts/dev/start_stack.py debugging runs
+#
+# Install:
+#   sudo cp deploy/logrotate/trading-agent /etc/logrotate.d/trading-agent
+#   sudo logrotate --debug /etc/logrotate.d/trading-agent   # dry run
+
+/opt/trading-agent/runtime/logs/*.log /opt/trading-agent/runtime/paper*/logs/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su trading trading
+}

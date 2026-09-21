@@ -1,0 +1,25 @@
+# python -m src.research.server — isolated process, same isolation as trading-llm.
+# Optional: only enable if .env.research exists (see start_stack.py's check).
+[Unit]
+Description=trading-agent research service (loopback :8766)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trading
+Group=trading
+WorkingDirectory=/opt/trading-agent
+ExecStart=/opt/trading-agent/.venv/bin/python -m src.research.server
+Restart=on-failure
+RestartSec=5
+SyslogIdentifier=trading-research
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/trading-agent/runtime /opt/trading-agent/data/research
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -11,6 +11,7 @@ import {
   BarsResponse,
   BrokerMonitorSnapshot,
   DailyPlan,
+  DiscoveryCandidate,
   HealthResponse,
   IndicatorsResponse,
   MarketInstrument,
@@ -171,6 +172,30 @@ export class ApiService {
       '/v1/research/analyze',
       { instrument, analysis_type: analysisType, timeframe },
       idempotent(`analyze-${instrument}-${analysisType}-${Date.now()}`),
+    );
+  }
+
+  discoveryCandidates(filters?: {
+    asset_class?: string;
+    status?: string;
+    min_score?: number;
+  }): Observable<DiscoveryCandidate[]> {
+    const params: Record<string, string | number> = {};
+    if (filters?.asset_class) params['asset_class'] = filters.asset_class;
+    if (filters?.status) params['status'] = filters.status;
+    if (filters?.min_score !== undefined) params['min_score'] = filters.min_score;
+    return this.http.get<DiscoveryCandidate[]>('/v1/discovery/candidates', { params });
+  }
+
+  discoveryCandidate(asset: string): Observable<DiscoveryCandidate> {
+    return this.http.get<DiscoveryCandidate>(`/v1/discovery/candidates/${asset}`);
+  }
+
+  summarizeDiscoveryCandidate(asset: string): Observable<DiscoveryCandidate> {
+    return this.http.post<DiscoveryCandidate>(
+      `/v1/discovery/candidates/${asset}/summarize`,
+      {},
+      idempotent(`discovery-summarize-${asset}-${Date.now()}`),
     );
   }
 }

@@ -28,6 +28,7 @@ AnalysisType = Literal[
     "backtest",
     "trade_review",
     "daily_plan",
+    "discovery",
 ]
 RecommendedAction = Literal[
     "hold",

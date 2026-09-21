@@ -53,6 +53,10 @@ from src.engine.analysis_types import (
     ParsedAnalysis,
     RejectedAnalysis,
 )
+from src.discovery.llm_summary import summarize_candidate as summarize_discovery_candidate
+from src.discovery.models import AssetCandidate, DiscoveryRun
+from src.discovery.ranking import rank_candidates
+from src.discovery.store import append_run as append_discovery_run, load_day as load_discovery_day
 from src.engine.daily_plan import build_daily_plan
 from src.engine.indicators import bars_upto, indicator_snapshot, technical_facts_bundle
 from src.engine.paper_config import load_paper_trading_config
@@ -227,8 +231,9 @@ def build_health(
     return HealthResponse(
         agent=agent,  # type: ignore[arg-type]
         venue=venue,  # type: ignore[arg-type]
-        llm="up" if ping(settings.llm_health_url) else "down",
-        research="up" if ping(settings.research_health_url) else "down",
+        llm="up" if ping(f"{settings.llm_health_url}/health") else "down",
+        research="up" if ping(f"{settings.research_health_url}/health") else "down",
+        ollama="up" if ping(f"{settings.ollama_url}/api/tags") else "down",
         trading_mode=mode,  # type: ignore[arg-type]
         heartbeat_age_s=heartbeat_age,
         last_bar_at=last_bar_at,
@@ -238,6 +243,30 @@ def build_health(
         live_actions_blocked=mode == "live" or halted or venue != "connected",
         broker_monitor=load_broker_monitor(paths.broker_monitor),
     )
+
+
+def halt_if_heartbeat_stale(
+    settings: ControlSettings,
+    *,
+    now: datetime | None = None,
+    ping: PingFn = ping_http,
+    alive: PidAliveFn = pid_is_alive,
+) -> bool:
+    """External watchdog for an unattended control plane.
+
+    The paper loop halts itself on stale market data (Watchdog.check_stale_data), but
+    that only fires if the process is alive enough to keep running its own loop. This
+    checks from the control plane, independent of any dashboard client, so a fully
+    wedged process (no exception, just stuck) still gets halted instead of silently
+    running dark until an operator notices.
+    """
+    health = build_health(settings, now=now, ping=ping, alive=alive)
+    if health.agent != "running" or health.heartbeat_age_s is None:
+        return False
+    if health.heartbeat_age_s <= settings.heartbeat_threshold_s:
+        return False
+    trigger_halt(settings, "stale_heartbeat")
+    return True
 
 
 def _audit(paths) -> AuditLog:
@@ -1269,3 +1298,109 @@ def list_analyses(
             }
         )
     return rows[-50:]
+
+
+DiscoverySummaryFn = Callable[[AnalysisContext], ParsedAnalysis | RejectedAnalysis]
+
+
+def _latest_discovery_candidates(
+    store_dir: str | Path, *, now: datetime, lookback_days: int = 3
+) -> list[AssetCandidate]:
+    """Ultima zi cu date (fallback până la `lookback_days` în urmă, dacă job-ul zilnic nu a rulat încă).
+
+    Dedup pe `asset`, păstrând rândul cu `timestamp` maxim — permite unui narativ LLM
+    adăugat ulterior (append-only, §7) să "câștige" fără să mute retroactiv rândul inițial.
+    """
+    for offset in range(lookback_days + 1):
+        day = (now - timedelta(days=offset)).strftime("%Y-%m-%d")
+        candidates = load_discovery_day(store_dir, day)
+        if not candidates:
+            continue
+        latest_by_asset: dict[str, AssetCandidate] = {}
+        for candidate in candidates:
+            current = latest_by_asset.get(candidate.asset)
+            if current is None or candidate.timestamp > current.timestamp:
+                latest_by_asset[candidate.asset] = candidate
+        return list(latest_by_asset.values())
+    return []
+
+
+def build_discovery_candidates(
+    settings: ControlSettings,
+    *,
+    asset_class: str | None = None,
+    status: str | None = None,
+    min_score: float | None = None,
+    now: datetime | None = None,
+) -> list[dict]:
+    moment = now if now is not None else _now()
+    candidates = _latest_discovery_candidates(settings.paths.discovery_store, now=moment)
+    if asset_class is not None:
+        candidates = [c for c in candidates if c.asset_class == asset_class]
+    if status is not None:
+        candidates = [c for c in candidates if c.candidate_status == status]
+    if min_score is not None:
+        candidates = [c for c in candidates if c.opportunity_score >= min_score]
+    ranked = rank_candidates(candidates)
+    return [
+        {
+            **json.loads(item.candidate.model_dump_json()),
+            "id": f"{item.candidate.exchange}:{item.candidate.asset}",
+            "composite_rank": item.composite_rank,
+        }
+        for item in ranked
+    ]
+
+
+def get_discovery_candidate(
+    settings: ControlSettings, asset: str, *, now: datetime | None = None
+) -> dict | None:
+    moment = now if now is not None else _now()
+    candidates = _latest_discovery_candidates(settings.paths.discovery_store, now=moment)
+    for item in rank_candidates(candidates):
+        if item.candidate.asset == asset:
+            return {
+                **json.loads(item.candidate.model_dump_json()),
+                "id": f"{item.candidate.exchange}:{item.candidate.asset}",
+                "composite_rank": item.composite_rank,
+            }
+    return None
+
+
+def run_discovery_summary(
+    settings: ControlSettings,
+    *,
+    asset: str,
+    request_summary: DiscoverySummaryFn,
+    now: datetime | None = None,
+) -> dict:
+    """Faza 2: cere narativul LLM pentru un candidat existent. Nu trece prin RiskEngine/OrderGateway."""
+    moment = now if now is not None else _now()
+    candidates = _latest_discovery_candidates(settings.paths.discovery_store, now=moment)
+    candidate = next((c for c in candidates if c.asset == asset), None)
+    if candidate is None:
+        raise ValueError("candidate_not_found")
+
+    updated = summarize_discovery_candidate(candidate, request_summary, now=moment)
+    append_discovery_run(
+        DiscoveryRun(run_at=moment, exchange=updated.exchange, candidates=[updated], rejected=[]),
+        settings.paths.discovery_store,
+    )
+    _audit(settings.paths).record(
+        AuditEvent.now(
+            correlation_id=uuid4(),
+            event_type="discovery_summary",
+            payload={"asset": asset, "is_order": False},
+        )
+    )
+    others = [c for c in candidates if c.asset != asset]
+    composite_rank = next(
+        item.composite_rank
+        for item in rank_candidates([updated, *others])
+        if item.candidate.asset == asset
+    )
+    return {
+        **json.loads(updated.model_dump_json()),
+        "id": f"{updated.exchange}:{updated.asset}",
+        "composite_rank": composite_rank,
+    }

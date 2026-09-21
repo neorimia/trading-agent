@@ -792,6 +792,14 @@ app-session-plan {
   align-items: center;
 }
 
+.score-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+}
+
 .p-button:active:not(:disabled) {
   transform: scale(0.98);
   transition: transform var(--dur-press) var(--ease-out);

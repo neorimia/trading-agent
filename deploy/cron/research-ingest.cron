@@ -1,0 +1,15 @@
+# Periodic research ingestion (docs/SERVER_DEPLOYMENT_AUDIT.md "Required Code
+# Changes > Should have soon after" item #9). scripts/research/ingest_once.py is a
+# plain script; no code change needed, only scheduling it.
+#
+# Install as the `trading` user's crontab:
+#   sudo -u trading crontab -e
+#   # paste the line below (adjust the hour to match your data source's cadence)
+#
+# Keep this OUT of 24/7 operation until you have actually scheduled it — an
+# uncommitted/unscheduled discovery pipeline running ad hoc is called out as a risk
+# in the audit ("Uncommitted discovery pipeline").
+
+# Every 6 hours, log to its own file (not runtime/logs/*.log, so logrotate for the
+# service logs doesn't need to know about this).
+0 */6 * * * cd /opt/trading-agent && /opt/trading-agent/.venv/bin/python scripts/research/ingest_once.py >> /opt/trading-agent/runtime/logs/research-ingest-cron.log 2>&1

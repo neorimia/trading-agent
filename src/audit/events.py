@@ -20,9 +20,11 @@ AuditEventType = Literal[
     "halt",
     "reconciliation_ok",
     "reconciliation_mismatch",
+    "run_bar_error",
     "operator_action",
     "analysis",
     "signal_normalized",
+    "discovery_summary",
 ]
 
 

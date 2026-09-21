@@ -98,6 +98,12 @@ def _load_dotenv_llm() -> None:
         load_dotenv(env_path, override=False)
 
 
+@app.get("/health")
+def health() -> dict[str, str]:
+    """Liveness only — does not call Ollama. See control's /v1/health for that."""
+    return {"status": "up"}
+
+
 @app.post("/propose")
 def propose(body: ProposeRequest) -> LLMProposal | RejectedProposal:
     config, universe_path = load_llm_settings()

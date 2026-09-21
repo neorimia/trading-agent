@@ -1,0 +1,35 @@
+# python -m src.llm.server — isolated process, no broker/live env vars (see
+# scripts/dev/start_stack.py:isolated_service_env). Loads .env.llm itself via
+# python-dotenv (src/llm/server.py:_load_dotenv_llm), relative to WorkingDirectory.
+#
+# Install:
+#   sudo cp deploy/systemd/trading-llm.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now trading-llm
+[Unit]
+Description=trading-agent LLM service (loopback :8765)
+After=network-online.target ollama.service
+Wants=network-online.target
+# Not a hard dependency: Ollama being down should surface as a failed /health
+# check and RejectedProposal, not stop this unit from starting (fail-closed,
+# not fail-crash — same principle as src/engine/strategy_paper.py run_bar).
+
+[Service]
+Type=simple
+User=trading
+Group=trading
+WorkingDirectory=/opt/trading-agent
+ExecStart=/opt/trading-agent/.venv/bin/python -m src.llm.server
+Restart=on-failure
+RestartSec=5
+SyslogIdentifier=trading-llm
+
+# Hardening — this process must never see broker/live keys or write outside runtime/.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/trading-agent/runtime
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

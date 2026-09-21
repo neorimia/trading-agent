@@ -61,6 +61,14 @@ _TYPE_INSTRUCTIONS: dict[AnalysisType, str] = {
         "Fill the injected daily checklist. Do not add events that are absent from the calendar "
         "list. Crypto session is 00:00 UTC through 24h. Do not change risk limits."
     ),
+    "discovery": (
+        "The facts_bundle holds deterministic asset-discovery factors (liquidity, spread, "
+        "volatility, correlation, operational risk, data quality) already computed upstream — "
+        "never recompute or restate them as your own estimate. Write a comparative research "
+        "narrative: bullish, neutral, and bearish case, plus up to 3 invalidation conditions. "
+        "This is a candidate for a research watchlist, not an open position — never suggest "
+        "position sizing, entry timing, or that any outcome is certain."
+    ),
 }
 
 

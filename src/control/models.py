@@ -31,6 +31,7 @@ class HealthResponse(BaseModel):
     venue: VenueStatus
     llm: ServiceStatus
     research: ServiceStatus
+    ollama: ServiceStatus
     trading_mode: TradingMode
     heartbeat_age_s: float | None
     last_bar_at: datetime | None

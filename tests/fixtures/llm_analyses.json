@@ -110,6 +110,40 @@
       }
     },
     {
+      "name": "valid_discovery",
+      "expect": "accept",
+      "payload": {
+        "asset": "SOLUSD",
+        "timestamp": "2026-09-18T00:00:00+00:00",
+        "timeframe": "swing (days-weeks)",
+        "analysis_type": "discovery",
+        "factual_summary": "24h notional volume and spread pass the eligibility filters.",
+        "data_sources": [],
+        "bullish_case": "Liquidity score is high relative to peers.",
+        "bearish_case": "Volatility is elevated versus the reference window.",
+        "neutral_case": "Correlation with BTC is high, limiting diversification benefit.",
+        "key_assumptions": ["Kraken spot only"],
+        "catalysts": ["unknown"],
+        "risks": ["operational risk score above median"],
+        "invalidation_conditions": ["exchange status leaves online"],
+        "confidence_score": 0.4,
+        "data_quality_score": 0.8,
+        "uncertainty": "News sentiment and catalyst score are not yet computed.",
+        "recommended_action": "research_more",
+        "action_type": "research_only",
+        "position_size_suggestion": null,
+        "required_human_approval": true,
+        "expiry_time": "2026-09-19T00:00:00+00:00",
+        "audit_metadata": {
+          "model_name": "qwen3:8b",
+          "prompt_hash": "aa",
+          "facts_bundle_hash": "bb",
+          "temperature": 0.0,
+          "schema_version": "analysis.v1"
+        }
+      }
+    },
+    {
       "name": "unknown_analysis_type",
       "expect": "reject",
       "payload": {

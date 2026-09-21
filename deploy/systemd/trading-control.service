@@ -1,0 +1,37 @@
+# python -m src.control.server — the only privileged process: it holds broker/engine
+# keys (.env.control + .env.engine, loaded by src/control/server.py:_load_dotenv_control)
+# and spawns/supervises the paper loop itself via SubprocessAgentProcess
+# (scripts/paper_trading/run_paper_session.py). Do not run scripts/dev/start_stack.py
+# on the server — it is a dev convenience that tears the whole stack down on one
+# child exit (docs/SERVER_DEPLOYMENT_AUDIT.md).
+#
+# Paper is NOT started by this unit. After control is healthy, start it explicitly:
+#   curl -X POST http://127.0.0.1:8767/v1/agent/start \
+#     -H "Authorization: Bearer $CONTROL_OPERATOR_TOKEN" -H "Idempotency-Key: boot-1"
+[Unit]
+Description=trading-agent control plane (loopback :8767)
+After=network-online.target trading-llm.service
+Wants=network-online.target
+Requires=trading-llm.service
+
+[Service]
+Type=simple
+User=trading
+Group=trading
+WorkingDirectory=/opt/trading-agent
+ExecStart=/opt/trading-agent/.venv/bin/python -m src.control.server
+Restart=on-failure
+RestartSec=5
+SyslogIdentifier=trading-control
+
+# Less strict than trading-llm/research: this process legitimately reads
+# .env.engine (broker keys) and spawns the paper child. Still no new privileges
+# and no writes outside the repo's own runtime/data dirs.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/trading-agent/runtime /opt/trading-agent/data
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

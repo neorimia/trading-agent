@@ -32,6 +32,13 @@ def test_validate_bind_host_rejects_wildcard() -> None:
         validate_bind_host("0.0.0.0")
 
 
+def test_health_returns_up_without_touching_ollama() -> None:
+    client = TestClient(app)
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "up"}
+
+
 def test_assert_no_broker_keys_rejects_engine_vars() -> None:
     with pytest.raises(RuntimeError, match="BROKER_API_KEY"):
         assert_no_broker_keys({"BROKER_API_KEY": "paper"})

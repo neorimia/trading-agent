@@ -49,6 +49,13 @@ def test_validate_bind_host_rejects_wildcard() -> None:
         validate_bind_host("0.0.0.0")
 
 
+def test_health_returns_up_without_touching_metadata_db() -> None:
+    client = TestClient(app)
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "up"}
+
+
 def test_context_returns_200_with_documents(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     db_path = tmp_path / "metadata.db"
     store = MetadataStore(db_path)

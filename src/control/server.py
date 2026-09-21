@@ -7,8 +7,10 @@ Host-ul e forțat pe loopback (127.0.0.1 / localhost / ::1).
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import os
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -44,12 +46,14 @@ from src.control.models import (
 from src.control.runtime_state import (
     AnalyzeFn,
     ApprovalExpired,
+    DiscoverySummaryFn,
     FetchBarsFn,
     PidAliveFn,
     PingFn,
     build_alerts,
     build_bars,
     build_daily_plan_view,
+    build_discovery_candidates,
     build_health,
     build_indicator_snapshot,
     build_market,
@@ -58,6 +62,8 @@ from src.control.runtime_state import (
     build_security,
     build_signal,
     build_stress_view,
+    get_discovery_candidate,
+    halt_if_heartbeat_stale,
     list_agent_events,
     list_analyses,
     list_orders,
@@ -68,6 +74,7 @@ from src.control.runtime_state import (
     pid_is_alive,
     ping_http,
     reset_halt,
+    run_discovery_summary,
     run_operator_analysis,
     set_strategy_enabled,
     trigger_halt,
@@ -105,6 +112,7 @@ class ControlContext:
     replay: ReplayCache = field(default_factory=ReplayCache)
     now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)
     request_analysis: AnalyzeFn | None = None
+    request_discovery_summary: DiscoverySummaryFn | None = None
 
 
 def _ws_snapshot(ctx: ControlContext, sent_at: datetime) -> tuple:
@@ -125,7 +133,6 @@ def _load_dotenv_control() -> None:
 
 def create_app(ctx: ControlContext | None = None) -> FastAPI:
     context = ctx
-    app = FastAPI(title="trading-agent-control", docs_url=None, redoc_url=None)
 
     def get_ctx() -> ControlContext:
         if context is not None:
@@ -136,6 +143,39 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
             stored = ControlContext(settings=settings, environ=dict(os.environ))
             app.state.ctx = stored
         return stored
+
+    @contextlib.asynccontextmanager
+    async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        """External heartbeat watchdog: halts the paper loop if it wedges, independent
+        of any dashboard client. See halt_if_heartbeat_stale for why this can't live
+        solely inside the paper process itself."""
+        watch_ctx = get_ctx()
+        interval_s = max(5.0, min(watch_ctx.settings.heartbeat_threshold_s, 30.0))
+
+        async def _watch() -> None:
+            while True:
+                await asyncio.sleep(interval_s)
+                try:
+                    await asyncio.to_thread(
+                        halt_if_heartbeat_stale,
+                        watch_ctx.settings,
+                        ping=watch_ctx.ping,
+                        alive=watch_ctx.alive,
+                    )
+                except Exception:
+                    _LOG.exception("heartbeat watchdog check failed")
+
+        task = asyncio.create_task(_watch())
+        try:
+            yield
+        finally:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+
+    app = FastAPI(
+        title="trading-agent-control", docs_url=None, redoc_url=None, lifespan=_lifespan
+    )
 
     origins = list(context.settings.cors_origins if context is not None else DEFAULT_CORS)
     app.add_middleware(
@@ -450,6 +490,59 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
             except ValueError as exc:
                 raise HTTPException(status_code=422, detail=str(exc)) from exc
             return result.model_dump(mode="json")
+
+        return run_idempotent(ctx.replay, key, _act)
+
+    @app.get("/v1/discovery/candidates")
+    def discovery_candidates(
+        asset_class: str | None = Query(default=None),
+        status: str | None = Query(default=None),
+        min_score: float | None = Query(default=None),
+        ctx: ControlContext = Depends(require_auth),
+    ):
+        return build_discovery_candidates(
+            ctx.settings,
+            asset_class=asset_class,
+            status=status,
+            min_score=min_score,
+            now=ctx.now(),
+        )
+
+    @app.get("/v1/discovery/candidates/{asset}")
+    def discovery_candidate_detail(asset: str, ctx: ControlContext = Depends(require_auth)):
+        candidate = get_discovery_candidate(ctx.settings, asset, now=ctx.now())
+        if candidate is None:
+            raise HTTPException(status_code=404, detail="candidate not found")
+        return candidate
+
+    @app.post("/v1/discovery/candidates/{asset}/summarize")
+    def discovery_candidate_summarize(
+        asset: str,
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+        ctx: ControlContext = Depends(require_operator),
+    ):
+        key = require_idempotency_key(idempotency_key)
+
+        def _act() -> dict:
+            def _call(context: AnalysisContext):
+                if ctx.request_discovery_summary is not None:
+                    return ctx.request_discovery_summary(context)
+                client = LLMAnalysisClient(ctx.settings.llm_health_url)
+                try:
+                    return client.request_analysis(context)
+                finally:
+                    client.close()
+
+            try:
+                return run_discovery_summary(
+                    ctx.settings,
+                    asset=asset,
+                    request_summary=_call,
+                    now=ctx.now(),
+                )
+            except ValueError as exc:
+                status = 404 if str(exc) == "candidate_not_found" else 422
+                raise HTTPException(status_code=status, detail=str(exc)) from exc
 
         return run_idempotent(ctx.replay, key, _act)
 

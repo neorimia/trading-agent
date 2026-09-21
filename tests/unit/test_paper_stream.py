@@ -95,6 +95,36 @@ def test_restart_restores_broker_and_tracker(tmp_path: Path) -> None:
     assert loop2._tracker.dump_state()["cash"] == cash  # noqa: SLF001
 
 
+def test_run_bar_exception_halts_instead_of_crashing(tmp_path: Path) -> None:
+    """An exception inside run_bar must halt (fail-closed), not propagate and kill the loop."""
+    loop, audit, _broker, halt = build_loop(tmp_path)
+    bars = [_bar_at(i) for i in range(22)]
+    polls = {"n": 0}
+
+    def poll(_after: datetime | None) -> list[Bar]:
+        polls["n"] += 1
+        if polls["n"] == 1:
+            return bars[:21]  # seeded on first poll (last_ts is None)
+        return bars[:22]  # one new bar on second poll -> run_bar is called
+
+    def boom(_bar: Bar) -> None:
+        raise RuntimeError("simulated run_bar failure")
+
+    loop.run_bar = boom  # type: ignore[method-assign]
+
+    result = loop.run_stream(
+        poll,
+        poll_interval_s=0,
+        sleep_fn=lambda _s: None,
+        max_polls=2,
+    )
+    assert result.sessions == []
+    assert halt.is_active() is True
+    types = [event.event_type for event in audit.list_events()]
+    assert "run_bar_error" in types
+    assert "halt" in types
+
+
 def test_paper_recon_does_not_read_broker_monitor_file(tmp_path: Path) -> None:
     write_broker_monitor(
         tmp_path / "broker_monitor.json",

@@ -21,6 +21,10 @@
           <span class="dot" [class.on]="state.health().research === 'up'" [class.off]="state.health().research !== 'up'"></span>
           research {{ state.health().research }}
         </span>
+        <span class="status">
+          <span class="dot" [class.on]="state.health().ollama === 'up'" [class.off]="state.health().ollama !== 'up'"></span>
+          ollama {{ state.health().ollama }}
+        </span>
         <span class="status mono">beat {{ heartbeatLabel() }}</span>
       </div>
     </div>
@@ -95,6 +99,10 @@
       <a routerLink="/research" routerLinkActive="active">
         <i class="pi pi-book" aria-hidden="true"></i>
         Research
+      </a>
+      <a routerLink="/discovery" routerLinkActive="active">
+        <i class="pi pi-compass" aria-hidden="true"></i>
+        Discovery
       </a>
       <a routerLink="/agent" routerLinkActive="active">
         <i class="pi pi-clock" aria-hidden="true"></i>

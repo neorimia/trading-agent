@@ -4,6 +4,7 @@ import { permissionGuard } from './core/permission.guard';
 import { AgentPage } from './features/agent.page';
 import { AssetPage } from './features/asset.page';
 import { DashboardPage } from './features/dashboard.page';
+import { DiscoveryPage } from './features/discovery.page';
 import { MarketPage } from './features/market.page';
 import { OrdersPage } from './features/orders.page';
 import { ResearchPage } from './features/research.page';
@@ -19,6 +20,7 @@ export const routes: Routes = [
   { path: 'orders', component: OrdersPage, canActivate: [permissionGuard] },
   { path: 'risk', component: RiskPage, canActivate: [permissionGuard] },
   { path: 'research', component: ResearchPage, canActivate: [permissionGuard] },
+  { path: 'discovery', component: DiscoveryPage, canActivate: [permissionGuard] },
   { path: 'agent', component: AgentPage, canActivate: [permissionGuard] },
   { path: 'settings', component: SettingsPage, canActivate: [permissionGuard] },
 ];

@@ -17,6 +17,7 @@ export interface HealthResponse {
   venue: VenueStatus;
   llm: 'up' | 'down';
   research: 'up' | 'down';
+  ollama: 'up' | 'down';
   trading_mode: TradingMode;
   heartbeat_age_s: number | null;
   last_bar_at: string | null;
@@ -183,6 +184,51 @@ export interface ResearchDocumentView {
   stale: boolean;
   contradicts: string[];
   extracted_text: string;
+}
+
+export interface DiscoveryCandidateFactors {
+  notional_volume_24h_usd: string;
+  spread_bps: number;
+  liquidity_score: number;
+  spread_score: number;
+  volatility: number | null;
+  data_quality_score: number;
+  operational_risk_score: number;
+  correlation_btc: number | null;
+  correlation_eth: number | null;
+  min_order_notional_usd: string | null;
+  listing_age_days: number;
+  exchange_status: string;
+}
+
+export interface DiscoveryCandidateSource {
+  source_id: string;
+  url: string;
+  fetched_at: string;
+}
+
+export interface DiscoveryCandidate {
+  id: string;
+  asset: string;
+  asset_class: string;
+  exchange: string;
+  timestamp: string;
+  research_horizon: string;
+  candidate_status: string;
+  opportunity_score: number;
+  risk_score: number;
+  confidence_score: number;
+  data_quality_score: number;
+  factors: DiscoveryCandidateFactors;
+  bullish_case: string[];
+  bearish_case: string[];
+  neutral_case: string[];
+  invalidation_conditions: string[];
+  missing_data: string[];
+  sources: DiscoveryCandidateSource[];
+  expires_at: string;
+  requires_human_review: boolean;
+  composite_rank: number;
 }
 
 export interface SecuritySettings {
