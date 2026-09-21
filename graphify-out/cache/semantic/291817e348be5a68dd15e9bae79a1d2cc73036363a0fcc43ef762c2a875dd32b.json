@@ -1,0 +1,1 @@
+{"nodes": [], "edges": [{"source": "claudedocs_design_research_financiar_research_pipeline", "target": "config_research_sources_yaml", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "claudedocs/workflow_research-financiar.md"}], "hyperedges": []}
