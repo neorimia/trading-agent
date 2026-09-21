@@ -103,7 +103,7 @@ class RawDocument(BaseModel):
 
 
 class ResearchDocument(BaseModel):
-    """Rândul normalizat, persistat în metadata.db — vezi design §5 pentru DDL echivalent."""
+    """Document canonic, persistat în SQLite sau PostgreSQL."""
 
     model_config = _STRICT
 
@@ -118,10 +118,12 @@ class ResearchDocument(BaseModel):
     assets_mentioned: list[str]
     category: DocumentCategory
     extracted_text: str = Field(min_length=1)
+    raw_payload_ref: str | None = None
     summary: str | None = None
     sentiment_score: float | None = Field(default=None, ge=-1.0, le=1.0)
     impact_magnitude: ImpactMagnitude | None = None
     impact_direction: ImpactDirection | None = None
     confidence_score: float = Field(ge=0.0, le=1.0)
+    data_quality_score: float | None = Field(default=None, ge=0.0, le=1.0)
     last_verified_at: datetime
     content_hash: str = Field(min_length=1)

@@ -1,6 +1,6 @@
 # Design bază de date — trading agent
 
-**Status:** propunere de design. Nimic din acest document nu a fost implementat — nu există migrații, nu s-a instalat nicio dependență nouă, codul aplicației nu a fost atins.
+**Status:** design aprobat, implementat pentru fundația PostgreSQL și primul cutover reversibil al domeniului research. Domeniile market data, execuție, risc, backtesting și audit rămân în rollout-ul etapizat.
 
 **Autor:** research + design arhitectural, 2026-09-21.
 **Bază de cod analizată:** commit `7006a27a` (branch `main`).
@@ -15,7 +15,7 @@ Astăzi starea e împrăștiată în **6 mecanisme de persistență diferite**: 
 
 **Recomandare:** PostgreSQL 18 (auto-găzduit, o singură instanță, local sau pe VPS-ul existent) ca bază de date principală și unică sursă de adevăr, cu extensia **TimescaleDB** (Community Edition, gratuită pentru auto-găzduire) activată pentru tabelele de serii de timp (`ohlcv_candles` în primul rând) când volumul o justifică — nu neapărat din prima zi. Fișierele imutabile mari (HTML brut, loguri de backtest) rămân pe disc, indexate din DB prin pointer — exact pattern-ul deja folosit de `RawDocumentStore`/`MetadataStore` din `src/research/store.py`, generalizat la tot sistemul.
 
-Acest document acoperă research-ul tehnic, decizia arhitecturală, schema logică/fizică pentru 34 de entități, convențiile de bani/timp, idempotență, audit, securitate, retenție și un plan de implementare pe faze. **Nu implementează nimic.**
+Acest document acoperă research-ul tehnic, decizia arhitecturală, schema logică/fizică pentru **38 de tabele și un view la MVP**, plus 2 tabele de referință amânate (`news_events`, `news_event_documents`), convențiile de bani/timp, idempotență, audit, securitate, retenție și rollout-ul pe faze. Implementarea curentă acoperă fundația și research-ul; restul tabelelor rămân etapizate.
 
 ---
 
@@ -102,7 +102,7 @@ FR6. Strategii versionate; fiecare backtest/paper run/ordin referă o versiune e
 FR7. Backtesting reproductibil: hash de dataset, seed, universul de instrumente folosit, parametri.
 FR8. Paper trading ca entitate de prim rang (nu foldere), comparabil între rulări.
 FR9. Semnale normalizate, separate de propunerile brute LLM și de analizele de research.
-FR10. Documente de research cu proveniență completă (sursă, URL, autor, dată publicare vs. dată colectare), deduplicate pe hash de conținut, cu relații de contrazicere/duplicat.
+FR10. Documente de research cu proveniență completă (sursă, URL, autor, dată publicare vs. dată colectare), deduplicate pe hash de conținut, cu ocurențe/aliasuri pentru fetch-uri duplicate și relații canonice de contrazicere/confirmare.
 FR11. Analize LLM cu metadate de audit complete: model, hash prompt, versiune prompt, hash bundle de fapte, temperatură, versiune schemă, expirare.
 FR12. Limite de risc versionate în timp, nu doar valoarea curentă.
 FR13. Evenimente de risc (acceptare/respingere ordin, întrerupător de circuit, halt) legate de limita în vigoare la momentul respectiv.
@@ -697,11 +697,46 @@ Append-only. `orders.signal_id` leagă înapoi „ce semnal a dus la acest ordin
 
 ### 8.8 Research și LLM
 
-**`research_documents`** — port aproape 1:1 al schemei SQLite deja existente și bine gândite din `src/research/store.py`, cu 2 adăugiri explicit cerute (`data_quality_score`, `raw_payload_ref`).
+**`research_sources`** — registrul surselor și al stării lor de conformitate. Se creează **înainte de** `research_documents`, deoarece documentele au FK către el. Contractul include întregul lifecycle din `SourceConfig` (`src/research/models.py`), inclusiv stările încă nerevizuite; prezența unui rând sau `active=true` nu înseamnă automat că sursa poate fi ingerată.
+
+```sql
+CREATE TABLE research_sources (
+    source_id                 TEXT PRIMARY KEY,
+    name                      TEXT NOT NULL,
+    kind                      TEXT NOT NULL CHECK (kind IN ('rss', 'api', 'html_crawler', 'browser_automation')),
+    base_url                  TEXT NOT NULL,
+    credibility_score         NUMERIC NOT NULL CHECK (credibility_score BETWEEN 0 AND 1),
+    robots_txt_status         TEXT NOT NULL CHECK (robots_txt_status IN
+                                  ('allowed', 'disallowed', 'not_applicable_api', 'pending')),
+    tos_reviewed_at           TIMESTAMPTZ,       -- NULL cât timp review-ul nu a fost finalizat
+    rate_limit_per_min        INT CHECK (rate_limit_per_min > 0),
+    min_request_interval_s    NUMERIC CHECK (min_request_interval_s > 0),
+    review_status             TEXT NOT NULL DEFAULT 'pending' CHECK (review_status IN
+                                  ('pending', 'pending_manual_tos_review', 'docs_reviewed_terms_pending',
+                                   'reviewed', 'reviewed_with_dynamic_limit')),
+    docs_url                  TEXT,
+    terms_url                 TEXT,
+    robots_url                TEXT,
+    rate_limit_source         TEXT,
+    rate_limit_notes          TEXT,
+    last_verified_at          TIMESTAMPTZ,
+    attribution_required      BOOLEAN NOT NULL DEFAULT false,
+    redistribution_allowed    TEXT NOT NULL DEFAULT 'unknown' CHECK (redistribution_allowed IN
+                                  ('yes', 'no', 'unknown')),
+    retention_policy          TEXT NOT NULL DEFAULT 'metadata_and_summary_only',
+    notes                     JSONB NOT NULL DEFAULT '[]',
+    active                    BOOLEAN NOT NULL DEFAULT true,
+    CHECK (jsonb_typeof(notes) = 'array')
+);
+```
+
+Eligibilitatea de ingestie rămâne logică de aplicație: filtrul operațional `active` se combină cu `SourceConfig.is_fetchable()`, deci sursa trebuie să aibă `tos_reviewed_at IS NOT NULL` și `review_status IN ('reviewed', 'reviewed_with_dynamic_limit')`; pentru `reviewed_with_dynamic_limit`, registry-ul validează și `min_request_interval_s`. Schema păstrează intenționat stările `pending`/review intermediar și nu încearcă să le excludă printr-un `CHECK` cross-field sau prin ștergerea rândului.
+
+**`research_documents`** — documente **canonice**, deduplicate pe `content_hash`; port al schemei SQLite din `src/research/store.py`, cu `data_quality_score` și `raw_payload_ref`. `doc_id` este ID-ul primei ocurențe alese drept canonice. Alte ID-uri calculate pentru același conținut nu devin documente și nu sunt folosite ca FK spre această tabelă.
 
 ```sql
 CREATE TABLE research_documents (
-    doc_id             TEXT PRIMARY KEY,        -- sha256(url|fetched_at), cum se calculează deja
+    doc_id             TEXT PRIMARY KEY,        -- sha256(url|fetched_at) pentru ocurența canonică
     url                  TEXT NOT NULL,
     title                  TEXT NOT NULL,
     source_id                TEXT NOT NULL REFERENCES research_sources(source_id),
@@ -714,8 +749,8 @@ CREATE TABLE research_documents (
          'protocol_upgrade','token_unlock','governance','listing','onchain_alert','funding_regime','regulatory')),
     language                            TEXT NOT NULL DEFAULT 'en',
     extracted_text                        TEXT NOT NULL,
-    content_hash                            TEXT NOT NULL UNIQUE,   -- dedup — al 2-lea doc cu același hash nu duce rând nou
-    raw_payload_ref                          TEXT,                    -- pointer către blob-ul imutabil pe disc
+    content_hash                            TEXT NOT NULL UNIQUE,
+    raw_payload_ref                          TEXT,   -- poate fi NULL doar pentru import legacy, vezi §18
     summary                                    TEXT,
     sentiment_score                              NUMERIC,
     impact_magnitude                               TEXT CHECK (impact_magnitude IN ('low','medium','high')),
@@ -727,34 +762,37 @@ CREATE TABLE research_documents (
 CREATE INDEX idx_research_documents_fetched_at ON research_documents(fetched_at DESC);
 CREATE INDEX idx_research_documents_event_date ON research_documents(event_date);
 
+CREATE TABLE research_document_occurrences (  -- toate fetch-urile/aliasurile, inclusiv canonicul
+    occurrence_id     TEXT PRIMARY KEY,        -- sha256(url|fetched_at) calculat la fiecare fetch
+    canonical_doc_id  TEXT NOT NULL REFERENCES research_documents(doc_id),
+    source_id         TEXT REFERENCES research_sources(source_id),
+    url               TEXT,
+    fetched_at        TIMESTAMPTZ,
+    raw_payload_ref   TEXT,                    -- NULL permis pentru import legacy
+    legacy_metadata_incomplete BOOLEAN NOT NULL DEFAULT false,
+    UNIQUE (source_id, url, fetched_at),
+    CHECK (legacy_metadata_incomplete OR
+           (source_id IS NOT NULL AND url IS NOT NULL AND fetched_at IS NOT NULL))
+);
+CREATE INDEX idx_research_occurrences_canonical
+    ON research_document_occurrences(canonical_doc_id, fetched_at DESC);
+
 CREATE TABLE document_assets (       -- N:M documente ↔ instrumente menționate
     doc_id       TEXT NOT NULL REFERENCES research_documents(doc_id),
     instrument_id UUID NOT NULL REFERENCES instruments(instrument_id),
     PRIMARY KEY (doc_id, instrument_id)
 );
 
-CREATE TABLE document_relations (    -- citări/contrazicere, deja proiectat azi
+CREATE TABLE document_relations (    -- numai relații semantice între documente canonice
     doc_id            TEXT NOT NULL REFERENCES research_documents(doc_id),
     related_doc_id       TEXT NOT NULL REFERENCES research_documents(doc_id),
     relation_type           TEXT NOT NULL CHECK (relation_type IN
-        ('confirms','contradicts','duplicate_of','retracted_by','follow_up_of')),
-    PRIMARY KEY (doc_id, related_doc_id, relation_type)
-);
-
-CREATE TABLE research_sources (      -- portat 1:1 din schema SQLite existentă
-    source_id            TEXT PRIMARY KEY,
-    name                    TEXT NOT NULL,
-    kind                      TEXT NOT NULL CHECK (kind IN ('rss', 'api', 'html_crawler', 'browser_automation')),
-    base_url                   TEXT NOT NULL,
-    credibility_score             NUMERIC NOT NULL CHECK (credibility_score BETWEEN 0 AND 1),
-    robots_txt_status               TEXT NOT NULL CHECK (robots_txt_status IN
-                                       ('allowed', 'disallowed', 'not_applicable_api')),
-    tos_reviewed_at                    TIMESTAMPTZ NOT NULL,
-    active                                BOOLEAN NOT NULL DEFAULT true,
-    rate_limit_per_min                     INT
+        ('confirms','contradicts','retracted_by','follow_up_of')),
+    PRIMARY KEY (doc_id, related_doc_id, relation_type),
+    CHECK (doc_id <> related_doc_id)
 );
 ```
-Regula de dedup rămâne identică: al doilea document cu același `content_hash` primește doar o relație `duplicate_of`, nu un rând nou (`document_relations`, nu ștergere).
+Regula de dedup păstrează un singur rând canonic în `research_documents`, dar fiecare fetch nou primește un rând complet în `research_document_occurrences`. La un hash nou, inserția documentului canonic și a primei ocurențe se face în aceeași tranzacție; la un hash existent, se inserează doar ocurența cu `canonical_doc_id` al documentului existent. Astfel, ID-ul duplicat rămâne interogabil fără a pretinde că există în `research_documents` și fără a încălca FK-uri. Excepția nullable este limitată la aliasurile istorice pentru care SQLite a păstrat numai ID-ul în `document_relations`; acestea sunt marcate explicit `legacy_metadata_incomplete=true`. `document_relations` este rezervat relațiilor semantice dintre două documente canonice; `duplicate_of` nu mai este un tip valid acolo.
 
 **`research_analyses`** — cea mai importantă tabelă pentru reproducibilitate. Câmpurile de audit din `AnalysisAuditMetadata` devin coloane directe (interogate des); restul conținutului (cazuri bullish/bearish/neutral, liste) rămâne `JSONB` pentru că schema LLM evoluează (`ANALYSIS_SCHEMA_VERSION`).
 
@@ -994,9 +1032,11 @@ erDiagram
     ORDERS ||--o{ RISK_EVENTS : ""
 
     RESEARCH_SOURCES ||--o{ RESEARCH_DOCUMENTS : ""
+    RESEARCH_SOURCES ||--o{ RESEARCH_DOCUMENT_OCCURRENCES : ""
+    RESEARCH_DOCUMENTS ||--o{ RESEARCH_DOCUMENT_OCCURRENCES : "canonizează"
     RESEARCH_DOCUMENTS ||--o{ DOCUMENT_ASSETS : ""
     INSTRUMENTS ||--o{ DOCUMENT_ASSETS : ""
-    RESEARCH_DOCUMENTS ||--o{ DOCUMENT_RELATIONS : ""
+    RESEARCH_DOCUMENTS ||--o{ DOCUMENT_RELATIONS : "relație canonică"
     RESEARCH_DOCUMENTS ||--o{ RESEARCH_ANALYSES : "context pentru"
     INSTRUMENTS ||--o{ RESEARCH_ANALYSES : ""
     RESEARCH_ANALYSES ||--o{ SIGNALS : "poate informa"
@@ -1041,7 +1081,8 @@ Fluxul e separat explicit în straturi, fiecare cu propriul tabel — cerința �
 
 ```mermaid
 flowchart LR
-    RAW["Blob brut (disc)<br/>RawDocumentStore"] --> DOC["research_documents<br/>+ extracted_text, content_hash"]
+    RAW["Blob brut (disc)<br/>RawDocumentStore"] --> OCC["research_document_occurrences<br/>un rând per fetch/alias"]
+    OCC --> DOC["research_documents<br/>canonic, UNIQUE content_hash"]
     DOC --> AN["research_analyses<br/>model, prompt_hash, facts_bundle_hash"]
     AN --> SIG["signals<br/>normalizat, cu sources[]"]
     SIG --> PROP["LLMProposal / RejectedProposal<br/>(în engine, nu persistat separat —<br/>vezi order_events.payload)"]
@@ -1053,12 +1094,13 @@ flowchart LR
     AN -.->|"contrazice/confirmă"| DOC
 ```
 
-- **`research_documents`** = document brut normalizat + proveniență completă (sursă, URL, autor, `published_at` vs. `fetched_at`, `category`, `content_hash`, `raw_payload_ref`). Blob-ul HTML propriu-zis rămâne pe disc.
+- **`research_document_occurrences`** = identitatea și proveniența fiecărui fetch (`occurrence_id`, sursă, URL, `fetched_at`, `raw_payload_ref`), mapate prin FK la documentul canonic. Este stratul de alias/dedup și singurul loc unde trăiesc ID-urile fetch-urilor duplicate.
+- **`research_documents`** = document brut normalizat **canonic** + proveniența primei ocurențe (sursă, URL, autor, `published_at` vs. `fetched_at`, `category`, `content_hash`, `raw_payload_ref`). Blob-ul HTML propriu-zis rămâne pe disc.
 - **`research_analyses`** = analiza LLM asupra unuia sau mai multor documente (`body.data_sources` citează `doc_id`-uri), cu metadate complete de audit (`model_name`, `prompt_hash`, `prompt_version`, `facts_bundle_hash`, `temperature`, `schema_version`) — răspunde direct la „ce prompt și ce model au fost folosite”.
 - **`signals`** = ce a decis motorul să facă din analiză (normalizat, `source='llm'`), nu analiza propriu-zisă.
 - **Recomandare/decizie/ordin** = `orders` + `order_events` (decizia risk engine-ului e în `risk_events.portfolio_state_snapshot`, decizia umană e în `human_approvals`).
 - **Expirarea analizei:** `research_analyses.expiry_time` — o analiză expirată nu se șterge (rămâne pentru audit), dar aplicația nu o mai oferă drept context viu pentru decizii noi; filtrul `expiry_time > now()` e responsabilitatea query-ului de citire, nu al schemei.
-- **Contradicții:** `document_relations` cu `relation_type='contradicts'` — două documente pot coexista contrazicându-se, niciunul nu e șters; e responsabilitatea `research_analyses` să noteze contradicția în `body.uncertainty`.
+- **Contradicții și alte relații:** `document_relations` leagă exclusiv documente canonice (`confirms`, `contradicts`, `retracted_by`, `follow_up_of`). Două documente pot coexista contrazicându-se, niciunul nu e șters; e responsabilitatea `research_analyses` să noteze contradicția în `body.uncertainty`. Duplicate fetch-uri sunt aliasuri în `research_document_occurrences`, nu relații semantice.
 - **Vector search (RAG peste corpusul de research):** amânat explicit (§22) — `pgvector` se activează pe același Postgres când există un caz de utilizare real (ex. „găsește documente similare semantic cu X”, nu doar full-text/keyword ca azi în `find_mentioned_assets`).
 - **Full-text search:** Postgres nativ (`tsvector`/`GIN` index pe `extracted_text`) e suficient pentru căutare pe cuvinte-cheie — nu justifică Elasticsearch/altă infrastructură separată la acest volum.
 
@@ -1072,7 +1114,7 @@ flowchart LR
 | Trade-uri duplicate (public tape) | `UNIQUE (source_id, instrument_id, venue_trade_id)` |
 | Execuții duplicate | `UNIQUE (venue_execution_id)` pe `executions`; pentru paper (fără id de venue), dedup aplicație pe `(order_id, executed_at, fill_quantity)` |
 | Trimiteri duplicate de ordin | `client_order_id` rezervat **înainte** de submit (păstrează exact fluxul `reserve()`→`store_result()` din `src/execution/idempotency_store.py`, mutat ca tabel `orders` cu `client_order_id UNIQUE`, plus un index parțial `WHERE status IN ('submitted','partially_filled')` pentru interogare rapidă „ce e încă în zbor”) |
-| Procesare repetată a aceluiași webhook/eveniment extern | `UNIQUE` pe cheia naturală a evenimentului extern (ex. `venue_execution_id` de mai sus; pentru research, `content_hash`) |
+| Procesare repetată a aceluiași webhook/eveniment extern | `UNIQUE` pe cheia naturală a evenimentului extern (ex. `venue_execution_id` de mai sus); pentru research, `research_documents.content_hash UNIQUE` alege canonicul, iar `research_document_occurrences.occurrence_id` păstrează fiecare ID de fetch ca alias valid |
 | Rulare duplicată a aceluiași job | `backtest_runs`/`paper_trading_runs` au `UUID` generat de aplicație la pornire, dar pentru joburile cron (ex. `research-ingest.cron`), se adaugă o cheie de rulare: `system_events` cu `event_type='job_started'` + un `UNIQUE` parțial pe `(component, DATE(occurred_at))` dacă jobul trebuie să ruleze cel mult o dată pe zi — detaliu de implementare, nu de schemă |
 
 **Reconciliere:** `balances` cu `source IN ('local_ledger','exchange_reported')` pe aceeași cheie primară — un job periodic compară cele două rânduri; orice diferență peste prag produce un rând `risk_events(event_type='reconciliation_mismatch'...)` (păstrează denumirea deja folosită în `AuditEventType`). Fereastra critică semnalată deja în audit (`reserve` → `store_result` fără confirmare de la exchange) **nu se închide doar prin schemă** — rămâne responsabilitatea aplicației să interogheze `QueryOrders` la restart pentru orice `orders.status='submitted'` fără `executions` corespunzătoare mai vechi de X secunde; schema oferă însă interogarea necesară pentru asta (`orders LEFT JOIN executions`).
@@ -1112,7 +1154,7 @@ flowchart TD
 - **Separare paper/live/read-only** deja implementată în cod (`paper_child_env`, `monitor_child_env`, `assert_no_kraken_trading_keys`) — `api_credentials_metadata.key_scope` doar înregistrează ce politică se aplică fiecărei credențiale, nu o reimplementează.
 - **Rotația cheilor:** `last_rotated_at` pe `api_credentials_metadata`; procesul de rotație în sine rămâne manual (schimbi în `.env.*`), dar un query poate semnala „chei nerotite de >90 zile”.
 - **Redactare în loguri:** funcția `redact_secrets()` existentă rămâne neschimbată; se extinde ideal ca orice `payload JSONB` scris în `audit_log`/`order_events`/`system_events` să treacă prin aceeași redactare înainte de INSERT — regulă de aplicație, nu de schemă DB.
-- **Permission scopes:** rolul de bază de date `app_writer` (folosit de control/engine/monitor/research) **nu** primește `UPDATE`/`DELETE` pe `audit_log`, `order_events`, `executions`, `research_analyses`, `research_documents` (după inserare), `backtest_runs`/`backtest_trades` (după `status='completed'`) — impus la nivel de `GRANT`/`REVOKE` Postgres, nu doar prin convenție de cod (`src/audit/audit_log.py` spune azi „fără UPDATE/DELETE expuse public” doar prin API-ul Python; DB-ul ar trebui să impună asta indiferent de cine se conectează).
+- **Permission scopes:** rolul de bază de date `app_writer` (folosit de control/engine/monitor/research) **nu** primește `UPDATE`/`DELETE` pe `audit_log`, `order_events`, `executions`, `research_analyses`, `research_documents`/`research_document_occurrences` (după inserare), `backtest_runs`/`backtest_trades` (după `status='completed'`) — impus la nivel de `GRANT`/`REVOKE` Postgres, nu doar prin convenție de cod (`src/audit/audit_log.py` spune azi „fără UPDATE/DELETE expuse public” doar prin API-ul Python; DB-ul ar trebui să impună asta indiferent de cine se conectează).
 - **Auditul accesării secretelor:** `secret_access_log` — cine (ce proces) a confirmat prezența unei chei și când, fără să logheze vreodată valoarea.
 - **Operator token/auth:** rămâne `CONTROL_OPERATOR_TOKEN` (env var), nu se mută în DB — e un secret de proces, nu o entitate de business.
 - **Conexiune DB:** local prin socket Unix sau `127.0.0.1` (consecvent cu politica deja aplicată porturilor 8765-8767, „loopback only”, `validate_bind_host` din `src/control/settings.py`); dacă serverul Postgres ascultă pe rețea (multi-mașină, nu e cazul azi), impune TLS + `scram-sha-256`.
@@ -1126,7 +1168,7 @@ Indexuri deja incluse în DDL-urile de mai sus, rezumat al principiilor:
 - **Time-series (`ohlcv_candles`, `portfolio_snapshots`, `order_book_snapshots`, `trades`):** hypertable TimescaleDB, index implicit pe coloana de timp + index compus `(instrument_id, timeframe, open_time DESC)` pentru interogarea „ultimele N candele pentru un instrument” — cel mai frecvent query din engine (`get_or_fetch`).
 - **Lookup-uri de stare curentă (`orders`, `positions`):** index pe `(portfolio_id, status)` / index parțial `WHERE closed_at IS NULL` — evită scanarea istoricului complet pentru „ce e deschis acum”.
 - **Jurnale append-only (`audit_log`, `order_events`, `risk_events`):** index pe `correlation_id` (reconstituire) și pe timp descrescător (paginare/cursor, cum face deja `list_event_rows(after_id=...)`).
-- **Research:** `content_hash UNIQUE` (dedup), index pe `fetched_at` (query-uri „ce a apărut recent”), index `GIN` opțional pe `extracted_text` (full-text) dacă devine necesar căutarea liberă.
+- **Research:** `research_documents.content_hash UNIQUE` (identitate canonică), index pe `research_documents.fetched_at` (query-uri „ce a apărut recent”), index pe `(canonical_doc_id, fetched_at DESC)` pentru istoricul tuturor fetch-urilor/aliasurilor, index `GIN` opțional pe `extracted_text` (full-text) dacă devine necesară căutarea liberă.
 - **Query-uri principale anticipate** (din contractul API existent, `src/control/server.py`): starea curentă a portofoliului, ultimele bare pentru un instrument, ordinele zilei, aprobările în așteptare, evenimentele de audit paginate — toate acoperite de indexurile de mai sus.
 - **Partiționare:** hypertables TimescaleDB (partiționare automată pe timp) pentru tabelele de volum mare; restul tabelelor (ordine, portofolii, strategii) nu justifică partiționare la volumul din §17.
 
@@ -1142,6 +1184,7 @@ Indexuri deja incluse în DDL-urile de mai sus, rezumat al principiilor:
 | `ohlcv_candles` (+ stocks, 1m, ~500 tickere, 6.5h/zi) | ~5.9M | ~71M | ~355M | ipoteza Faza 2, nu azi |
 | `order_book_snapshots` (dacă activat) | zeci de milioane | — | — | volum mare — motiv pentru retenție scurtă la rezoluție completă |
 | `research_documents` | 1.5k–15k | 18k–180k | 90k–900k | 50–500 documente/zi, interval larg pt. incertitudine |
+| `research_document_occurrences` | ≥ documente canonice | ≥ documente canonice | ≥ documente canonice | un rând per fetch; raportul depinde de rata de duplicate/re-fetch |
 | `research_analyses` | sute | 1k–10k | 5k–50k | depinde de frecvența de trigger a analizelor LLM |
 | `orders`/`order_events`/`executions` | zeci–sute | sute–mii | mii–zeci de mii | paper trading cu bare orare, câteva instrumente |
 | `audit_log` | sute–mii | mii–zeci de mii | zeci-sute de mii | un rând per pas al fluxului, nu per bar |
@@ -1156,7 +1199,7 @@ Concluzie: **chiar cu stocks/forex adăugate, volumul pe 5 ani e de ordinul sute
 - `audit_log`, `order_events`, `executions`, `risk_events`: **fără expirare** — sunt exact datele pe care „nu poți răspunde ulterior” dacă lipsesc; păstrate permanent (volumul e mic, per tabel de mai sus).
 - `system_events`: 1-2 ani, apoi arhivare (nu are valoare de business pe termen lung, doar operațională).
 - `secret_access_log`: 1 an.
-- Restul (`orders`, `positions`, `research_documents`, `research_analyses`, `backtest_*`, `paper_trading_runs`): permanent — costul de stocare e neglijabil față de valoarea de audit/reproductibilitate.
+- Restul (`orders`, `positions`, `research_documents`, `research_document_occurrences`, `research_analyses`, `backtest_*`, `paper_trading_runs`): permanent — costul de stocare e neglijabil față de valoarea de audit/reproductibilitate.
 
 ### Backup
 
@@ -1170,11 +1213,16 @@ Continuă unealta deja documentată (`deploy/backup/README.md`, restic) — se e
 
 ## 18. Migrații
 
-- Unealtă recomandată: **Alembic** (standard pentru Python/SQLAlchemy-adjacent, dar funcționează și cu SQL brut prin `op.execute`) — nu instalat în acest pas, doar recomandare pentru faza de implementare.
-- Fiecare migrație = un fișier versionat în `migrations/`, aplicat secvențial; `schema_migrations` (tabelul standard Alembic) ține versiunea curentă.
+- Unealtă: **Alembic**, instalată și fixată în `pyproject.toml`; migrațiile folosesc SQL revizuit prin `op.execute`.
+- Fiecare migrație = un fișier versionat în `migrations/`, aplicat secvențial; tabelul standard `alembic_version` ține versiunea curentă.
 - **Seed data (nu migrație de schemă):** import inițial din `config/universe.yaml` → `assets`/`instruments`/`instrument_symbols`, din `config/strategies.yaml` → `strategies`/`strategy_versions`, din `config/risk_limits.yaml` → primul rând `risk_limits`. Scripturi separate, idempotente (`UPSERT`), nu parte din migrațiile de schemă.
-- **Reproducerea mediului local:** `docker compose` (opțional, doar pentru Postgres+Timescale — nu pentru restul stack-ului, conform politicii "host network, least code change" deja discutate în `docs/SERVER_DEPLOYMENT_AUDIT.md` §Docker Readiness) sau instalare directă a pachetului `timescaledb` peste un Postgres local — ambele opțiuni rămân decizie de implementare, nu de design.
-- Migrațiile propriu-zise **nu se scriu în acest pas** — cerință explicită a research-ului.
+- **Import legacy research (`data/research/metadata.db`):** se execută după seed-ul `instruments` și după crearea `research_sources`, într-o tranzacție/staging verificabilă, cu următoarele reguli contractuale:
+  1. **`raw_payload_ref` absent:** schema SQLite legacy nu are coloana. Importul scrie `NULL` atât pe documentul canonic, cât și pe ocurența importată; nu inventează o cale și nu pretinde că blob-ul există. Un import ulterior poate completa referința numai după verificarea fizică a blob-ului.
+  2. **Sursă necunoscută:** importul eșuează explicit și raportează toate valorile `source_id` care lipsesc din registry; nu inventează surse sau proveniență. Registry-ul trebuie corectat și seed-ul rerulat înainte de reîncercarea importului.
+  3. **Instrument nemapat:** simbolul legacy nu generează automat un `instrument` placeholder și nu se inserează în `document_assets`, deoarece asta ar afirma o identitate financiară neverificată. Asocierea este scrisă într-un artefact de reconciliere al importului (de exemplu `legacy_unmapped_research_assets.jsonl`, cu `doc_id` și simbolul original) pentru mapare/reimport ulterior; documentul canonic rămâne importat.
+  4. **Duplicate legacy:** fiecare `doc_id` din `documents` devine `occurrence_id`, iar `content_hash` alege documentul canonic. Un ID de alias prezent numai într-o relație `duplicate_of` primește o ocurență cu `legacy_metadata_incomplete=true`, deoarece SQLite nu mai conține URL-ul, sursa sau `fetched_at` aferente; ID-ul și maparea canonică sunt păstrate fără date inventate. `duplicate_of` nu se copiază în `document_relations`. Relațiile semantice care indică aliasuri se rescriu la ID-urile canonice; self-relations rezultate după canonizare se omit și se raportează.
+- **Reproducerea mediului local:** `compose.postgres.yml` pornește doar PostgreSQL 18 pe loopback; aplicația rămâne pe host. TimescaleDB se activează abia în slice-ul market data. Producția folosește PostgreSQL administrat de OS conform `deploy/RUNBOOK.md`.
+- Migrația inițială pentru fundație și research este `migrations/versions/0001_foundation_research.py`.
 
 ---
 
@@ -1190,14 +1238,14 @@ Continuă unealta deja documentată (`deploy/backup/README.md`, restic) — se e
 
 ## 20. Plan de implementare (faze)
 
-Ordinea reflectă dependențele reale (nu se poate versiona `orders` fără `instruments`, nu se poate face audit complet fără `risk_limits` versionat).
+Ordinea reflectă dependențele reale (nu se poate versiona `orders` fără `instruments`, nu se poate face audit complet fără `risk_limits` versionat). Contractul repetabil de migrare, reconciliere, cutover și rollback pentru fiecare domeniu este în `docs/database-cutover-playbook.md`.
 
-1. **Faza 0 — infrastructură.** Instalare Postgres 18 local (fără Timescale încă). Setup Alembic. Rol `app_writer` cu permisiuni restrânse (§15).
+1. **Faza 0 — infrastructură (implementată).** PostgreSQL 18 local fără Timescale, Alembic, owner separat de migrare, `research_writer` și `control_reader` cu permisiuni restrânse (§15).
 2. **Faza 1 — nucleul de referință.** `users`, `exchanges`, `exchange_accounts`, `api_credentials_metadata`, `assets`, `instruments`, `instrument_symbols`, `market_data_sources`. Seed din `config/universe.yaml`.
 3. **Faza 2 — market data.** `ohlcv_candles` (activare TimescaleDB aici, nu mai devreme — nu are sens o extensie de serii de timp fără tabelul care o folosește), migrare cache-ul JSON existent sau re-backfill. `order_book_snapshots`/`trades` create dar neingerate.
 4. **Faza 3 — portofoliu și execuție.** `portfolios`, `balances`, `positions`, `orders`, `order_events`, `executions` — migrare din `runtime/paper*/control/*.json` (script de import unic, o singură dată, nu recurent).
 5. **Faza 4 — strategii, risc, semnale.** `strategies`, `strategy_versions`, `risk_limits` (seed din `risk_limits.yaml`), `risk_events`, `signals`.
-6. **Faza 5 — research/LLM.** `research_sources`, `research_documents`, `document_assets`, `document_relations`, `research_analyses` — migrare din `data/research/metadata.db` (dump + import, schema aproape identică).
+6. **Faza 5 — research/LLM (primul slice implementat).** `research_sources`, `research_documents`, `research_document_occurrences`, `document_assets`, `document_relations`, `research_analyses` — migrare din `data/research/metadata.db` după regulile legacy din §18 (schema țintă separă explicit canonicul de fiecare fetch/alias).
 7. **Faza 6 — backtesting/paper trading ca entități.** `backtest_runs`, `backtest_trades`, `paper_trading_runs` — import istoricul din `backtests/reports/*/manifest.json` acolo unde există.
 8. **Faza 7 — audit/agent/aprobări.** `agent_runs`, `audit_log` (migrare din `audit.sqlite`), `agent_actions` (view), `system_events`, `human_approvals`, `alerts`.
 9. **Faza 8 — tăiere fir.** Codul aplicației trece efectiv de pe SQLite/JSON pe Postgres, modul-cu-modul (research primul — schema e deja aproape identică, risc minim; audit ultimul — cel mai sensibil).

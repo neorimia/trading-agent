@@ -46,11 +46,13 @@ CREATE TABLE IF NOT EXISTS documents (
                               'protocol_upgrade','token_unlock','governance','listing','onchain_alert','funding_regime','regulatory')),
     language             TEXT NOT NULL DEFAULT 'en',
     extracted_text        TEXT NOT NULL,
+    raw_payload_ref      TEXT,
     summary              TEXT,
     sentiment_score      REAL,
     impact_magnitude     TEXT CHECK (impact_magnitude IN ('low','medium','high') OR impact_magnitude IS NULL),
     impact_direction     TEXT CHECK (impact_direction IN ('bullish','bearish','neutral','unclear') OR impact_direction IS NULL),
     confidence_score     REAL NOT NULL DEFAULT 0.0,
+    data_quality_score   REAL CHECK (data_quality_score BETWEEN 0 AND 1 OR data_quality_score IS NULL),
     last_verified_at     TEXT NOT NULL,
     content_hash         TEXT NOT NULL,
     UNIQUE (content_hash)
@@ -71,6 +73,15 @@ CREATE TABLE IF NOT EXISTS document_relations (
     relation_type        TEXT NOT NULL CHECK (relation_type IN
                              ('confirms','contradicts','duplicate_of','retracted_by','follow_up_of')),
     PRIMARY KEY (doc_id, related_doc_id, relation_type)
+);
+
+CREATE TABLE IF NOT EXISTS document_occurrences (
+    occurrence_id       TEXT PRIMARY KEY,
+    canonical_doc_id    TEXT NOT NULL,
+    url                 TEXT NOT NULL,
+    source_id           TEXT NOT NULL,
+    fetched_at          TEXT NOT NULL,
+    raw_payload_ref     TEXT
 );
 """
 # Notă: FK-urile din design §5 (REFERENCES documents(doc_id)) sunt declarative — nu activăm
@@ -143,6 +154,8 @@ def normalize_document(
         impact_magnitude=None,
         impact_direction=None,
         confidence_score=0.0,
+        raw_payload_ref=raw.raw_payload_ref,
+        data_quality_score=None,
         last_verified_at=raw.fetched_at,
         content_hash=compute_content_hash(text),
     )
@@ -195,11 +208,13 @@ CREATE TABLE documents (
                               'protocol_upgrade','token_unlock','governance','listing','onchain_alert','funding_regime','regulatory')),
     language             TEXT NOT NULL DEFAULT 'en',
     extracted_text        TEXT NOT NULL,
+    raw_payload_ref      TEXT,
     summary              TEXT,
     sentiment_score      REAL,
     impact_magnitude     TEXT CHECK (impact_magnitude IN ('low','medium','high') OR impact_magnitude IS NULL),
     impact_direction     TEXT CHECK (impact_direction IN ('bullish','bearish','neutral','unclear') OR impact_direction IS NULL),
     confidence_score     REAL NOT NULL DEFAULT 0.0,
+    data_quality_score   REAL CHECK (data_quality_score BETWEEN 0 AND 1 OR data_quality_score IS NULL),
     last_verified_at     TEXT NOT NULL,
     content_hash         TEXT NOT NULL,
     UNIQUE (content_hash)
@@ -238,6 +253,20 @@ def _migrate_document_categories(connection: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_research_columns(connection: sqlite3.Connection) -> None:
+    columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(documents)").fetchall()
+    }
+    if "raw_payload_ref" not in columns:
+        connection.execute("ALTER TABLE documents ADD COLUMN raw_payload_ref TEXT")
+    if "data_quality_score" not in columns:
+        connection.execute(
+            "ALTER TABLE documents ADD COLUMN data_quality_score REAL "
+            "CHECK (data_quality_score BETWEEN 0 AND 1 OR data_quality_score IS NULL)"
+        )
+
+
 class MetadataStore:
     """Wrapper SQLite peste schema design-research-financiar.md §5."""
 
@@ -248,6 +277,7 @@ class MetadataStore:
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(_SCHEMA)
         _migrate_document_categories(self._conn)
+        _migrate_research_columns(self._conn)
         self._conn.commit()
 
     def close(self) -> None:
@@ -258,6 +288,21 @@ class MetadataStore:
         sub alt doc_id — caz în care se scrie doar o relație `duplicate_of`, fără al doilea rând."""
         existing = self.find_by_content_hash(doc.content_hash)
         if existing is not None and existing.doc_id != doc.doc_id:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO document_occurrences (
+                    occurrence_id, canonical_doc_id, url, source_id, fetched_at, raw_payload_ref
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    doc.doc_id,
+                    existing.doc_id,
+                    doc.url,
+                    doc.source_id,
+                    _dt_to_iso(doc.fetched_at),
+                    doc.raw_payload_ref,
+                ),
+            )
             self._conn.execute(
                 "INSERT OR IGNORE INTO document_relations (doc_id, related_doc_id, relation_type) "
                 "VALUES (?, ?, 'duplicate_of')",
@@ -270,9 +315,10 @@ class MetadataStore:
             """
             INSERT OR REPLACE INTO documents (
                 doc_id, url, title, source_id, author, published_at, fetched_at, event_date,
-                category, extracted_text, summary, sentiment_score, impact_magnitude,
-                impact_direction, confidence_score, last_verified_at, content_hash
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                category, extracted_text, raw_payload_ref, summary, sentiment_score,
+                impact_magnitude, impact_direction, confidence_score, data_quality_score,
+                last_verified_at, content_hash
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 doc.doc_id,
@@ -285,13 +331,30 @@ class MetadataStore:
                 _dt_to_iso(doc.event_date),
                 doc.category,
                 doc.extracted_text,
+                doc.raw_payload_ref,
                 doc.summary,
                 doc.sentiment_score,
                 doc.impact_magnitude,
                 doc.impact_direction,
                 doc.confidence_score,
+                doc.data_quality_score,
                 _dt_to_iso(doc.last_verified_at),
                 doc.content_hash,
+            ),
+        )
+        self._conn.execute(
+            """
+            INSERT OR REPLACE INTO document_occurrences (
+                occurrence_id, canonical_doc_id, url, source_id, fetched_at, raw_payload_ref
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                doc.doc_id,
+                doc.doc_id,
+                doc.url,
+                doc.source_id,
+                _dt_to_iso(doc.fetched_at),
+                doc.raw_payload_ref,
             ),
         )
         self._conn.execute("DELETE FROM document_assets WHERE doc_id = ?", (doc.doc_id,))
@@ -377,11 +440,13 @@ class MetadataStore:
             assets_mentioned=assets,
             category=row["category"],
             extracted_text=row["extracted_text"],
+            raw_payload_ref=row["raw_payload_ref"],
             summary=row["summary"],
             sentiment_score=row["sentiment_score"],
             impact_magnitude=row["impact_magnitude"],
             impact_direction=row["impact_direction"],
             confidence_score=row["confidence_score"],
+            data_quality_score=row["data_quality_score"],
             last_verified_at=_iso_to_dt(row["last_verified_at"]),
             content_hash=row["content_hash"],
         )

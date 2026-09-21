@@ -1,33 +1,42 @@
 # Backups
 
-Per `docs/SERVER_DEPLOYMENT_AUDIT.md` "Backup Strategy": daily, off the VPS, encrypted.
+Daily, encrypted, and off the VPS. PostgreSQL is backed up with a consistent logical
+dump **before** restic snapshots the files. Never point restic at PostgreSQL's live
+data directory.
 
 ## What to back up
 
-- `runtime/` — audit SQLite DB, heartbeat, halt flag, reconciliation state, local
-  positions, approvals. This is the reconstructable record of everything the agent did.
-- `config/` — risk limits, universe, strategies, paper trading config.
-- `.env.control`, `.env.engine`, `.env.llm`, `.env.research` — **encrypted**. These
-  never contain live trading keys in paper mode (`LIVE_TRADING_ENABLED=false`, Kraken
-  trading keys empty), but `CONTROL_OPERATOR_TOKEN` and any research API keys still
-  matter.
-- `data/research/` — ingested research corpus (optional; can be re-ingested, but
-  saves re-fetching history).
+- `/var/backups/trading-agent/research.dump` — completed `pg_dump` custom archive.
+- `runtime/` — heartbeat, halt flag, reconciliation state, and any remaining local
+  paper-trading state.
+- `config/` — risk limits, universe, strategies, and paper-trading config.
+- `data/research/` — raw research blobs; PostgreSQL stores metadata, not these blobs.
+- `.env.control`, `.env.engine`, `.env.llm`, `.env.research` — only inside the
+  encrypted restic repository. These files remain mode `0600`.
 
-Do **not** back up `.venv/`, `node_modules/`, or anything under `graphify-out/cache/` —
-regenerable, and bloats the backup.
+Do not back up PostgreSQL's live data directory, `.venv/`, `node_modules/`, or
+`graphify-out/cache/`.
 
-## How
+## Daily sequence
 
-Restic to a remote/off-box repository (Backblaze B2, an object storage bucket, or a
-second VPS — anywhere that isn't this machine's own disk).
+Run the whole sequence from a root-owned systemd timer or equivalent locked-down
+backup job. The job must stop if `pg_dump` fails; restic must never upload a stale
+dump as if it were current.
 
 ```bash
-# one-time init (choose your own restic backend URL)
+# One-time: choose a remote repository that is not on this VPS.
 restic init --repo b2:your-bucket:trading-agent
 
-# daily backup — run as the `trading` user via cron or a systemd timer
+# Each run: make a transactionally consistent dump, publish it atomically, then restic.
+install -d -o postgres -g postgres -m 0700 /var/backups/trading-agent
+sudo -u postgres env \
+  PG_BACKUP_DATABASE_URL=postgresql:///trading_research \
+  PG_BACKUP_DIR=/var/backups/trading-agent \
+  /opt/trading-agent/deploy/backup/postgres-backup.sh
+
+# Run this only after pg_dump succeeds.
 restic backup \
+  /var/backups/trading-agent/research.dump \
   /opt/trading-agent/runtime \
   /opt/trading-agent/config \
   /opt/trading-agent/data/research \
@@ -37,21 +46,47 @@ restic backup \
   /opt/trading-agent/.env.research \
   --exclude-caches
 
-# retention
 restic forget --keep-daily 14 --keep-weekly 8 --keep-monthly 6 --prune
+restic check
 ```
 
-Store the restic repository password and B2 (or equivalent) credentials somewhere
-that is NOT on the VPS itself — a password manager, not a file next to the backup job.
+The dump is created through the local PostgreSQL peer-authenticated `postgres` OS
+account, so the backup job does not need either application database password. Keep
+the restic repository password and object-storage credentials in a root-readable
+credential file or systemd credential, and keep a recovery copy in a password
+manager off the VPS. Never add them to `.env.research` or `.env.control`.
 
 ## Restore drill
 
-Do this once after first setting up backups, and again after any config change:
+Run after initial setup, after schema or backup-job changes, and at least quarterly.
+The drill restores into a disposable database; it never overwrites production.
 
 ```bash
+rm -rf /tmp/trading-agent-restore
 restic snapshots
-restic restore latest --target /tmp/restore-check
-diff -r /tmp/restore-check/runtime /opt/trading-agent/runtime
+restic restore latest --target /tmp/trading-agent-restore
+
+sudo -u postgres dropdb --if-exists trading_research_restore
+sudo -u postgres createdb trading_research_restore
+sudo -u postgres pg_restore \
+  --exit-on-error \
+  --no-owner \
+  --dbname=trading_research_restore \
+  /tmp/trading-agent-restore/var/backups/trading-agent/research.dump
+
+# Schema and representative critical-table checks must succeed.
+sudo -u postgres psql --dbname=trading_research_restore \
+  --command='\dt'
+sudo -u postgres psql --dbname=trading_research_restore \
+  --command='SELECT count(*) FROM research_documents;'
+sudo -u postgres psql --dbname=trading_research_restore \
+  --command='SELECT count(*) FROM research_analyses;'
+
+sudo -u postgres dropdb trading_research_restore
+rm -rf /tmp/trading-agent-restore
 ```
 
-An untested backup is not a backup.
+Record the snapshot ID, date, restore duration, archive errors, and row counts. Compare
+the restored counts with production counts captured at backup time; investigate any
+unexpected difference. A successful `restic restore` without a successful
+`pg_restore` and SQL verification is not a completed drill.

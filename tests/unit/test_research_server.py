@@ -56,6 +56,26 @@ def test_health_returns_up_without_touching_metadata_db() -> None:
     assert response.json() == {"status": "up"}
 
 
+def test_ready_checks_sqlite_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db_path = tmp_path / "metadata.db"
+    MetadataStore(db_path).close()
+    monkeypatch.setenv("RESEARCH_STORE_BACKEND", "sqlite")
+    monkeypatch.setenv("RESEARCH_METADATA_DB_PATH", str(db_path))
+    with TestClient(app) as client:
+        response = client.get("/ready")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready"}
+
+
+def test_ready_returns_503_when_store_cannot_open(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RESEARCH_STORE_BACKEND", "invalid")
+    with TestClient(app) as client:
+        response = client.get("/ready")
+    assert response.status_code == 503
+
+
 def test_context_returns_200_with_documents(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     db_path = tmp_path / "metadata.db"
     store = MetadataStore(db_path)

@@ -66,6 +66,8 @@ class ControlSettings:
     environment: str
     llm_health_url: str
     research_health_url: str
+    research_store_backend: str
+    control_database_url: str | None
     ollama_url: str
     live_trading_enabled: bool
     broker_paper_mode: bool
@@ -131,6 +133,14 @@ def load_control_settings(
     except ValueError as exc:
         raise ValueError(f"invalid CONTROL_SERVER_PORT: {port_raw!r}") from exc
     host = validate_bind_host(env.get("CONTROL_SERVER_HOST", "127.0.0.1"))
+    research_backend = env.get("RESEARCH_STORE_BACKEND", "sqlite").strip().lower()
+    if research_backend not in {"sqlite", "postgres"}:
+        raise ValueError("RESEARCH_STORE_BACKEND must be 'sqlite' or 'postgres'")
+    control_database_url = env.get("CONTROL_DATABASE_URL", "").strip() or None
+    if research_backend == "postgres" and control_database_url is None:
+        raise ValueError(
+            "CONTROL_DATABASE_URL is required when RESEARCH_STORE_BACKEND=postgres"
+        )
     timeout_s = 3600.0
     stale_s = 172800.0
     heartbeat_s = 30.0
@@ -154,6 +164,8 @@ def load_control_settings(
         research_health_url=env.get(
             "RESEARCH_SERVICE_URL", "http://127.0.0.1:8766"
         ).rstrip("/"),
+        research_store_backend=research_backend,
+        control_database_url=control_database_url,
         ollama_url=env.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/"),
         live_trading_enabled=_flag(env.get(LIVE_TRADING_FLAG), default=False),
         broker_paper_mode=_flag(env.get("BROKER_PAPER_MODE"), default=True),

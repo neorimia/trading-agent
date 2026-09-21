@@ -66,7 +66,7 @@ from src.execution.key_policy import load_live_key_policy
 from src.execution.reconciliation import LocalPortfolioSnapshot, ReconciliationReport
 from src.research.context_builder import build_external_context
 from src.research.models import ResearchDocument
-from src.research.store import MetadataStore
+from src.research.repository import ResearchRepository, open_research_repository
 from src.risk.config_schema import RiskLimits, load_risk_limits
 from src.risk.kill_switch import KillSwitch
 from src.risk.portfolio_state import load_instrument_rules
@@ -866,13 +866,24 @@ def list_agent_events(
     return AgentEventsResponse(events=events, next_cursor=next_cursor)
 
 
+def _research_store(settings: ControlSettings) -> ResearchRepository:
+    return open_research_repository(
+        backend=settings.research_store_backend,
+        sqlite_path=settings.paths.research_db,
+        database_url=settings.control_database_url,
+    )
+
+
 def list_research(
     settings: ControlSettings, *, instrument: str | None, now: datetime | None = None
 ) -> list[ResearchDocumentView]:
     moment = now if now is not None else _now()
-    if not settings.paths.research_db.is_file():
+    if (
+        settings.research_store_backend == "sqlite"
+        and not settings.paths.research_db.is_file()
+    ):
         return []
-    store = MetadataStore(settings.paths.research_db)
+    store = _research_store(settings)
     try:
         documents = store.list_documents(instrument=instrument, limit=50)
         views: list[ResearchDocumentView] = []
@@ -1125,9 +1136,12 @@ def _fetch_window(
 
 
 def _research_external(settings: ControlSettings, instrument: str, as_of: datetime) -> str | None:
-    if not settings.paths.research_db.is_file():
+    if (
+        settings.research_store_backend == "sqlite"
+        and not settings.paths.research_db.is_file()
+    ):
         return None
-    store = MetadataStore(settings.paths.research_db)
+    store = _research_store(settings)
     try:
         documents = store.query_for_context(instrument, as_of, limit=5)
         if not documents:
@@ -1145,9 +1159,12 @@ def _research_external(settings: ControlSettings, instrument: str, as_of: dateti
 
 
 def _document_titles(settings: ControlSettings, instrument: str, as_of: datetime) -> list[str]:
-    if not settings.paths.research_db.is_file():
+    if (
+        settings.research_store_backend == "sqlite"
+        and not settings.paths.research_db.is_file()
+    ):
         return []
-    store = MetadataStore(settings.paths.research_db)
+    store = _research_store(settings)
     try:
         return [doc.title for doc in store.query_for_context(instrument, as_of, limit=5)]
     finally:

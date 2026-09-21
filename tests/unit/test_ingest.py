@@ -11,7 +11,7 @@ import pytest
 from src.research.connectors import ApiConnector, RssConnector
 from src.research.ingest import ingest_active, ingest_source, required_credentials
 from src.research.models import SourceConfig
-from src.research.store import MetadataStore
+from src.research.store import MetadataStore, RawDocumentStore
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RSS_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "research_rss_sample.xml"
@@ -157,6 +157,7 @@ def test_ingest_reviewed_rss_writes_feed_items_without_article_http(tmp_path: Pa
     rss = RssConnector(http_client=_client_for(rss_handler))
     connector = ApiConnector(http_client=_client_for(api_handler), api_key="test-key")
     metadata = MetadataStore(tmp_path / "metadata.db")
+    raw_store = RawDocumentStore(tmp_path / "raw")
     written = ingest_source(
         _rss_reviewed(),
         connector=connector,
@@ -164,6 +165,7 @@ def test_ingest_reviewed_rss_writes_feed_items_without_article_http(tmp_path: Pa
         rss_connector=rss,
         since=datetime(2026, 9, 16, tzinfo=timezone.utc),
         now=datetime(2026, 9, 18, tzinfo=timezone.utc),
+        raw_store=raw_store,
     )
     assert written > 0
     assert api_captured == []
@@ -176,6 +178,8 @@ def test_ingest_reviewed_rss_writes_feed_items_without_article_http(tmp_path: Pa
     assert all(doc.category == "news" for doc in stored)
     titles = {doc.title for doc in stored}
     assert "Fresh macro update" in titles
+    assert all(doc.raw_payload_ref for doc in stored)
+    assert len(list((tmp_path / "raw").iterdir())) == written
 
 
 def test_ingest_pending_rss_raises_without_http(tmp_path: Path) -> None:

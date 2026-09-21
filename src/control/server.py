@@ -89,6 +89,7 @@ from src.control.settings import (
     validate_bind_host,
 )
 from src.data.market_data_registry import MarketDataAdapterRegistry
+from src.db.pool import close_database_pools
 from src.engine.analysis_client import LLMAnalysisClient
 from src.engine.analysis_types import AnalysisContext
 from src.engine.paper_config import load_paper_trading_config
@@ -172,6 +173,7 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
             task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await task
+            close_database_pools()
 
     app = FastAPI(
         title="trading-agent-control", docs_url=None, redoc_url=None, lifespan=_lifespan

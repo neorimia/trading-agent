@@ -17,6 +17,9 @@ dependencies = [
     "feedparser==6.0.14",
     "trafilatura>=2.2.0",
     "websockets==15.0.1",
+    "alembic==1.16.5",
+    "psycopg[binary,pool]==3.2.10",
+    "psycopg-pool==3.3.2",
 ]
 
 [dependency-groups]
@@ -31,6 +34,7 @@ testpaths = ["tests"]
 markers = [
     "llm_live: calls local Ollama Qwen3-8B; skipped automatically if Ollama is not reachable",
     "network_live: calls a public network API; skipped automatically if the endpoint is not reachable",
+    "postgres: requires TEST_DATABASE_URL and a migrated PostgreSQL database",
 ]
 
 [tool.uv]

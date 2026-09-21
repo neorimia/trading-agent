@@ -21,7 +21,8 @@ from dotenv import load_dotenv
 from src.research.connectors import ApiConnector, RssConnector
 from src.research.models import DocumentCategory, RawDocument, SourceConfig
 from src.research.registry import active_sources, require_fetchable
-from src.research.store import MetadataStore, normalize_document
+from src.research.repository import ResearchRepository
+from src.research.store import RawDocumentStore, normalize_document
 
 _API_CATEGORIES: dict[str, DocumentCategory] = {
     "fred": "macro_indicator",
@@ -94,11 +95,12 @@ def ingest_source(
     source: SourceConfig,
     *,
     connector: ApiConnector,
-    metadata: MetadataStore,
+    metadata: ResearchRepository,
     since: datetime,
     now: datetime | None = None,
     known_instruments: Sequence[str] = (),
     rss_connector: RssConnector | None = None,
+    raw_store: RawDocumentStore | None = None,
 ) -> int:
     """Fetch + normalize o sursă. Pending → ValueError. API fără adapter → 0, zero HTTP."""
     require_fetchable(source)
@@ -121,9 +123,12 @@ def ingest_source(
     written = 0
     for raw in documents:
         title = _title_for(raw)
+        payload = _html_payload(raw, title)
+        if raw_store is not None:
+            raw_store.save(raw, payload)
         normalized = normalize_document(
             raw,
-            _html_payload(raw, title),
+            payload,
             title=title,
             category=_category_for(source),
             known_instruments=known_instruments,
@@ -137,11 +142,12 @@ def ingest_active(
     sources: Sequence[SourceConfig],
     *,
     connector: ApiConnector,
-    metadata: MetadataStore,
+    metadata: ResearchRepository,
     since: datetime,
     now: datetime | None = None,
     known_instruments: Sequence[str] = (),
     rss_connector: RssConnector | None = None,
+    raw_store: RawDocumentStore | None = None,
 ) -> int:
     written = 0
     for source in active_sources(sources):
@@ -153,6 +159,7 @@ def ingest_active(
             now=now,
             known_instruments=known_instruments,
             rss_connector=rss_connector,
+            raw_store=raw_store,
         )
     return written
 

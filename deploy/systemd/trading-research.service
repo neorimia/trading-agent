@@ -2,8 +2,8 @@
 # Optional: only enable if .env.research exists (see start_stack.py's check).
 [Unit]
 Description=trading-agent research service (loopback :8766)
-After=network-online.target
-Wants=network-online.target
+After=network-online.target postgresql.service
+Wants=network-online.target postgresql.service
 
 [Service]
 Type=simple

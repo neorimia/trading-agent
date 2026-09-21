@@ -8,6 +8,7 @@ nu invocă niciun LLM — nu generează liber, doar interoghează MetadataStore 
 from __future__ import annotations
 
 import os
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -17,7 +18,8 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from src.research.context_builder import build_external_context
-from src.research.store import MetadataStore
+from src.db.pool import close_database_pools
+from src.research.repository import ResearchRepository, open_research_repository
 
 LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 
@@ -41,7 +43,20 @@ class ContextResponse(BaseModel):
     document_count: int
 
 
-app = FastAPI(title="trading-agent-research", docs_url=None, redoc_url=None)
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    try:
+        yield
+    finally:
+        close_database_pools()
+
+
+app = FastAPI(
+    title="trading-agent-research",
+    docs_url=None,
+    redoc_url=None,
+    lifespan=_lifespan,
+)
 
 
 def validate_bind_host(host: str) -> str:
@@ -56,9 +71,13 @@ def _load_dotenv_research() -> None:
         load_dotenv(env_path, override=False)
 
 
-def _metadata_store() -> MetadataStore:
+def _metadata_store() -> ResearchRepository:
     db_path = Path(os.environ.get("RESEARCH_METADATA_DB_PATH", "data/research/metadata.db"))
-    return MetadataStore(db_path)
+    return open_research_repository(
+        backend=os.environ.get("RESEARCH_STORE_BACKEND", "sqlite"),
+        sqlite_path=db_path,
+        database_url=os.environ.get("RESEARCH_DATABASE_URL"),
+    )
 
 
 def _stale_after() -> timedelta:
@@ -71,7 +90,7 @@ def _stale_after() -> timedelta:
 
 
 def _contradicting_pairs(
-    metadata: MetadataStore, documents: list
+    metadata: ResearchRepository, documents: list
 ) -> list[tuple[str, str]]:
     """Perechi (doc_id, doc_id) cu relation_type='contradicts', doar între documentele selectate."""
     seen: set[tuple[str, str]] = set()
@@ -91,6 +110,19 @@ def _contradicting_pairs(
 def health() -> dict[str, str]:
     """Liveness only — does not touch the metadata DB or Ollama."""
     return {"status": "up"}
+
+
+@app.get("/ready")
+def ready() -> dict[str, str]:
+    try:
+        metadata = _metadata_store()
+        try:
+            metadata.list_documents(limit=1)
+        finally:
+            metadata.close()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="research store unavailable") from exc
+    return {"status": "ready"}
 
 
 @app.get("/context", response_model=ContextResponse | None)

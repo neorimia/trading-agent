@@ -1,16 +1,16 @@
 # Graph Report - trading-agent  (2026-09-21)
 
 ## Corpus Check
-- 247 files · ~141,504 words
+- 261 files · ~149,178 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2838 nodes · 7376 edges · 160 communities (139 shown, 21 thin omitted)
-- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 522 edges (avg confidence: 0.56)
+- 2954 nodes · 7646 edges · 168 communities (147 shown, 21 thin omitted)
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 534 edges (avg confidence: 0.56)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7006a27a`
+- Built from commit: `a86f36fe`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -129,9 +129,11 @@
 - [[_COMMUNITY_Community 117|Community 117]]
 - [[_COMMUNITY_Community 118|Community 118]]
 - [[_COMMUNITY_Community 119|Community 119]]
+- [[_COMMUNITY_Community 120|Community 120]]
 - [[_COMMUNITY_Community 121|Community 121]]
 - [[_COMMUNITY_Community 122|Community 122]]
 - [[_COMMUNITY_Community 123|Community 123]]
+- [[_COMMUNITY_Community 124|Community 124]]
 - [[_COMMUNITY_Community 125|Community 125]]
 - [[_COMMUNITY_Community 126|Community 126]]
 - [[_COMMUNITY_Community 127|Community 127]]
@@ -160,49 +162,54 @@
 - [[_COMMUNITY_Community 151|Community 151]]
 - [[_COMMUNITY_Community 152|Community 152]]
 - [[_COMMUNITY_Community 155|Community 155]]
+- [[_COMMUNITY_Community 156|Community 156]]
 - [[_COMMUNITY_Community 157|Community 157]]
 - [[_COMMUNITY_Community 158|Community 158]]
+- [[_COMMUNITY_Community 159|Community 159]]
 - [[_COMMUNITY_Community 160|Community 160]]
-- [[_COMMUNITY_Community 164|Community 164]]
+- [[_COMMUNITY_Community 161|Community 161]]
 - [[_COMMUNITY_Community 165|Community 165]]
+- [[_COMMUNITY_Community 166|Community 166]]
 - [[_COMMUNITY_Community 167|Community 167]]
+- [[_COMMUNITY_Community 168|Community 168]]
+- [[_COMMUNITY_Community 171|Community 171]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `Bar` - 101 edges
 2. `KillSwitch` - 65 edges
 3. `_ctx()` - 57 edges
 4. `ParsedProposal` - 55 edges
-5. `ControlSettings` - 51 edges
+5. `ControlSettings` - 52 edges
 6. `_client()` - 50 edges
 7. `PaperTradingLoop` - 49 edges
-8. `MetadataStore` - 49 edges
-9. `ApiConnector` - 47 edges
+8. `ApiConnector` - 47 edges
+9. `ResearchDocument` - 46 edges
 10. `BrokerMonitorSnapshot` - 45 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `test_assert_no_keys_allows_empty()` --calls--> `assert_no_kraken_trading_keys()`  [INFERRED]
+  tests/unit/test_kraken_paper.py → src/execution/key_policy.py
+- `test_assert_no_keys_rejects_spot_secret()` --calls--> `assert_no_kraken_trading_keys()`  [INFERRED]
+  tests/unit/test_kraken_paper.py → src/execution/key_policy.py
+- `DirectOllamaClient` --uses--> `VenueCostConfig`  [INFERRED]
+  scripts/backtest/run_backtest.py → src/engine/cost_models.py
 - `DirectOllamaClient` --uses--> `LLMProposal`  [INFERRED]
   scripts/backtest/run_backtest.py → src/llm/schema.py
 - `DirectOllamaClient` --uses--> `ModelConfig`  [INFERRED]
   scripts/backtest/run_backtest.py → src/llm/service.py
-- `DirectOllamaClient` --uses--> `ProposalInput`  [INFERRED]
-  scripts/backtest/run_backtest.py → src/llm/service.py
-- `_StopFlag` --uses--> `BrokerMonitorSnapshot`  [INFERRED]
-  scripts/monitor/run_broker_monitor.py → src/monitor/broker_monitor.py
-- `BaselineProposalClient` --uses--> `KrakenPublicOHLCSource`  [INFERRED]
-  scripts/paper_trading/run_paper_session.py → src/data/kraken.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (160 total, 21 thin omitted)
+## Communities (168 total, 21 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.20
 Nodes (20): assert_no_broker_keys(), Refuză pornirea dacă procesul vede cheile de broker din .env.engine., validate_bind_host(), TestClient, _analysis_ok(), _payload(), MonkeyPatch, Server LLM: loopback only, POST /propose orchestrează generate + universe. (+12 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.14
-Nodes (25): Bar, Bară OHLCV. `timestamp` e close-time UTC (lookahead-safe: bara e cunoscută la în, baseline_proposal(), ema(), ema_cross_direction(), market_summary_from_bars(), proposal_context_at(), Decimal (+17 more)
+Cohesion: 0.11
+Nodes (30): Surse de bare: Binance public klines (backfill opțional) și CSV local.  Execuția, baseline_proposal(), ema(), ema_cross_direction(), market_summary_from_bars(), proposal_context_at(), Decimal, Funcții pure de semnal — folosite de strategii și de testul de look-ahead.  Nu i (+22 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.05
@@ -213,16 +220,16 @@ Cohesion: 0.06
 Nodes (32): 10. Fazele și planul 30/60/90 de zile, 11. Riscurile critice, în ordinea impactului, 12. Întrebări rămase înainte de implementare, 13. Registrul surselor verificate și decizia finală, 1. Rezumat executiv și limitele verificării, 2. Identitate, activitate, licențe și comunitate, 3. Comparația numerică, 4.10. Hugging Face: FinRobot Forecaster și FinGPT (+24 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.12
-Nodes (20): Exception, _connect(), DuplicateClientOrderId, Connection, Path, UUID, Rezervare client_order_id ÎNAINTE de submit — design §5 execution/., Rezervare repetată a aceluiași client_order_id. (+12 more)
+Cohesion: 0.11
+Nodes (22): SimulatedOutcome, BrokerClient, Decimal, BrokerClient protocol + SimulatedBroker (dry_run local, zero chei de exchange)., Execuție locală dry_run. Fill-uri simulate la last_price; fără rețea., SimulatedBroker, OrderGateway, OrderGateway — submit idempotent + cancel_all. Nu importă src.llm. (+14 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.17
 Nodes (26): assert_paper_start_allowed(), assert_port_free(), _control_headers(), _ensure_console_deps(), isolated_service_env(), live_flag_enabled(), main(), ping_optional() (+18 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.19
-Nodes (15): KrakenDataClientConfig, SandboxExecutionClientConfig, build_kraken_data_client_config(), build_paper_node_config(), build_sandbox_exec_client_config(), Decimal, Cale B: date publice Kraken + execuție sandbox Nautilus. Zero chei de trading., Client de date Spot, fără credențiale — feed public. (+7 more)
+Cohesion: 0.16
+Nodes (17): KrakenDataClientConfig, SandboxExecutionClientConfig, build_kraken_data_client_config(), build_paper_node_config(), build_sandbox_exec_client_config(), Decimal, Cale B: date publice Kraken + execuție sandbox Nautilus. Zero chei de trading., Client de date Spot, fără credențiale — feed public. (+9 more)
 
 ### Community 7 - "Community 7"
 Cohesion: 0.23
@@ -233,8 +240,8 @@ Cohesion: 0.20
 Nodes (11): LLMAnalysisClient, Client, ParsedAnalysis, RejectedAnalysis, _client(), _context(), Client HTTP către POST /analyze — fără tipuri din src.llm., test_request_analysis_hits_analyze_not_propose() (+3 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.13
-Nodes (18): ApprovalOperator, ApprovalResult, FileApprovalOperator, Path, UUID, ApprovalGate — același flux în paper și live. Nu auto-aprobă intern., Scrie fișierul de decizie. Operatorul uman e un script/CLI, nu gateway-ul., Nu scrie nimic — așteaptă un om (sau un alt proces) să pună decision.json. (+10 more)
+Cohesion: 0.11
+Nodes (24): ApprovalOperator, ApprovalResult, FileApprovalOperator, Path, UUID, ApprovalGate — același flux în paper și live. Nu auto-aprobă intern., Scrie fișierul de decizie. Operatorul uman e un script/CLI, nu gateway-ul., Nu scrie nimic — așteaptă un om (sau un alt proces) să pună decision.json. (+16 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.20
@@ -253,8 +260,8 @@ Cohesion: 0.04
 Nodes (47): 10. Convenții pentru timestamp-uri și bani, 11. Strategie pentru market data, 12. Strategie pentru research și LLM, 13. Idempotency și reconciliation, 14. Audit și reproducibilitate, 15. Securitate, 16. Indexare și performanță, 17. Retention și backup (+39 more)
 
 ### Community 21 - "Community 21"
-Cohesion: 0.19
-Nodes (18): main(), One-shot research ingest. Nu e daemon, nu apelează /propose.  RSS: doar feed-ul, build_api_connector_from_env(), build_rss_connector_from_env(), _html_payload(), ingest_active(), load_cik_by_symbol(), load_research_env() (+10 more)
+Cohesion: 0.06
+Nodes (52): ConnectionPool, database_url(), Alembic environment for reviewed SQL migrations., run_migrations_offline(), run_migrations_online(), import_research(), _legacy_documents(), _legacy_relations() (+44 more)
 
 ### Community 23 - "Community 23"
 Cohesion: 0.19
@@ -278,11 +285,11 @@ Nodes (13): 0. Cum se leagă de codul existent, 10. Comparație tehnologii, 11. 
 
 ### Community 30 - "Community 30"
 Cohesion: 0.11
-Nodes (19): datetime, Connector, _min_interval_s(), datetime, Response, Connectors — Protocol comun (mirror DataSource din src/data/sources.py) + RSS/AP, Interval din min_request_interval_s, altfel 60/rate_limit_per_min., Cheie stabilă sha256(url|fetched_at) — pointer pe care RawDocumentStore (R2) îl (+11 more)
+Nodes (19): Connector, _min_interval_s(), datetime, Response, Connectors — Protocol comun (mirror DataSource din src/data/sources.py) + RSS/AP, Interval din min_request_interval_s, altfel 60/rate_limit_per_min., Cheie stabilă sha256(url|fetched_at) — pointer pe care RawDocumentStore (R2) îl, _raw_payload_ref() (+11 more)
 
 ### Community 31 - "Community 31"
-Cohesion: 0.17
-Nodes (20): MetadataStore, Path, Fișiere imutabile, cheie = raw_payload_ref — mirror MarketDataCache (src/data/ca, Wrapper SQLite peste schema design-research-financiar.md §5., (related_doc_id, relation_type) pentru un doc_id — folosit de teste de dedup/adv, RawDocumentStore, datetime, Path (+12 more)
+Cohesion: 0.13
+Nodes (31): validate_bind_host(), MetadataStore, Wrapper SQLite peste schema design-research-financiar.md §5., (related_doc_id, relation_type) pentru un doc_id — folosit de teste de dedup/adv, datetime, Path, R2 — RawDocumentStore + MetadataStore: persistă, re-citește, filtrează pentru co, _raw_document() (+23 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.17
@@ -298,47 +305,47 @@ Nodes (8): BacktestEngine, fetch_test_data(), Path, Descarcă datele istorice fo
 
 ### Community 35 - "Community 35"
 Cohesion: 0.23
-Nodes (14): timedelta, timeframe_delta(), DataValidator, datetime, Validare hard a seriilor OHLCV: gap-uri, duplicate, timestamp-uri în viitor.  Nu, ValidationIssue, _bar(), DataValidator: gap-uri, duplicate, timestamp-viitor — fără reparare silențioasă. (+6 more)
+Nodes (14): _format_report(), DataValidator, datetime, Validare hard a seriilor OHLCV: gap-uri, duplicate, timestamp-uri în viitor.  Nu, ValidationIssue, ValidationReport, _bar(), DataValidator: gap-uri, duplicate, timestamp-viitor — fără reparare silențioasă. (+6 more)
 
 ### Community 36 - "Community 36"
 Cohesion: 0.10
-Nodes (26): Row, compute_doc_id(), _dt_to_iso(), extract_text(), find_mentioned_assets(), _iso_to_dt(), _migrate_document_categories(), normalize_document() (+18 more)
+Nodes (27): Row, compute_doc_id(), _dt_to_iso(), extract_text(), find_mentioned_assets(), _iso_to_dt(), _migrate_document_categories(), _migrate_research_columns() (+19 more)
 
 ### Community 37 - "Community 37"
 Cohesion: 0.12
 Nodes (17): 10. Managementul riscului (obligatoriu, nu opțional), 11. Buget, 12. Roluri și responsabilități (RACI simplificat), 13. Riscuri majore și plan de mitigare, 14. Constrângeri legale și fiscale, 15. Dependențe și necunoscute deschise, 16. Glosar rapid, 17. Anexe recomandate (+9 more)
 
 ### Community 38 - "Community 38"
-Cohesion: 0.14
-Nodes (34): AnalysisRunResponse, AnalyzeFn, DiscoverySummaryFn, FetchBarsFn, MarketInstrument, ResearchDocumentView, SignalResponse, build_daily_plan_view() (+26 more)
+Cohesion: 0.07
+Nodes (31): Document canonic, persistat în SQLite sau PostgreSQL., ResearchDocument, Any, open_research_repository(), datetime, Path, Research persistence boundary and backend selection., ResearchRepository (+23 more)
 
 ### Community 39 - "Community 39"
-Cohesion: 0.25
-Nodes (15): Pornește scripts/paper_trading/run_paper_session.py cu --operator file --mode st, SubprocessAgentProcess, _fast_child_ready(), MonkeyPatch, Path, Paper-engine subprocess start: sanitized env, stream mode, optional monitor side, _settings(), test_concurrent_start_spawns_once() (+7 more)
+Cohesion: 0.23
+Nodes (17): Pornește scripts/paper_trading/run_paper_session.py cu --operator file --mode st, SubprocessAgentProcess, pid_is_alive(), _pid_is_zombie(), _fast_child_ready(), MonkeyPatch, Path, Paper-engine subprocess start: sanitized env, stream mode, optional monitor side (+9 more)
 
 ### Community 40 - "Community 40"
-Cohesion: 0.11
-Nodes (31): BrokerState, Reconstituire după restart — doar stare, fără resubmit., Snapshot de poziții + ordine deschise, pentru reconciliere., LocalPortfolioSnapshot, Path, Reconciliere local vs broker — la pornire și periodic. Design §8.4., Reconciliation, ReconciliationMismatch (+23 more)
+Cohesion: 0.15
+Nodes (24): BrokerState, Reconstituire după restart — doar stare, fără resubmit., Snapshot de poziții + ordine deschise, pentru reconciliere., LocalPortfolioSnapshot, Path, Reconciliere local vs broker — la pornire și periodic. Design §8.4., Reconciliation, ReconciliationMismatch (+16 more)
 
 ### Community 41 - "Community 41"
-Cohesion: 0.11
-Nodes (37): AlertRow, AuditEventType, BarsResponse, FastAPI, HealthResponse, PidAliveFn, PingFn, SecuritySettings (+29 more)
+Cohesion: 0.12
+Nodes (38): AnalysisRunResponse, AnalyzeFn, BarsResponse, DiscoverySummaryFn, FetchBarsFn, HealthResponse, PendingApproval, PidAliveFn (+30 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.05
-Nodes (58): BarType, CircuitBreakerOutcome, CircuitBreakerState, CurrencyPair, DataFrame, DatetimeIndex, MakerTakerFeeModel, BacktestMetrics (+50 more)
+Cohesion: 0.25
+Nodes (5): PortfolioTracker, Any, datetime, Decimal, Tracker de portofoliu determinist — input pentru RiskEngine în timpul backtestul
 
 ### Community 43 - "Community 43"
-Cohesion: 0.13
-Nodes (26): assert_live_key_policy(), assert_no_kraken_trading_keys(), _flag(), LiveKeyPolicy, load_live_key_policy(), paper_child_env(), present_kraken_keys(), Politică de chei API pentru engine: paper forbids keys; live cere attestări.  LL (+18 more)
+Cohesion: 0.15
+Nodes (24): assert_live_key_policy(), assert_no_kraken_trading_keys(), _flag(), LiveKeyPolicy, load_live_key_policy(), paper_child_env(), present_kraken_keys(), Politică de chei API pentru engine: paper forbids keys; live cere attestări.  LL (+16 more)
 
 ### Community 44 - "Community 44"
 Cohesion: 0.20
 Nodes (10): 1. Poziționare în sistem și izolare de proces, 2. Flux de date — secvență completă (on_bar → context → propunere), 3. Domeniu de module (fișiere propuse), 4. Specificație API — `research/server.py`, 5. Schemă bază de date — `metadata.db` (SQLite pentru MVP/intermediar, portabil la Postgres), 7. Scoring de relevanță — interfață, 8. Checklist de validare a designului (înainte de `/sc:implement`), 9. Mapare pe versiuni (referință: `research-crawling-financiar.md` §9) (+2 more)
 
 ### Community 45 - "Community 45"
-Cohesion: 0.05
-Nodes (68): build_external_context(), _fmt_dt(), _interpretation(), datetime, timedelta, R3 — context builder determinist (design-research-financiar.md §6.4, research-cr, Strat de analiză/semnal (§7: rezumat/analiză), separat explicit de Facts:., Randare determinist — aceleași `documents` + `as_of` (+ contradicting_pairs) → a (+60 more)
+Cohesion: 0.17
+Nodes (27): build_external_context(), _fmt_dt(), _interpretation(), datetime, timedelta, R3 — context builder determinist (design-research-financiar.md §6.4, research-cr, Strat de analiză/semnal (§7: rezumat/analiză), separat explicit de Facts:., Randare determinist — aceleași `documents` + `as_of` (+ contradicting_pairs) → a (+19 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.22
@@ -350,19 +357,19 @@ Nodes (9): 3. Faze — task-uri, dependențe, teste, R0 — Registry & guardrail
 
 ### Community 48 - "Community 48"
 Cohesion: 0.20
-Nodes (21): OrderRow, PendingApproval, PortfolioResponse, PositionRow, RiskLimitsView, build_portfolio(), build_risk(), build_stress_view() (+13 more)
+Nodes (10): AuditEventType, AuditEvent, Any, UUID, Contract AuditEvent — design §4.5, plus evenimente de reconciliere din §8.4., Eveniment imutabil. `payload` e serializarea completă a obiectului sursă., Path, AuditLog append-only — fără update/delete publice. (+2 more)
 
 ### Community 49 - "Community 49"
-Cohesion: 0.20
-Nodes (32): BaseModel, AckResponse, AgentEventRow, AgentEventsResponse, AlertRow, ApprovalDecisionRequest, BarPoint, BarsResponse (+24 more)
+Cohesion: 0.19
+Nodes (33): BaseModel, Exception, AgentEventRow, AgentEventsResponse, AlertRow, ApprovalDecisionRequest, BarPoint, BarsResponse (+25 more)
 
 ### Community 50 - "Community 50"
 Cohesion: 0.40
 Nodes (5): 6.1 `src/research/models.py`, 6.2 `src/research/connectors.py`, 6.3 `src/research/store.py`, 6.4 `src/research/context_builder.py`, 6. Modele de interfață (Python, spec-level)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.20
-Nodes (15): _bar_from_json(), _bar_to_json(), _cache_key(), canonical_dataset_hash(), _format_report(), MarketDataCache, datetime, Path (+7 more)
+Cohesion: 0.16
+Nodes (18): _bar_from_json(), _bar_to_json(), _cache_key(), canonical_dataset_hash(), MarketDataCache, datetime, Path, Cache local + hash canonic al datasetului (reproductibilitate Task 4). (+10 more)
 
 ### Community 52 - "Community 52"
 Cohesion: 0.50
@@ -382,7 +389,7 @@ Nodes (30): DailyPlan, DailyPlanItem, MetricCard, SessionPlan, blockReasonCopy()
 
 ### Community 60 - "Community 60"
 Cohesion: 0.18
-Nodes (12): Path, KillSwitch, Path, Semnal HALT partajat prin `runtime/control/halt.flag` (sau alt path injectat)., Șterge flag-ul. Doar acțiune manuală — reluare după HALT nu e automată., Path, KillSwitch — stare externă pe fișier, apelabilă independent de restul aplicației, test_empty_reason_rejected() (+4 more)
+Nodes (11): datetime, Path, Citește runtime/ (heartbeat, last_bar, reconciliation). HALT prin KillSwitch., Watchdog, Path, Watchdog flag-only — stale data, poziții nereconciliate, HALT., test_missing_last_bar_is_stale(), test_set_halt_writes_flag() (+3 more)
 
 ### Community 61 - "Community 61"
 Cohesion: 0.23
@@ -393,8 +400,8 @@ Cohesion: 0.19
 Nodes (29): all_passed(), CandidateInput, evaluate_all(), FilterRule, FilterRuleConfig, _has_execution_venue(), _max_operational_risk_score(), _max_portfolio_concentration_pct() (+21 more)
 
 ### Community 66 - "Community 66"
-Cohesion: 0.13
-Nodes (22): main(), _parse_args(), Namespace, CLI sidecar: Kraken Balance/OpenOrders. Zero AddOrder. Zero LIVE_TRADING_ENABLED, _StopFlag, monitor_child_env(), Keep Kraken spot keys for Balance/OpenOrders. Drop futures keys. Live flag off., load_broker_monitor() (+14 more)
+Cohesion: 0.09
+Nodes (29): main(), _parse_args(), Namespace, CLI sidecar: Kraken Balance/OpenOrders. Zero AddOrder. Zero LIVE_TRADING_ENABLED, _StopFlag, Pornire/oprire proces paper — PID pe disc, fără acces la LLM din acest modul., has_spot_keys(), monitor_child_env() (+21 more)
 
 ### Community 67 - "Community 67"
 Cohesion: 0.14
@@ -405,44 +412,44 @@ Cohesion: 0.20
 Nodes (16): parse_analysis_draft(), parse_proposal(), RejectedProposal, Elimină blocurile <think>…</think> din output-ul Qwen3. Nu repară JSON-ul., Validează JSON-ul brut pe schema LLMProposal. Invalid → respins, nu reparat., Validează JSON-ul brut pe LLMAnalysisDraft. Invalid → respins, nu reparat., strip_think_blocks(), test_injected_extra_fields_are_rejected_not_executed() (+8 more)
 
 ### Community 69 - "Community 69"
-Cohesion: 0.21
-Nodes (19): _category_for(), ingest_source(), DocumentCategory, Fetch + normalize o sursă. Pending → ValueError. API fără adapter → 0, zero HTTP, _client_for(), _ecb_reviewed(), _fred_source(), Client (+11 more)
+Cohesion: 0.11
+Nodes (38): main(), One-shot research ingest. Nu e daemon, nu apelează /propose.  RSS: doar feed-ul, build_api_connector_from_env(), build_rss_connector_from_env(), _category_for(), _html_payload(), ingest_active(), ingest_source() (+30 more)
 
 ### Community 70 - "Community 70"
-Cohesion: 0.70
-Nodes (5): _fred_observations_response(), Request, Response, _sec_handler(), _sec_submissions_response()
+Cohesion: 0.18
+Nodes (23): OrderRow, SecuritySettings, AckResponse, WsEnvelope, _audit(), build_security(), list_agent_events(), list_analyses() (+15 more)
 
 ### Community 71 - "Community 71"
 Cohesion: 0.22
 Nodes (7): PaperTradingLoop, _payload(), Any, datetime, UUID, Warm lookback without proposals or orders., Poll closed bars until stop/HALT. Does not cap at session_count_target.
 
 ### Community 72 - "Community 72"
-Cohesion: 0.05
-Nodes (77): DirectOllamaClient, _dt(), _file_hash(), fill_proposal_cache(), _git_commit(), json_dumps_brief(), main(), _parse_args() (+69 more)
+Cohesion: 0.08
+Nodes (42): DirectOllamaClient, Umple cache-ul din script (nu din engine/). Același generate_proposal ca llm/ser, RejectedProposal, LLMProposalClient, Client, RejectedProposal, Client HTTP către procesul LLM — zero import din src.llm.  Deserializează JSON-u, CachingLLMProposalClient (+34 more)
 
 ### Community 73 - "Community 73"
 Cohesion: 0.05
 Nodes (19): correlation(), data_quality_score(), liquidity_score(), log_returns(), notional_volume_usd(), operational_risk_score(), opportunity_score(), Decimal (+11 more)
 
 ### Community 74 - "Community 74"
-Cohesion: 0.27
-Nodes (12): chronological_split(), ChronologicalSplit, Separare cronologică train/validation/holdout + ferestre walk-forward expanding., Expanding window: fold i antrenează pe prefixul 0..i, evaluează pe chunk-ul i+1., walk_forward_folds(), WalkForwardFold, _bars(), Walk-forward și split cronologic — holdout neatins de ferestre. (+4 more)
+Cohesion: 0.21
+Nodes (15): Bar, bars_to_iterable(), Bară OHLCV. `timestamp` e close-time UTC (lookahead-safe: bara e cunoscută la în, chronological_split(), ChronologicalSplit, Separare cronologică train/validation/holdout + ferestre walk-forward expanding., Expanding window: fold i antrenează pe prefixul 0..i, evaluează pe chunk-ul i+1., walk_forward_folds() (+7 more)
 
 ### Community 75 - "Community 75"
-Cohesion: 0.16
-Nodes (11): KrakenPublicOHLCSource, Client, datetime, OHLC public Kraken — DataSource fără autentificare, doar date de piață., OHLC already closed at `now`. Forming candles are excluded (no look-ahead)., Client REST public. Zero chei. Interzis în procesul llm/., datetime, Dispatch adapter de date de piață pe `execution_venue`. Zero swallow silențios. (+3 more)
+Cohesion: 0.12
+Nodes (20): make_cached_historical(), make_historical_source(), HistoricalSource, Path, Fabrică de surse istorice: Kraken (aliniat la execuție) sau Binance (backfill lu, Cache local peste orice DataSource — backtest comparabil cu live pe aceeași seri, KrakenPublicOHLCSource, Client (+12 more)
 
 ### Community 76 - "Community 76"
-Cohesion: 0.33
-Nodes (9): CandidateFactors, Factori deterministici (§2.1, §4.1) — Faza 1 crypto-only: fără news/catalyst., SourceRef, _candidate(), _factors(), Modele discovery — extra=forbid, requires_human_review hardcodat True (design §5, test_asset_candidate_defaults_require_human_review(), test_asset_candidate_rejects_unknown_fields() (+1 more)
+Cohesion: 0.15
+Nodes (19): CsvBarDataSource, Path, Sursă locală, zero rețea — pentru teste și fixtures pinned., Client, datetime, Client HTTP către procesul research — zero import din src.research.  Fail-open s, ResearchClient, _AlwaysLong (+11 more)
 
 ### Community 77 - "Community 77"
-Cohesion: 0.09
-Nodes (36): build_context(), contains_forbidden_language(), datetime, ParsedAnalysis, RejectedAnalysis, LLM narrative layer pentru candidați de discovery (design §1, §4, §5 — Faza 2)., Returnează prima expresie interzisă găsită, sau `None` dacă textul e curat., Apelează procesul LLM izolat și atașează narativul. Nu repară output invalid. (+28 more)
+Cohesion: 0.12
+Nodes (30): build_context(), contains_forbidden_language(), datetime, ParsedAnalysis, RejectedAnalysis, LLM narrative layer pentru candidați de discovery (design §1, §4, §5 — Faza 2)., Returnează prima expresie interzisă găsită, sau `None` dacă textul e curat., Apelează procesul LLM izolat și atașează narativul. Nu repară output invalid. (+22 more)
 
 ### Community 78 - "Community 78"
-Cohesion: 0.11
-Nodes (30): BrokerMode, InstrumentConstraints, _balance_to_positions(), build_kraken_live_broker(), _kraken_errors(), KrakenLiveBroker, parse_asset_pairs(), Any (+22 more)
+Cohesion: 0.13
+Nodes (25): InstrumentConstraints, _balance_to_positions(), _kraken_errors(), KrakenLiveBroker, parse_asset_pairs(), Any, Decimal, UUID (+17 more)
 
 ### Community 79 - "Community 79"
 Cohesion: 0.37
@@ -453,16 +460,16 @@ Cohesion: 0.23
 Nodes (13): _client_for(), _config(), _malicious_document(), _ollama_response(), Client, Response, Teste adversariale de conținut research: text injectat dintr-o sursă externă nu, Chiar dacă modelul 'cade' în injecție și emite câmpuri de execuție, schema stric (+5 more)
 
 ### Community 81 - "Community 81"
-Cohesion: 0.05
-Nodes (73): BaselineProposalClient, build_loop(), _dt(), main(), _parse_args(), datetime, Namespace, Path (+65 more)
+Cohesion: 0.07
+Nodes (38): BaselineProposalClient, build_loop(), _dt(), main(), _parse_args(), datetime, Namespace, Path (+30 more)
 
 ### Community 82 - "Community 82"
 Cohesion: 0.50
 Nodes (8): _client(), _context(), Client HTTP engine: deserializează JSON brut fără tipuri din src.llm., test_extra_fields_from_http_are_not_accepted(), test_malformed_body_is_schema_invalid(), test_request_proposal_parses_rejected(), test_request_proposal_parses_valid_json(), test_request_proposal_timeout()
 
 ### Community 83 - "Community 83"
-Cohesion: 0.08
-Nodes (65): _decimal_from_yaml(), load_risk_limits(), Any, Decimal, Path, YAML încarcă numere ca float; trecem prin str ca să nu pierdem precizie., Încarcă și validează config/risk_limits.yaml. Lipsă/invalid → ValueError, fără d, load_instrument_rules() (+57 more)
+Cohesion: 0.10
+Nodes (58): load_risk_limits(), Path, Încarcă și validează config/risk_limits.yaml. Lipsă/invalid → ValueError, fără d, load_instrument_rules(), Path, Citește regulile per simbol din universe.yaml. Câmpuri opționale → default-uri s, _engine(), _proposal() (+50 more)
 
 ### Community 85 - "Community 85"
 Cohesion: 0.07
@@ -477,20 +484,20 @@ Cohesion: 0.50
 Nodes (3): _outcome(), Sincronizare llm.schema.LLMAnalysis ↔ engine.analysis_types.ParsedAnalysis., test_analysis_schemas_agree()
 
 ### Community 88 - "Community 88"
-Cohesion: 0.06
-Nodes (81): _connect(), Connection, Path, Citire pentru rapoarte/watchdog — nu e mutație., Citire paginată cu id-ul de cursor. Fără mutație., AuditEvent, UUID, Contract AuditEvent — design §4.5, plus evenimente de reconciliere din §8.4. (+73 more)
+Cohesion: 0.10
+Nodes (68): _bars(), _client(), _CryptoOnlySource, _ctx(), _discovery_analysis(), _discovery_factors(), _parsed_analysis(), datetime (+60 more)
 
 ### Community 89 - "Community 89"
 Cohesion: 0.14
 Nodes (14): 0. Reguli absolute — citește ÎNAINTE de orice task, 10. Recapitulare — ce NU face Claude Code în această fază, 1. Structura recomandată a repository-ului, 2. Task 0 — Configurare mediu local, 3. Task 1 — Instalare și calificare NautilusTrader (v1 stabil), 4. Task 2 — Strat LLM local izolat (Qwen3-8B via Ollama), 5. Task 3 — Reguli de risc deterministe (sursa unică de adevăr), 6. Task 4 — Backtesting realist (+6 more)
 
 ### Community 90 - "Community 90"
-Cohesion: 0.17
-Nodes (34): ApiConnector, Adapter per API oficial. Dispatch pe source_id, nu doar pe host., _alfred_source(), _bea_source(), _bls_source(), _client_for(), _fred_source(), Client (+26 more)
+Cohesion: 0.15
+Nodes (39): ApiConnector, Adapter per API oficial. Dispatch pe source_id, nu doar pe host., _alfred_source(), _bea_source(), _bls_source(), _client_for(), _fred_observations_response(), _fred_source() (+31 more)
 
 ### Community 91 - "Community 91"
-Cohesion: 0.22
-Nodes (7): FillModel, Instrument, Order, OrderBook, Price, PartialSlippageFillModel, 40% din cantitate la best bid/ask, restul la N tick-uri mai rău (N = cost_multip
+Cohesion: 0.07
+Nodes (47): BarType, CurrencyPair, DataFrame, DatetimeIndex, FillModel, Instrument, MakerTakerFeeModel, Order (+39 more)
 
 ### Community 92 - "Community 92"
 Cohesion: 0.13
@@ -505,8 +512,8 @@ Cohesion: 0.13
 Nodes (8): AgentStateService, EMPTY_HEALTH, eventsSocketUrl(), PendingApproval, WsEnvelope, liveApproveBlocked(), permissionGuard(), OrdersPage
 
 ### Community 95 - "Community 95"
-Cohesion: 0.47
-Nodes (9): _breaker(), Path, CircuitBreaker — RUNNING/HALTED; HALT persistă până la reset manual al kill swit, test_consecutive_errors_halt_and_write_flag(), test_consecutive_losses_halt(), test_starts_running(), test_stays_halted_until_manual_reset(), test_success_resets_error_counter() (+1 more)
+Cohesion: 0.07
+Nodes (38): CircuitBreakerOutcome, CircuitBreakerState, CircuitBreaker, Circuit breaker — stare RUNNING/HALTED, reluare doar prin kill switch manual., Contoare consecutive în memorie; tranziția spre HALTED scrie flag-ul de control., CircuitBreakerLimits, _decimal_from_yaml(), Any (+30 more)
 
 ### Community 96 - "Community 96"
 Cohesion: 0.12
@@ -525,8 +532,8 @@ Cohesion: 0.14
 Nodes (14): dependencies, @angular/cdk, @angular/common, @angular/compiler, @angular/core, @angular/forms, @angular/platform-browser, @angular/router (+6 more)
 
 ### Community 100 - "Community 100"
-Cohesion: 0.21
-Nodes (17): InstrumentRules, Reguli de lot/notional pentru rotunjirea cantității. extra=forbid., _floor_to_lot(), Decimal, Dimensionare de poziție — funcție pură, fără I/O, fără input LLM., qty = min(cap_notional / price, risk_budget / (stop + cost + slippage)), rotunji, size_position(), size_position e o funcție pură: fără I/O, fără input din LLM. (+9 more)
+Cohesion: 0.24
+Nodes (18): test_post_submit_timeout_halts(), test_reconnect_after_restart_reconciles(), _bars(), build_loop(), Path, test_avoid_never_reaches_gateway(), test_human_reject_does_not_submit(), test_proposal_risk_approval_order_audit() (+10 more)
 
 ### Community 103 - "Community 103"
 Cohesion: 0.18
@@ -549,8 +556,8 @@ Cohesion: 0.35
 Nodes (8): _collect_imported_modules(), _iter_py_files(), _matches_prefix(), _module_name_for(), Path, Izolare control plane: fără src.llm, fără proxy /propose, bind loopback., test_control_has_no_imports_from_llm(), test_llm_has_no_imports_from_control()
 
 ### Community 108 - "Community 108"
-Cohesion: 0.17
-Nodes (19): build_paths(), _flag(), load_control_settings(), Path, Căi și mediu pentru control plane. Nu încarcă .env.llm., repo_root(), RuntimePaths, validate_bind_host() (+11 more)
+Cohesion: 0.20
+Nodes (17): build_paths(), _flag(), load_control_settings(), Path, Căi și mediu pentru control plane. Nu încarcă .env.llm., repo_root(), RuntimePaths, validate_bind_host() (+9 more)
 
 ### Community 109 - "Community 109"
 Cohesion: 0.27
@@ -580,21 +587,33 @@ Nodes (6): options, assets, browser, inlineStyleLanguage, styles, tsConfig
 Cohesion: 0.32
 Nodes (6): Output invalid sau în afara universului — păstrat brut, niciodată reparat., RejectedProposal, _outcome(), Sincronizare llm.schema ↔ engine.proposal_types (design §7)., test_proposal_schemas_agree(), test_rejected_schemas_agree()
 
+### Community 117 - "Community 117"
+Cohesion: 0.13
+Nodes (17): ResearchDocumentView, AgentProcessController, NullAgentProcess, Pentru teste: scrie/șterge PID fără subprocess., _stop_pid_file(), default_strategies(), _document_titles(), list_research() (+9 more)
+
 ### Community 118 - "Community 118"
-Cohesion: 0.20
-Nodes (12): ExecutionVenue, MarketDataUnavailableReason, MarketDataAdapterRegistry, MarketDataUnavailable, Nu există o sursă de date executabilă pentru instrument., Dispatch pe `VenueInstrument.execution_venue`, per apel (adaptere fără stare par, _FakeKrakenSource, MarketDataAdapterRegistry — dispatch pe execution_venue, fără swallow silențios. (+4 more)
+Cohesion: 0.17
+Nodes (15): ExecutionVenue, MarketDataUnavailableReason, MarketDataAdapterRegistry, MarketDataUnavailable, datetime, Dispatch adapter de date de piață pe `execution_venue`. Zero swallow silențios., Nu există o sursă de date executabilă pentru instrument., Dispatch pe `VenueInstrument.execution_venue`, per apel (adaptere fără stare par (+7 more)
+
+### Community 120 - "Community 120"
+Cohesion: 0.19
+Nodes (14): _connect(), DuplicateClientOrderId, IdempotencyStore, Connection, Path, UUID, Rezervare client_order_id ÎNAINTE de submit — design §5 execution/., Rezervare repetată a aceluiași client_order_id. (+6 more)
 
 ### Community 122 - "Community 122"
 Cohesion: 0.29
 Nodes (9): build_daily_plan(), Any, datetime, Plan zilnic determinist (P7). Template UTC 00:00, fără evenimente inventate., Checklist repetabil. calendar_events e injectat — gol înseamnă 'none listed'., _require_utc(), Plan zilnic determinist: calendar gol = none listed, nu evenimente inventate., test_empty_calendar_stays_none_listed() (+1 more)
+
+### Community 124 - "Community 124"
+Cohesion: 0.15
+Nodes (18): BrokerMode, RuntimeError, Path, Popen, _spawn_supervised(), build_kraken_live_broker(), Client, load_broker_monitor() (+10 more)
 
 ### Community 125 - "Community 125"
 Cohesion: 0.33
 Nodes (5): Analysis integration (Level 1 → 2 → 3), Invariants that never change, Promotion to Level 2 (decision-support), Promotion to Level 3 (limited automation), What ships at Level 1 (current MVP)
 
 ### Community 126 - "Community 126"
-Cohesion: 0.11
-Nodes (23): RuntimeError, Path, Popen, Pornire/oprire proces paper — PID pe disc, fără acces la LLM din acest modul., _spawn_supervised(), _stop_pid_file(), process_running(), read_pid() (+15 more)
+Cohesion: 0.21
+Nodes (17): InstrumentRules, Reguli de lot/notional pentru rotunjirea cantității. extra=forbid., _floor_to_lot(), Decimal, Dimensionare de poziție — funcție pură, fără I/O, fără input LLM., qty = min(cap_notional / price, risk_budget / (stop + cost + slippage)), rotunji, size_position(), size_position e o funcție pură: fără I/O, fără input din LLM. (+9 more)
 
 ### Community 127 - "Community 127"
 Cohesion: 0.25
@@ -613,8 +632,8 @@ Cohesion: 0.19
 Nodes (8): Protocol, AssetUniverseProvider, InstrumentMetadataProvider, Protocol-uri comune pentru asset discovery (design §1, §2) — o implementare per, DiscoveredInstrument, InstrumentSnapshot, O intrare din `GET /0/public/AssetPairs` — universul brut, înainte de filtrare., Preț/volum/spread curent (`GET /0/public/Ticker`) pentru un `exchange_pair`.
 
 ### Community 132 - "Community 132"
-Cohesion: 0.12
-Nodes (15): 0. Before you start, 10. Health check, 11. Start paper, 12. Paper validation (days, not minutes), 1. Provision & harden, 24/7 Paper Trading — Deployment Runbook, 2. Tailscale (remote access without publishing app ports), 3. Runtimes (+7 more)
+Cohesion: 0.10
+Nodes (20): 0. Before you start, 10. Cron, logrotate, backups, 11. Health and readiness, 12. Research cutover: SQLite to PostgreSQL, 13. Start paper, 14. Paper validation (days, not minutes), 1. Provision & harden, 24/7 Paper Trading — Deployment Runbook (+12 more)
 
 ### Community 133 - "Community 133"
 Cohesion: 0.67
@@ -696,45 +715,61 @@ Nodes (3): Health that exists today, Monitoring, Proposed lightweight checks (si
 Cohesion: 0.33
 Nodes (11): Decimal, _quantize(), Validare deterministă a ordinului față de constraints (universe + AssetPairs)., Întoarce un motiv de reject sau None dacă ordinul e valid., validate_order_constraints(), _order(), Decimal, Validare lot / notional înainte de submit live. (+3 more)
 
+### Community 156 - "Community 156"
+Cohesion: 0.22
+Nodes (16): AlertRow, MarketInstrument, PortfolioResponse, PositionRow, RiskLimitsView, build_alerts(), build_market(), build_portfolio() (+8 more)
+
 ### Community 157 - "Community 157"
-Cohesion: 0.21
-Nodes (12): make_cached_historical(), make_historical_source(), HistoricalSource, Path, Fabrică de surse istorice: Kraken (aliniat la execuție) sau Binance (backfill lu, Cache local peste orice DataSource — backtest comparabil cu live pe aceeași seri, DataSource, Path (+4 more)
+Cohesion: 0.25
+Nodes (14): _dt(), _file_hash(), fill_proposal_cache(), _git_commit(), json_dumps_brief(), main(), _parse_args(), datetime (+6 more)
+
+### Community 159 - "Community 159"
+Cohesion: 0.24
+Nodes (12): _collect_imported_modules(), _forbidden_hits(), _iter_py_files(), _matches_prefix(), _module_name_for(), Path, Verificare statică a izolării research <-> engine/risk/execution (design §1, §6, Adversarial: un `.env.research` atacat/corupt cu RESEARCH_SERVER_HOST=0.0.0.0 nu (+4 more)
 
 ### Community 160 - "Community 160"
 Cohesion: 0.13
 Nodes (23): RejectedProposal, LLMProposal, Ieșirea validă a stratului LLM. extra=forbid: câmpuri necunoscute → invalid., health(), _load_dotenv_llm(), main(), propose(), ProposeRequest (+15 more)
 
-### Community 164 - "Community 164"
-Cohesion: 0.42
-Nodes (7): bars_to_iterable(), _close_time_utc(), _decimal(), _ms(), datetime, Surse de bare: Binance public klines (backfill opțional) și CSV local.  Execuția, require_utc()
+### Community 161 - "Community 161"
+Cohesion: 0.36
+Nodes (8): CandidateFactors, Factori deterministici (§2.1, §4.1) — Faza 1 crypto-only: fără news/catalyst., _candidate(), _factors(), Modele discovery — extra=forbid, requires_human_review hardcodat True (design §5, test_asset_candidate_defaults_require_human_review(), test_asset_candidate_rejects_unknown_fields(), test_candidate_factors_rejects_unknown_fields()
 
 ### Community 165 - "Community 165"
 Cohesion: 0.33
 Nodes (6): Prompturi crypto-adapted pentru POST /analyze. Nu sunt instrucțiuni de execuție., type_instruction(), Prompturile P1–P7 sunt crypto-adapted și nu cer execuție., test_daily_plan_forbids_invented_events(), test_priced_in_drops_equity_framing(), test_technical_uses_precomputed_levels()
 
+### Community 166 - "Community 166"
+Cohesion: 0.20
+Nodes (9): 1. Market data, 2. Portfolio and execution, 3. Strategies, risk, and signals, 4. Backtest and paper runs, 5. Audit, approvals, and system events, Database domain cutover playbook, Domain order and ownership, Operations after all paper domains are cut over (+1 more)
+
 ### Community 167 - "Community 167"
 Cohesion: 0.40
-Nodes (4): Backups, How, Restore drill, What to back up
+Nodes (4): Backups, Daily sequence, Restore drill, What to back up
+
+### Community 168 - "Community 168"
+Cohesion: 0.38
+Nodes (6): normalize_analysis(), ParsedAnalysis, Nivel 1 — research report only. Zero semnale, zero ordine., _analysis(), ParsedAnalysis, test_level1_normalizer_never_emits_a_proposal()
 
 ## Knowledge Gaps
-- **444 isolated node(s):** `$schema`, `version`, `packageManager`, `analytics`, `newProjectRoot` (+439 more)
+- **456 isolated node(s):** `$schema`, `version`, `packageManager`, `analytics`, `newProjectRoot` (+451 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **21 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
+- **Why does `Bar` connect `Community 74` to `Community 1`, `Community 35`, `Community 100`, `Community 71`, `Community 72`, `Community 41`, `Community 10`, `Community 75`, `Community 81`, `Community 49`, `Community 51`, `Community 118`, `Community 88`, `Community 91`, `Community 156`, `Community 157`, `Community 95`?**
+  _High betweenness centrality (0.052) - this node is a cross-community bridge._
 - **Why does `AnalysisType` connect `Community 85` to `Community 97`, `Community 123`, `Community 165`, `Community 33`?**
-  _High betweenness centrality (0.128) - this node is a cross-community bridge._
-- **Why does `type_instruction()` connect `Community 165` to `Community 33`, `Community 85`?**
-  _High betweenness centrality (0.065) - this node is a cross-community bridge._
-- **Why does `default_expiry()` connect `Community 33` to `Community 85`?**
-  _High betweenness centrality (0.064) - this node is a cross-community bridge._
+  _High betweenness centrality (0.043) - this node is a cross-community bridge._
+- **Why does `ResearchDocument` connect `Community 38` to `Community 36`, `Community 45`, `Community 80`, `Community 49`, `Community 117`, `Community 21`, `Community 88`, `Community 58`, `Community 28`, `Community 30`, `Community 31`?**
+  _High betweenness centrality (0.036) - this node is a cross-community bridge._
 - **Are the 23 inferred relationships involving `Bar` (e.g. with `BaselineProposalClient` and `_StopFlag`) actually correct?**
   _`Bar` has 23 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 80 inferred relationships involving `ValueError` (e.g. with `build_daily_plan_view()` and `build_indicator_snapshot()`) actually correct?**
-  _`ValueError` has 80 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 87 inferred relationships involving `ValueError` (e.g. with `import_research()` and `_instrument_assets()`) actually correct?**
+  _`ValueError` has 87 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 13 inferred relationships involving `KillSwitch` (e.g. with `BaselineProposalClient` and `_StopFlag`) actually correct?**
   _`KillSwitch` has 13 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `$schema`, `version`, `packageManager` to the rest of the system?**
-  _785 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _810 weakly-connected nodes found - possible documentation gaps or missing edges._

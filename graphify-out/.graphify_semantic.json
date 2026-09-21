@@ -1,0 +1,692 @@
+{
+  "nodes": [
+    {
+      "id": "claudedocs_design_research_financiar_research_server",
+      "label": "Research Server (FastAPI)",
+      "file_type": "code",
+      "source_file": "claudedocs/design-research-financiar.md"
+    },
+    {
+      "id": "claudedocs_design_research_financiar_research_pipeline",
+      "label": "Research Pipeline",
+      "file_type": "code",
+      "source_file": "claudedocs/design-research-financiar.md"
+    },
+    {
+      "id": "claudedocs_design_research_financiar_metadata_db",
+      "label": "Metadata DB (SQLite)",
+      "file_type": "code",
+      "source_file": "claudedocs/design-research-financiar.md"
+    },
+    {
+      "id": "claudedocs_design_research_financiar_vector_store",
+      "label": "Vector Store (Chroma)",
+      "file_type": "code",
+      "source_file": "claudedocs/design-research-financiar.md"
+    },
+    {
+      "id": "src_engine_research_client_research_client",
+      "label": "ResearchClient",
+      "file_type": "code",
+      "source_file": "src/engine/research_client.py"
+    },
+    {
+      "id": "src_research_models_research_document",
+      "label": "ResearchDocument",
+      "file_type": "code",
+      "source_file": "src/research/models.py"
+    },
+    {
+      "id": "src_research_connectors_connector",
+      "label": "Connector Protocol",
+      "file_type": "code",
+      "source_file": "src/research/connectors.py"
+    },
+    {
+      "id": "src_research_context_builder_build_external_context",
+      "label": "build_external_context",
+      "file_type": "code",
+      "source_file": "src/research/context_builder.py"
+    },
+    {
+      "id": "src_research_scoring_score_relevance",
+      "label": "score_relevance",
+      "file_type": "code",
+      "source_file": "src/research/scoring.py"
+    },
+    {
+      "id": "config_research_sources_yaml",
+      "label": "Research Sources Config",
+      "file_type": "code",
+      "source_file": "config/research_sources.yaml"
+    },
+    {
+      "id": "claudedocs_research_crawling_financiar_external_context",
+      "label": "ProposalContext.external_context",
+      "file_type": "concept",
+      "source_file": "claudedocs/research-crawling-financiar.md"
+    },
+    {
+      "id": "docs_server_deployment_audit",
+      "label": "Server Deployment Audit",
+      "file_type": "document",
+      "source_file": "docs/SERVER_DEPLOYMENT_AUDIT.md"
+    },
+    {
+      "id": "docs_database_design",
+      "label": "Database Design Proposal",
+      "file_type": "document",
+      "source_file": "docs/database-design.md"
+    },
+    {
+      "id": "docs_analysis_integration",
+      "label": "Analysis Integration",
+      "file_type": "document",
+      "source_file": "docs/analysis-integration.md"
+    },
+    {
+      "id": "docs_backtest_report",
+      "label": "Backtest Report - Phase 4",
+      "file_type": "document",
+      "source_file": "docs/backtest-report.md"
+    },
+    {
+      "id": "docs_paper_trading_report",
+      "label": "Paper Trading Report - Phase 5",
+      "file_type": "document",
+      "source_file": "docs/paper-trading-report.md"
+    },
+    {
+      "id": "docs_qualification_report",
+      "label": "NautilusTrader Qualification Report",
+      "file_type": "document",
+      "source_file": "docs/qualification-report.md"
+    },
+    {
+      "id": "docs_utilizare",
+      "label": "User Guide - Local Paper Trading",
+      "file_type": "document",
+      "source_file": "docs/utilizare.md"
+    },
+    {
+      "id": "src_llm_service",
+      "label": "LLM Service",
+      "file_type": "code",
+      "source_file": "src/llm/service.py"
+    },
+    {
+      "id": "src_audit_audit_log",
+      "label": "Audit Log",
+      "file_type": "code",
+      "source_file": "src/audit/audit_log.py"
+    },
+    {
+      "id": "src_control_agent_process",
+      "label": "Agent Process Controller",
+      "file_type": "code",
+      "source_file": "src/control/agent_process.py"
+    },
+    {
+      "id": "src_risk_risk_engine",
+      "label": "Risk Engine",
+      "file_type": "code",
+      "source_file": "src/risk/risk_engine.py"
+    },
+    {
+      "id": "src_execution_idempotency_store",
+      "label": "Idempotency Store",
+      "file_type": "code",
+      "source_file": "src/execution/idempotency_store.py"
+    },
+    {
+      "id": "src_research_store",
+      "label": "Research Store",
+      "file_type": "code",
+      "source_file": "src/research/store.py"
+    },
+    {
+      "id": "src_engine_backtest_runner",
+      "label": "Backtest Runner",
+      "file_type": "code",
+      "source_file": "src/engine/backtest_runner.py"
+    },
+    {
+      "id": "src_control_server",
+      "label": "Control Server",
+      "file_type": "code",
+      "source_file": "src/control/server.py"
+    },
+    {
+      "id": "src_llm_server",
+      "label": "LLM Server",
+      "file_type": "code",
+      "source_file": "src/llm/server.py"
+    },
+    {
+      "id": "src_research_server",
+      "label": "Research Server",
+      "file_type": "code",
+      "source_file": "src/research/server.py"
+    },
+    {
+      "id": "postgres_18",
+      "label": "PostgreSQL 18",
+      "file_type": "concept",
+      "source_file": "docs/database-design.md"
+    },
+    {
+      "id": "timescaledb",
+      "label": "TimescaleDB",
+      "file_type": "concept",
+      "source_file": "docs/database-design.md"
+    },
+    {
+      "id": "ollama",
+      "label": "Ollama Inference Engine",
+      "file_type": "concept",
+      "source_file": "docs/SERVER_DEPLOYMENT_AUDIT.md"
+    },
+    {
+      "id": "pre_commit_config",
+      "label": ".pre-commit-config.yaml",
+      "file_type": "code",
+      "source_file": ".pre-commit-config.yaml"
+    },
+    {
+      "id": "pre_commit_config_gitleaks",
+      "label": "Gitleaks Hook",
+      "file_type": "code",
+      "source_file": ".pre-commit-config.yaml"
+    },
+    {
+      "id": "readme",
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "README.md"
+    },
+    {
+      "id": "requirements_dev",
+      "label": "requirements-dev.txt",
+      "file_type": "code",
+      "source_file": "requirements-dev.txt"
+    },
+    {
+      "id": "requirements",
+      "label": "requirements.txt",
+      "file_type": "code",
+      "source_file": "requirements.txt"
+    },
+    {
+      "id": "ci_workflow",
+      "label": ".github/workflows/ci.yml",
+      "file_type": "code",
+      "source_file": ".github/workflows/ci.yml"
+    },
+    {
+      "id": "console_readme",
+      "label": "apps/console/README.md",
+      "file_type": "document",
+      "source_file": "apps/console/README.md"
+    },
+    {
+      "id": "console_index",
+      "label": "apps/console/src/index.html",
+      "file_type": "code",
+      "source_file": "apps/console/src/index.html"
+    },
+    {
+      "id": "console_app_html",
+      "label": "apps/console/src/app/app.html",
+      "file_type": "code",
+      "source_file": "apps/console/src/app/app.html"
+    },
+    {
+      "id": "claude_instructions",
+      "label": "CLAUDE-instructiuni-faza-0-4.md",
+      "file_type": "document",
+      "source_file": "claudedocs/CLAUDE-instructiuni-faza-0-4.md"
+    },
+    {
+      "id": "technical_report",
+      "label": "Raport-agentic-trading-2026-09-18.md",
+      "file_type": "document",
+      "source_file": "claudedocs/Raport-agentic-trading-2026-09-18.md"
+    },
+    {
+      "id": "brief_proiect",
+      "label": "brief-proiect-agent-trading-local.md",
+      "file_type": "document",
+      "source_file": "claudedocs/brief-proiect-agent-trading-local.md"
+    },
+    {
+      "id": "design_discovery",
+      "label": "design-asset-discovery-research.md",
+      "file_type": "document",
+      "source_file": "claudedocs/design-asset-discovery-research.md"
+    },
+    {
+      "id": "design_componente",
+      "label": "design-componente-faza-0-4.md",
+      "file_type": "document",
+      "source_file": "claudedocs/design-componente-faza-0-4.md"
+    },
+    {
+      "id": "src_risk_engine",
+      "label": "src.risk.risk_engine",
+      "file_type": "code",
+      "source_file": "src/risk/risk_engine.py"
+    },
+    {
+      "id": "nautilus_trader",
+      "label": "NautilusTrader",
+      "file_type": "concept",
+      "source_file": null
+    },
+    {
+      "id": "qwen3_8b",
+      "label": "Qwen3-8B",
+      "file_type": "concept",
+      "source_file": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "src_engine_research_client_research_client",
+      "target": "claudedocs_design_research_financiar_research_server",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "claudedocs/design-research-financiar.md"
+    },
+    {
+      "source": "claudedocs_design_research_financiar_research_server",
+      "target": "claudedocs_design_research_financiar_vector_store",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "claudedocs/design-research-financiar.md"
+    },
+    {
+      "source": "claudedocs_design_research_financiar_research_server",
+      "target": "claudedocs_design_research_financiar_metadata_db",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "claudedocs/design-research-financiar.md"
+    },
+    {
+      "source": "claudedocs_design_research_financiar_research_pipeline",
+      "target": "src_research_models_research_document",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "claudedocs/design-research-financiar.md"
+    },
+    {
+      "source": "claudedocs_design_research_financiar_research_pipeline",
+      "target": "src_research_scoring_score_relevance",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "claudedocs/design-research-financiar.md"
+    },
+    {
+      "source": "src_research_context_builder_build_external_context",
+      "target": "claudedocs_research_crawling_financiar_external_context",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "claudedocs/design-research-financiar.md"
+    },
+    {
+      "source": "claudedocs_design_research_financiar_research_pipeline",
+      "target": "src_research_connectors_connector",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "claudedocs/design-research-financiar.md"
+    },
+    {
+      "source": "claudedocs_design_research_financiar_research_pipeline",
+      "target": "config_research_sources_yaml",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "claudedocs/workflow_research-financiar.md"
+    },
+    {
+      "source": "docs_server_deployment_audit",
+      "target": "src_llm_service",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_server_deployment_audit",
+      "target": "src_audit_audit_log",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_server_deployment_audit",
+      "target": "src_control_agent_process",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_server_deployment_audit",
+      "target": "ollama",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_database_design",
+      "target": "postgres_18",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_database_design",
+      "target": "timescaledb",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_database_design",
+      "target": "src_audit_audit_log",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_database_design",
+      "target": "src_execution_idempotency_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_database_design",
+      "target": "src_research_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_analysis_integration",
+      "target": "src_risk_risk_engine",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_backtest_report",
+      "target": "src_engine_backtest_runner",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_backtest_report",
+      "target": "ollama",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_paper_trading_report",
+      "target": "src_control_agent_process",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9
+    },
+    {
+      "source": "docs_utilizare",
+      "target": "src_control_server",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_utilizare",
+      "target": "src_llm_server",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_utilizare",
+      "target": "src_research_server",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "docs_utilizare",
+      "target": "ollama",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "pre_commit_config",
+      "target": "pre_commit_config_gitleaks",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".pre-commit-config.yaml"
+    },
+    {
+      "source": "readme",
+      "target": "brief_proiect",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    },
+    {
+      "source": "readme",
+      "target": "claude_instructions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    },
+    {
+      "source": "readme",
+      "target": "design_componente",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    },
+    {
+      "source": "readme",
+      "target": "technical_report",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    },
+    {
+      "source": "readme",
+      "target": "src_llm_server",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    },
+    {
+      "source": "readme",
+      "target": "src_control_server",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    },
+    {
+      "source": "readme",
+      "target": "nautilus_trader",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    },
+    {
+      "source": "readme",
+      "target": "ollama",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    },
+    {
+      "source": "ci_workflow",
+      "target": "pre_commit_config",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": ".github/workflows/ci.yml"
+    },
+    {
+      "source": "console_readme",
+      "target": "src_control_server",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/console/README.md"
+    },
+    {
+      "source": "console_app_html",
+      "target": "src_control_server",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "apps/console/src/app/app.html"
+    },
+    {
+      "source": "claude_instructions",
+      "target": "brief_proiect",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "claudedocs/CLAUDE-instructiuni-faza-0-4.md"
+    },
+    {
+      "source": "design_discovery",
+      "target": "src_risk_engine",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "claudedocs/design-asset-discovery-research.md"
+    },
+    {
+      "source": "design_componente",
+      "target": "src_llm_server",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "claudedocs/design-componente-faza-0-4.md"
+    },
+    {
+      "source": "design_componente",
+      "target": "src_risk_engine",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "claudedocs/design-componente-faza-0-4.md"
+    },
+    {
+      "source": "src_llm_server",
+      "target": "ollama",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "README.md"
+    },
+    {
+      "source": "src_llm_server",
+      "target": "qwen3_8b",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "README.md"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "financial_research_service_flow",
+      "label": "Financial Research Ingestion & Retrieval Flow",
+      "nodes": [
+        "claudedocs_design_research_financiar_research_pipeline",
+        "claudedocs_design_research_financiar_metadata_db",
+        "claudedocs_design_research_financiar_vector_store",
+        "claudedocs_design_research_financiar_research_server",
+        "src_engine_research_client_research_client"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "claudedocs/design-research-financiar.md"
+    },
+    {
+      "id": "trading_system_persistence",
+      "label": "Trading System Persistence Layer",
+      "nodes": [
+        "src_audit_audit_log",
+        "src_execution_idempotency_store",
+        "src_research_store",
+        "docs_database_design"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.95
+    },
+    {
+      "id": "deployment_architecture",
+      "label": "Proposed Production Architecture",
+      "nodes": [
+        "docs_server_deployment_audit",
+        "postgres_18",
+        "ollama",
+        "src_control_server"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85
+    },
+    {
+      "id": "trading_stack_processes",
+      "label": "Trading Agent Stack Processes",
+      "nodes": [
+        "src_llm_server",
+        "src_control_server",
+        "console_readme"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    },
+    {
+      "id": "risk_isolation_pattern",
+      "label": "LLM Risk Isolation Pattern",
+      "nodes": [
+        "src_llm_server",
+        "src_risk_engine",
+        "design_componente"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "claudedocs/design-componente-faza-0-4.md"
+    }
+  ],
+  "input_tokens": 167598,
+  "output_tokens": 4335
+}

@@ -34,7 +34,60 @@ jobs:
       # llm_live (Ollama) / network_live (public APIs) self-skip when unreachable, but
       # are excluded here for deterministic, hang-free CI runs.
       - name: Run pytest (unit + adversarial + integration, excludes llm_live/network_live)
-        run: uv run pytest -m "not llm_live and not network_live"
+        run: uv run pytest -m "not llm_live and not network_live and not postgres"
+
+  postgres-integration:
+    name: PostgreSQL migrations + research contract
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: trading_agent_test
+          POSTGRES_USER: trading_migrator
+          POSTGRES_PASSWORD: test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U trading_migrator -d trading_agent_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      ADMIN_DATABASE_URL: postgresql://trading_migrator:test-only@127.0.0.1:5432/trading_agent_test
+      MIGRATION_DATABASE_URL: postgresql://trading_migrator:test-only@127.0.0.1:5432/trading_agent_test
+      TEST_DATABASE_URL: postgresql://research_writer:test-writer-only@127.0.0.1:5432/trading_agent_test
+      CONTROL_DATABASE_URL: postgresql://control_reader:test-reader-only@127.0.0.1:5432/trading_agent_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.9.7"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install locked dependencies
+        run: uv sync --group dev --locked
+
+      - name: Apply migrations from zero
+        run: uv run alembic upgrade head
+
+      # Tests run through the same least-privilege roles production uses
+      # (research_writer / control_reader), not the migration owner, so grant
+      # gaps in create_roles.sql fail CI instead of surfacing only in prod.
+      - name: Create least-privilege application roles
+        run: |
+          psql "$ADMIN_DATABASE_URL" \
+            -v database_name=trading_agent_test \
+            -v research_password="'test-writer-only'" \
+            -v control_password="'test-reader-only'" \
+            -f deploy/postgres/create_roles.sql
+
+      - name: Run PostgreSQL integration tests
+        run: uv run pytest -m postgres
 
   secrets-scan:
     name: Secret scan (gitleaks, full history)
