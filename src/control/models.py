@@ -19,7 +19,9 @@ TradingMode = Literal["paper", "live"]
 ReconciliationStatus = Literal["ok", "mismatch", "unknown"]
 OperatorRole = Literal["operator", "observer"]
 MarketDataStatus = Literal["ok", "stale", "research_only", "no_adapter", "data_unavailable"]
-StrategyKind = Literal["ema_cross", "llm"]
+StrategyKind = Literal["ema_cross", "donchian_breakout", "rsi_mean_reversion", "llm"]
+StrategyStatusLabel = Literal["experimental", "testing", "paper_candidate", "disabled"]
+BacktestJobStatus = Literal["queued", "running", "done", "error"]
 AlertSeverity = Literal["warning", "error"]
 WsChannel = Literal["health", "approvals", "alerts", "events"]
 
@@ -292,6 +294,11 @@ class StrategyRow(BaseModel):
     kind: StrategyKind
     enabled: bool
     params: dict[str, str]
+    status: StrategyStatusLabel = "experimental"
+    version: int = 1
+    hypothesis: str = ""
+    supported_assets: list[str] = Field(default_factory=list)
+    supported_timeframes: list[str] = Field(default_factory=list)
     last_paper_sessions: int | None = None
     last_paper_halted: bool | None = None
     last_backtest_ref: str | None = None
@@ -302,6 +309,68 @@ class StrategyToggleRequest(BaseModel):
 
     enabled: bool
     confirmation_token: str = Field(min_length=1)
+
+
+class StrategyVersionWriteRequest(BaseModel):
+    """Editare parametri (și/sau status) = versiune nouă imutabilă, nu suprascriere."""
+
+    model_config = _STRICT
+
+    params: dict[str, Any]
+    status: StrategyStatusLabel | None = None
+    change_note: str = Field(min_length=1)
+    confirmation_token: str = Field(min_length=1)
+
+
+class StrategyCloneRequest(BaseModel):
+    model_config = _STRICT
+
+    new_id: str = Field(min_length=1)
+    confirmation_token: str = Field(min_length=1)
+
+
+class StrategyVersionRow(BaseModel):
+    """Instantaneu imutabil citit din config/strategy_versions/<id>/vN.json."""
+
+    model_config = _STRICT
+
+    id: str
+    name: str
+    kind: str
+    enabled: bool
+    status: StrategyStatusLabel
+    version: int
+    hypothesis: str
+    supported_assets: list[str]
+    supported_timeframes: list[str]
+    params: dict[str, Any]
+    updated_at: datetime
+    change_note: str = ""
+
+
+class BacktestRunRequest(BaseModel):
+    model_config = _STRICT
+
+    universe_symbol: str = Field(min_length=1)
+    timeframe: str = Field(default="1d", min_length=1)
+    start: datetime
+    end: datetime
+    cost_multiplier: Literal[1, 2, 3] = 1
+    confirmation_token: str = Field(min_length=1)
+
+
+class BacktestJobRow(BaseModel):
+    model_config = _STRICT
+
+    run_id: str
+    strategy_id: str
+    status: BacktestJobStatus
+    created_at: datetime
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    error: str | None = None
+    request: dict[str, Any]
+    metrics: dict[str, Any] | None = None
 
 
 class OperatorAnalyzeRequest(BaseModel):

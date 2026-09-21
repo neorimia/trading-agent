@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.engine.cost_models import BASE_TAKER_FEE
 from src.execution.types import OrderRequest, OrderResult
 
 _STRICT = ConfigDict(extra="forbid")
@@ -113,12 +114,16 @@ class SimulatedBroker:
             if remaining > 0:
                 self._open[key] = order
         self._apply_fill(order, filled_qty)
+        # Aproximare taker-only (paper nu distinge maker/taker ca Nautilus în backtest) —
+        # fără asta paper era artificial de optimist (comision 0 la fiecare fill).
+        fee = (filled_qty * price * BASE_TAKER_FEE).quantize(Decimal("0.00000001"))
         return OrderResult(
             client_order_id=order.client_order_id,
             status=status,
             broker_order_id=broker_id,
             filled_quantity=filled_qty,
             fill_price=price,
+            fee=fee,
         )
 
     def cancel_all(self, reason: str) -> None:

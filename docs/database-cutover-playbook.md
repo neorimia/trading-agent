@@ -32,6 +32,20 @@ silent best-effort dual writes are prohibited.
 - Target: `market_data_sources`, `ohlcv_candles`.
 - Enable TimescaleDB in this slice, not in the research/foundation migration.
 - Gate: repeated backfill produces the same primary-key count and dataset hash.
+- **Status: implemented.** `MARKET_DATA_STORE_BACKEND=files|postgres` (default
+  `files`, `MARKET_DATA_DATABASE_URL` for role `market_data_writer`) —
+  `src/data/market_data_repository.py::open_market_data_cache`. Importer:
+  `scripts/db/import_market_data.py --source KRAKEN|BINANCE` (network re-backfill by
+  default; `--from-cache` reads a frozen `.cache/market_data/` window and always
+  marks the report `provenance_incomplete: true`, since JSON cache files do not
+  record which vendor produced them). `Bar.timestamp` (close-time) maps to
+  `open_time` (period start) via `close_time = open_time + timeframe_delta - 1s` —
+  the convention already shared by Kraken/Binance/the CSV fixture
+  (`src/data/postgres_store.py`). Local/CI Postgres is TimescaleDB PG18
+  (`compose.postgres.yml`); Homebrew `postgresql@18` is no longer sufficient once
+  either research or market data selects the `postgres` backend. `order_book_snapshots`/
+  `trades` hypertables exist but stay empty this slice; paper/control keep polling
+  live OHLC directly and do not write candles yet.
 
 ### 2. Portfolio and execution
 

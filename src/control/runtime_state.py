@@ -41,7 +41,9 @@ from src.control.models import (
 from src.control.settings import (
     ControlSettings,
     RISK_CONFIRMATION_TOKEN,
+    STRATEGY_CLONE_TOKEN,
     STRATEGY_DISABLE_TOKEN,
+    STRATEGY_EDIT_TOKEN,
     STRATEGY_ENABLE_TOKEN,
 )
 from src.monitor.broker_monitor import load_broker_monitor
@@ -61,6 +63,15 @@ from src.engine.daily_plan import build_daily_plan
 from src.engine.indicators import bars_upto, indicator_snapshot, technical_facts_bundle
 from src.engine.paper_config import load_paper_trading_config
 from src.engine.signals import ema, ema_cross_direction
+from src.engine.strategy_registry import (
+    RULE_BASED_KINDS,
+    build_spec_from_kind_and_params,
+    list_version_snapshots,
+    load_strategy_definitions,
+    next_version,
+    write_strategy_definitions,
+    write_version_snapshot,
+)
 from src.engine.stress import stress_portfolio
 from src.execution.key_policy import load_live_key_policy
 from src.execution.reconciliation import LocalPortfolioSnapshot, ReconciliationReport
@@ -667,6 +678,7 @@ def list_orders(settings: ControlSettings) -> list[OrderRow]:
         return []
     mode = trading_mode(settings)
     rows: list[OrderRow] = []
+    instrument_by_correlation: dict[str, str] = {}
     for event in _audit(settings.paths).list_events():
         if event.event_type not in {"order_submitted", "fill", "risk_decision"}:
             continue
@@ -676,13 +688,21 @@ def list_orders(settings: ControlSettings) -> list[OrderRow]:
         status = str(payload.get("status") or event.event_type)
         if event.event_type == "risk_decision" and payload.get("approved") is False:
             status = "rejected"
+        # fill/risk_decision events don't always carry the instrument in their own payload;
+        # fall back to the order_submitted event for the same correlation id so the Orders
+        # table doesn't show a blank Instrument column on those rows.
+        instrument = str(payload.get("instrument") or "")
+        if instrument:
+            instrument_by_correlation[event.correlation_id] = instrument
+        else:
+            instrument = instrument_by_correlation.get(event.correlation_id, "")
         rows.append(
             OrderRow(
                 correlation_id=event.correlation_id,
                 client_order_id=str(payload["client_order_id"])
                 if payload.get("client_order_id")
                 else None,
-                instrument=str(payload.get("instrument") or ""),
+                instrument=instrument,
                 side=str(payload["side"]) if payload.get("side") else None,
                 quantity=_dstr(_dec(payload.get("quantity") or payload.get("filled_quantity")))
                 if payload.get("quantity") is not None or payload.get("filled_quantity") is not None
@@ -959,19 +979,62 @@ def default_strategies(settings: ControlSettings) -> list[dict]:
     return [
         {
             "id": "baseline_ema_cross",
-            "name": "Baseline EMA cross",
+            "name": "EMA trend filter",
             "kind": "ema_cross",
             "enabled": True,
+            "status": "experimental",
+            "version": 1,
+            "hypothesis": (
+                "Pe ETH/BTC, un trend confirmat de EMA(fast)>=EMA(slow) persistă suficient "
+                "cât un long-only cu costurile Kraken curente să nu fie doar zgomot."
+            ),
+            "supported_assets": ["ETHUSD", "BTCUSD"],
+            "supported_timeframes": ["1h", "4h", "1d"],
             "params": {
                 "fast_ema_period": paper.fast_ema_period,
                 "slow_ema_period": paper.slow_ema_period,
             },
         },
         {
+            "id": "donchian_breakout",
+            "name": "Donchian breakout + volum",
+            "kind": "donchian_breakout",
+            "enabled": False,
+            "status": "experimental",
+            "version": 1,
+            "hypothesis": (
+                "Ieșirea din canalul Donchian cu volum confirmat (z-score) e continuare, "
+                "nu fake-out, doar în regim de trend (ADX)."
+            ),
+            "supported_assets": ["ETHUSD", "BTCUSD"],
+            "supported_timeframes": ["1h", "4h", "1d"],
+            "params": {},
+        },
+        {
+            "id": "rsi_mean_reversion",
+            "name": "RSI mean reversion (sideways)",
+            "kind": "rsi_mean_reversion",
+            "enabled": False,
+            "status": "experimental",
+            "version": 1,
+            "hypothesis": (
+                "În regim range (ADX scăzut), RSI extrem revine la medie pe ETH/BTC "
+                "daily/hourly."
+            ),
+            "supported_assets": ["ETHUSD", "BTCUSD"],
+            "supported_timeframes": ["1h", "4h", "1d"],
+            "params": {},
+        },
+        {
             "id": "llm_assisted",
             "name": "LLM-assisted (proposal only)",
             "kind": "llm",
             "enabled": False,
+            "status": "experimental",
+            "version": 1,
+            "hypothesis": "Propuneri LLM (long/avoid/exit) — nu e o regulă testabilă statistic.",
+            "supported_assets": ["ETHUSD", "BTCUSD"],
+            "supported_timeframes": ["1h", "1d"],
             "params": {},
         },
     ]
@@ -1008,6 +1071,11 @@ def list_strategies(settings: ControlSettings) -> list[StrategyRow]:
                 kind=str(item.get("kind") or "ema_cross"),  # type: ignore[arg-type]
                 enabled=bool(item.get("enabled", False)),
                 params={str(k): str(v) for k, v in params.items()},
+                status=str(item.get("status") or "experimental"),  # type: ignore[arg-type]
+                version=int(item.get("version") or 1),
+                hypothesis=str(item.get("hypothesis") or ""),
+                supported_assets=[str(a) for a in item.get("supported_assets") or []],
+                supported_timeframes=[str(t) for t in item.get("supported_timeframes") or []],
                 last_paper_sessions=int(sessions) if isinstance(sessions, int) else None,
                 last_paper_halted=bool(halted) if halted is not None else None,
                 last_backtest_ref=backtest_ref,
@@ -1042,6 +1110,108 @@ def set_strategy_enabled(
             payload={"action": "strategy_toggle", "id": strategy_id, "enabled": enabled},
         )
     )
+
+
+def write_strategy_version(
+    settings: ControlSettings,
+    strategy_id: str,
+    *,
+    params: dict[str, object],
+    change_note: str,
+    confirmation_token: str,
+    status: str | None = None,
+) -> int:
+    """Editare parametri și/sau status = versiune nouă imutabilă în
+    config/strategy_versions/<id>/vN.json, scrisă doar după validare strictă prin schema
+    kind-ului (fail fast, nu persistăm params invalizi). `config/strategies.yaml` e
+    actualizat să reflecte ultima versiune. `status` opțional permite marcarea unei
+    strategii ca `paper_candidate`/`testing`/etc. fără să schimbe parametrii."""
+    if confirmation_token != STRATEGY_EDIT_TOKEN:
+        raise ValueError(f"confirmation_token must be {STRATEGY_EDIT_TOKEN}")
+    definitions = load_strategy_definitions(settings.paths.strategies)
+    target = next((d for d in definitions if d.id == strategy_id), None)
+    if target is None:
+        raise FileNotFoundError(strategy_id)
+    new_version = next_version(settings.paths.strategy_versions, strategy_id)
+    new_status = status if status is not None else target.status
+    if target.kind in RULE_BASED_KINDS:
+        # Validează strict înainte de a scrie orice — params invalizi nu ajung niciodată
+        # pe disc, nici ca versiune, nici în strategies.yaml.
+        build_spec_from_kind_and_params(
+            target.kind, params, id=strategy_id, version=new_version, status=new_status
+        )
+    updated = target.model_copy(
+        update={
+            "params": params,
+            "status": new_status,
+            "version": new_version,
+            "updated_at": datetime.now(timezone.utc),
+        }
+    )
+    write_version_snapshot(settings.paths.strategy_versions, updated, change_note=change_note)
+    new_definitions = [updated if d.id == strategy_id else d for d in definitions]
+    write_strategy_definitions(settings.paths.strategies, new_definitions)
+    _audit(settings.paths).record(
+        AuditEvent.now(
+            correlation_id=uuid4(),
+            event_type="operator_action",
+            payload={
+                "action": "strategy_version",
+                "id": strategy_id,
+                "version": new_version,
+                "change_note": change_note,
+            },
+        )
+    )
+    return new_version
+
+
+def clone_strategy(
+    settings: ControlSettings,
+    strategy_id: str,
+    new_id: str,
+    *,
+    confirmation_token: str,
+) -> None:
+    """Clonă = strategie nouă, dezactivată, `experimental`, versiune 1 — niciodată nu
+    pornește activă și nu copiază statusul sursei (o clonă e neverificată prin definiție)."""
+    if confirmation_token != STRATEGY_CLONE_TOKEN:
+        raise ValueError(f"confirmation_token must be {STRATEGY_CLONE_TOKEN}")
+    if not new_id.strip():
+        raise ValueError("new_id must not be blank")
+    definitions = load_strategy_definitions(settings.paths.strategies)
+    if any(d.id == new_id for d in definitions):
+        raise ValueError(f"strategy id already exists: {new_id}")
+    source = next((d for d in definitions if d.id == strategy_id), None)
+    if source is None:
+        raise FileNotFoundError(strategy_id)
+    clone = source.model_copy(
+        update={
+            "id": new_id,
+            "name": f"{source.name} (clone)",
+            "enabled": False,
+            "status": "experimental",
+            "version": 1,
+            "updated_at": datetime.now(timezone.utc),
+        }
+    )
+    write_version_snapshot(
+        settings.paths.strategy_versions,
+        clone,
+        change_note=f"cloned from {strategy_id} v{source.version}",
+    )
+    write_strategy_definitions(settings.paths.strategies, [*definitions, clone])
+    _audit(settings.paths).record(
+        AuditEvent.now(
+            correlation_id=uuid4(),
+            event_type="operator_action",
+            payload={"action": "strategy_clone", "from": strategy_id, "to": new_id},
+        )
+    )
+
+
+def list_strategy_versions(settings: ControlSettings, strategy_id: str) -> list[dict]:
+    return list_version_snapshots(settings.paths.strategy_versions, strategy_id)
 
 
 def llm_strategy_enabled(settings: ControlSettings) -> bool:

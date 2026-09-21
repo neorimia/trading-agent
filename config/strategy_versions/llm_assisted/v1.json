@@ -1,0 +1,20 @@
+{
+  "change_note": "initial version, seeded by strategies-page-overhaul plan",
+  "enabled": true,
+  "hypothesis": "LLM proposals (long/avoid/exit) from external context \u2014 not a statistically testable rule, stays experimental until it beats the baseline on OOS with 1x/2x/3x costs.",
+  "id": "llm_assisted",
+  "kind": "llm",
+  "name": "LLM-assisted (proposal only)",
+  "params": {},
+  "status": "experimental",
+  "supported_assets": [
+    "ETHUSD",
+    "BTCUSD"
+  ],
+  "supported_timeframes": [
+    "1h",
+    "1d"
+  ],
+  "updated_at": "2026-09-21T11:55:32.030080Z",
+  "version": 1
+}

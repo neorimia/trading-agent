@@ -146,7 +146,7 @@ class PaperTradingLoop:
             self._history.append(bar)
             seen.add(bar.timestamp)
             self._last_price = bar.close
-            self._tracker.on_bar(bar.timestamp, bar.close)
+            self._tracker.on_bar(bar.timestamp, bar.close, volume=bar.volume)
             if isinstance(self._broker, SimulatedBroker):
                 self._broker.set_last_price(bar.instrument, bar.close)
         if bars:
@@ -225,7 +225,7 @@ class PaperTradingLoop:
         self._history.append(bar)
         self._history.sort(key=lambda item: item.timestamp)
         self._last_price = bar.close
-        self._tracker.on_bar(bar.timestamp, bar.close)
+        self._tracker.on_bar(bar.timestamp, bar.close, volume=bar.volume)
         if isinstance(self._broker, SimulatedBroker):
             self._broker.set_last_price(bar.instrument, bar.close)
 
@@ -278,7 +278,7 @@ class PaperTradingLoop:
         self._heartbeat.write(self._process_id)
         self._history.append(bar)
         self._last_price = bar.close
-        self._tracker.on_bar(bar.timestamp, bar.close)
+        self._tracker.on_bar(bar.timestamp, bar.close, volume=bar.volume)
         if isinstance(self._broker, SimulatedBroker):
             self._broker.set_last_price(bar.instrument, bar.close)
         self._write_last_bar(bar)
@@ -475,7 +475,7 @@ class PaperTradingLoop:
                     side=side,
                     quantity=result.filled_quantity,
                     price=result.fill_price,
-                    commission=Decimal("0"),
+                    commission=result.fee,
                 )
                 self._audit.record(
                     AuditEvent.now(

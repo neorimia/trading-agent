@@ -369,6 +369,7 @@ main:focus {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 1.2rem;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .metric-hint,
@@ -785,6 +786,48 @@ app-session-plan {
   font-size: 0.8rem;
 }
 
+.risk-bar-ok {
+  --p-progressbar-value-background: var(--ok);
+}
+
+.risk-bar-warn {
+  --p-progressbar-value-background: var(--warn);
+}
+
+.risk-bar-danger {
+  --p-progressbar-value-background: var(--bad);
+}
+
+.param-group-label {
+  margin: 0.85rem 0 0.35rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.param-group-label:first-child {
+  margin-top: 0;
+}
+
+// Wrap a <p-table> in this on any page where columns can outgrow narrow viewports; scrolls the
+// table horizontally instead of letting it blow out the page layout, with a fade hinting more
+// content is off-screen. See docs/ux-ui/design-system-recommendations.md.
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 900px) {
+  .table-scroll {
+    position: relative;
+    background:
+      linear-gradient(to right, var(--bg) 0%, rgba(0, 0, 0, 0) 100%) left / 1.5rem 100% no-repeat,
+      linear-gradient(to left, var(--bg) 0%, rgba(0, 0, 0, 0) 100%) right / 1.5rem 100% no-repeat local;
+    background-attachment: local, local;
+  }
+}
+
 .doc-meta {
   display: flex;
   flex-wrap: wrap;
@@ -813,6 +856,92 @@ app-session-plan {
 .p-dialog .p-dialog-content,
 .p-dialog .p-dialog-footer {
   background: var(--bg-elev);
+}
+
+.strategies-layout {
+  display: grid;
+  grid-template-columns: 20rem 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.strategy-list-table {
+  align-self: start;
+}
+
+.strategy-list-table .p-datatable-tbody > tr {
+  cursor: pointer;
+}
+
+.strategy-list-table .p-datatable-tbody > tr.selected-row,
+.strategy-detail .p-datatable-tbody > tr.selected-row {
+  background: var(--bg-elev);
+}
+
+.strategy-name {
+  font-weight: 500;
+}
+
+.strategy-detail {
+  border: 1px solid var(--stroke);
+  padding: 1rem;
+  background: var(--bg-elev);
+}
+
+.strategy-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.strategy-detail-head h2 {
+  margin: 0 0 0.35rem;
+}
+
+.line-chart-host {
+  width: 100%;
+  border: 1px solid var(--stroke);
+  background: var(--bg-sunken);
+  margin: 0.4rem 0 0.9rem;
+}
+
+.hist {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.hist-row {
+  display: grid;
+  grid-template-columns: 8rem 1fr 2.5rem;
+  gap: 0.6rem;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.hist-label {
+  color: var(--muted);
+}
+
+.hist-bar-track {
+  height: 0.65rem;
+  background: var(--bg-sunken);
+  border: 1px solid var(--stroke);
+}
+
+.hist-bar {
+  height: 100%;
+  background: var(--muted);
+}
+
+.hist-bar.pnl-pos {
+  background: var(--ok);
+}
+
+.hist-bar.pnl-neg {
+  background: var(--bad);
 }
 
 .reveal {
@@ -861,7 +990,8 @@ app-session-plan {
   .body,
   .split,
   .pnl-strip,
-  .facts > div {
+  .facts > div,
+  .strategies-layout {
     grid-template-columns: 1fr;
   }
 

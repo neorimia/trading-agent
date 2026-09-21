@@ -1,0 +1,29 @@
+{
+  "change_note": "initial version, seeded by strategies-page-overhaul plan",
+  "enabled": true,
+  "hypothesis": "On ETH/BTC, a trend confirmed by EMA(fast)>=EMA(slow) persists long enough that a long-only position at current Kraken costs (maker 16bps/taker 26bps) isn't just noise \u2014 especially when ADX confirms it's an actual trend.",
+  "id": "baseline_ema_cross",
+  "kind": "ema_cross",
+  "name": "EMA trend filter",
+  "params": {
+    "adx_period": 14,
+    "atr_period": 14,
+    "atr_stop_mult": "2",
+    "atr_target_mult": "3",
+    "fast_ema_period": 10,
+    "min_adx": "0",
+    "slow_ema_period": 20
+  },
+  "status": "experimental",
+  "supported_assets": [
+    "ETHUSD",
+    "BTCUSD"
+  ],
+  "supported_timeframes": [
+    "1h",
+    "4h",
+    "1d"
+  ],
+  "updated_at": "2026-09-21T11:55:32.029984Z",
+  "version": 1
+}

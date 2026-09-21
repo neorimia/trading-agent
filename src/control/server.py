@@ -32,15 +32,19 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.control.agent_process import AgentProcessController, SubprocessAgentProcess
+from src.control.backtest_jobs import BacktestJobManager, BacktestJobRequest
 from src.control.replay_cache import ReplayCache, run_idempotent
 from src.control.models import (
     AckResponse,
     ApprovalDecisionRequest,
+    BacktestRunRequest,
     HaltRequest,
     HealthResponse,
     OperatorAnalyzeRequest,
     RiskLimitsWrite,
+    StrategyCloneRequest,
     StrategyToggleRequest,
+    StrategyVersionWriteRequest,
     WsEnvelope,
 )
 from src.control.runtime_state import (
@@ -62,6 +66,7 @@ from src.control.runtime_state import (
     build_security,
     build_signal,
     build_stress_view,
+    clone_strategy,
     get_discovery_candidate,
     halt_if_heartbeat_stale,
     list_agent_events,
@@ -71,6 +76,8 @@ from src.control.runtime_state import (
     list_positions,
     list_research,
     list_strategies,
+    list_strategy_versions,
+    load_strategy_docs,
     pid_is_alive,
     ping_http,
     reset_halt,
@@ -80,9 +87,11 @@ from src.control.runtime_state import (
     trigger_halt,
     write_approval,
     write_risk_limits,
+    write_strategy_version,
 )
 from src.monitor.broker_monitor import load_broker_monitor
 from src.control.settings import (
+    BACKTEST_RUN_TOKEN,
     DEFAULT_CORS,
     ControlSettings,
     load_control_settings,
@@ -114,6 +123,20 @@ class ControlContext:
     now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)
     request_analysis: AnalyzeFn | None = None
     request_discovery_summary: DiscoverySummaryFn | None = None
+    _backtest_jobs: BacktestJobManager | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+
+    def backtest_jobs(self) -> BacktestJobManager:
+        """Lazy — un singur `BacktestJobManager` (deci un singur worker thread) per context."""
+        if self._backtest_jobs is None:
+            self._backtest_jobs = BacktestJobManager(
+                jobs_dir=self.settings.paths.backtest_jobs,
+                reports_dir=self.settings.paths.backtest_reports,
+                halt_flag=self.settings.paths.halt_flag,
+                fetch_bars=self.fetch_bars,
+            )
+        return self._backtest_jobs
 
 
 def _ws_snapshot(ctx: ControlContext, sent_at: datetime) -> tuple:
@@ -597,6 +620,127 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
             ).model_dump()
 
         return run_idempotent(ctx.replay, key, _act)
+
+    @app.get("/v1/strategies/{strategy_id}/versions")
+    def strategy_versions(strategy_id: str, ctx: ControlContext = Depends(require_auth)):
+        return list_strategy_versions(ctx.settings, strategy_id)
+
+    @app.post("/v1/strategies/{strategy_id}/versions")
+    def strategy_version_create(
+        strategy_id: str,
+        body: StrategyVersionWriteRequest,
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+        ctx: ControlContext = Depends(require_operator),
+    ):
+        key = require_idempotency_key(idempotency_key)
+
+        def _act() -> dict:
+            try:
+                version = write_strategy_version(
+                    ctx.settings,
+                    strategy_id,
+                    params=body.params,
+                    change_note=body.change_note,
+                    confirmation_token=body.confirmation_token,
+                    status=body.status,
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+            except FileNotFoundError as exc:
+                raise HTTPException(status_code=404, detail=str(exc)) from exc
+            return AckResponse(
+                ok=True,
+                detail=f"strategy version {version} written; restart required",
+                restart_required=True,
+            ).model_dump()
+
+        return run_idempotent(ctx.replay, key, _act)
+
+    @app.post("/v1/strategies/{strategy_id}/clone")
+    def strategy_clone(
+        strategy_id: str,
+        body: StrategyCloneRequest,
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+        ctx: ControlContext = Depends(require_operator),
+    ):
+        key = require_idempotency_key(idempotency_key)
+
+        def _act() -> dict:
+            try:
+                clone_strategy(
+                    ctx.settings,
+                    strategy_id,
+                    body.new_id,
+                    confirmation_token=body.confirmation_token,
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+            except FileNotFoundError as exc:
+                raise HTTPException(status_code=404, detail=str(exc)) from exc
+            return AckResponse(
+                ok=True,
+                detail="strategy cloned (disabled, experimental); restart required to run it",
+                restart_required=True,
+            ).model_dump()
+
+        return run_idempotent(ctx.replay, key, _act)
+
+    @app.post("/v1/strategies/{strategy_id}/backtests")
+    def strategy_backtest_start(
+        strategy_id: str,
+        body: BacktestRunRequest,
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+        ctx: ControlContext = Depends(require_operator),
+    ):
+        if body.confirmation_token != BACKTEST_RUN_TOKEN:
+            raise HTTPException(
+                status_code=422, detail=f"confirmation_token must be {BACKTEST_RUN_TOKEN}"
+            )
+        key = require_idempotency_key(idempotency_key)
+        doc = next(
+            (item for item in load_strategy_docs(ctx.settings) if item.get("id") == strategy_id),
+            None,
+        )
+        if doc is None:
+            raise HTTPException(status_code=404, detail=strategy_id)
+
+        def _act() -> dict:
+            try:
+                run_id = ctx.backtest_jobs().submit(
+                    BacktestJobRequest(
+                        strategy_id=strategy_id,
+                        strategy_kind=str(doc.get("kind") or ""),
+                        strategy_params=dict(doc.get("params") or {}),
+                        universe_symbol=body.universe_symbol,
+                        timeframe=body.timeframe,
+                        start=body.start,
+                        end=body.end,
+                        cost_multiplier=body.cost_multiplier,
+                    )
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+            return {"run_id": run_id, "status": "queued"}
+
+        return run_idempotent(ctx.replay, key, _act)
+
+    @app.get("/v1/strategies/{strategy_id}/backtests")
+    def strategy_backtest_list(
+        strategy_id: str,
+        ctx: ControlContext = Depends(require_auth),
+    ):
+        return ctx.backtest_jobs().list_for_strategy(strategy_id)
+
+    @app.get("/v1/strategies/{strategy_id}/backtests/{run_id}")
+    def strategy_backtest_status(
+        strategy_id: str,
+        run_id: str,
+        ctx: ControlContext = Depends(require_auth),
+    ):
+        record = ctx.backtest_jobs().get(run_id)
+        if record is None or record.get("strategy_id") != strategy_id:
+            raise HTTPException(status_code=404, detail=run_id)
+        return record
 
     @app.websocket("/v1/ws/events")
     async def ws_events(websocket: WebSocket) -> None:

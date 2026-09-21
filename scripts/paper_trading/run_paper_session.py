@@ -17,6 +17,7 @@ if str(REPO_ROOT) not in sys.path:
 from src.data.kraken import KrakenPublicOHLCSource
 from src.data.sources import CsvBarDataSource, timeframe_delta
 from src.audit.audit_log import AuditLog
+from src.engine.cost_models import BASE_SPREAD_BPS
 from src.engine.adapters.kraken_paper import (
     assert_no_kraken_trading_keys,
     build_paper_node_config,
@@ -159,7 +160,11 @@ def build_loop(runtime: Path, config, proposal_client, operator) -> tuple[PaperT
     rules, asset_classes = load_instrument_rules(REPO_ROOT / "config" / "universe.yaml")
     risk = RiskEngine(limits, rules, asset_classes, kill)
     breaker = CircuitBreaker(limits.circuit_breaker, kill)
-    tracker = PortfolioTracker(config.starting_cash, config.instrument, "crypto")
+    # Paper nu are un cost model live cu spread — folosim spread-ul de bază Kraken
+    # (1x, 15bps) ca aproximare documentată (docs/risk-management.md).
+    tracker = PortfolioTracker(
+        config.starting_cash, config.instrument, "crypto", spread_bps=BASE_SPREAD_BPS
+    )
     broker = SimulatedBroker()
     store = IdempotencyStore(runtime / "execution" / "idempotency.sqlite")
     gateway = OrderGateway(store, broker)

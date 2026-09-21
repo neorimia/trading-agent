@@ -247,15 +247,148 @@ export interface SecuritySettings {
   notifications_configured: boolean;
 }
 
+export type StrategyKind = 'ema_cross' | 'donchian_breakout' | 'rsi_mean_reversion' | 'llm';
+export type StrategyStatusLabel = 'experimental' | 'testing' | 'paper_candidate' | 'disabled';
+
 export interface StrategyRow {
   id: string;
   name: string;
-  kind: 'ema_cross' | 'llm';
+  kind: StrategyKind;
   enabled: boolean;
   params: Record<string, string>;
+  status: StrategyStatusLabel;
+  version: number;
+  hypothesis: string;
+  supported_assets: string[];
+  supported_timeframes: string[];
   last_paper_sessions: number | null;
   last_paper_halted: boolean | null;
   last_backtest_ref: string | null;
+}
+
+export interface PerformanceMetrics {
+  n_bars: number;
+  n_trades: number;
+  starting_equity: string;
+  ending_equity: string;
+  total_return_pct: string;
+  annualized_return_pct: string | null;
+  volatility_pct: string | null;
+  sharpe_ratio: string | null;
+  sortino_ratio: string | null;
+  calmar_ratio: string | null;
+  max_drawdown_pct: string;
+  recovery_factor: string | null;
+  win_rate: string | null;
+  avg_win: string | null;
+  avg_loss: string | null;
+  expectancy: string | null;
+  profit_factor: string | null;
+  longest_losing_streak: number;
+  turnover: string;
+  turnover_ratio: string | null;
+  total_fees: string;
+  estimated_slippage: string;
+  avg_exposure_pct: string | null;
+  warnings: string[];
+}
+
+export interface BaselineComparison {
+  buy_and_hold_pct: string | null;
+  cash_pct: string;
+  random_control_pct: string | null;
+}
+
+export interface RegimeBucketMetrics {
+  n_bars: number;
+  bar_win_rate: string | null;
+  cumulative_return_pct: string;
+}
+
+export type RegimeBreakdown = Record<string, Record<string, RegimeBucketMetrics>>;
+
+export interface EquityCurvePoint {
+  t: string;
+  equity: string;
+  exposure: string;
+}
+
+export interface DrawdownCurvePoint {
+  t: string;
+  drawdown_pct: string;
+}
+
+export interface BuyHoldCurvePoint {
+  t: string;
+  equity: string;
+}
+
+export interface BacktestComparableMetrics {
+  strategy: string;
+  cost_multiplier: number;
+  dataset_hash: string;
+  n_bars: number;
+  n_fills: number;
+  n_decisions: number;
+  ending_usdt: string;
+  commissions_usdt: string;
+  decisions: string[];
+}
+
+export interface BacktestExtraMetrics {
+  performance: PerformanceMetrics;
+  baselines: BaselineComparison;
+  regime: RegimeBreakdown;
+  equity_curve: EquityCurvePoint[];
+  drawdown_curve: DrawdownCurvePoint[];
+  buy_and_hold_curve: BuyHoldCurvePoint[];
+  trade_pnls: string[];
+}
+
+export type BacktestJobStatus = 'queued' | 'running' | 'done' | 'error';
+
+export interface BacktestJobRow {
+  run_id: string;
+  strategy_id: string;
+  status: BacktestJobStatus;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  error: string | null;
+  request: {
+    strategy_kind: string;
+    strategy_params: Record<string, unknown>;
+    universe_symbol: string;
+    timeframe: string;
+    start: string;
+    end: string;
+    cost_multiplier: number;
+  };
+  metrics: { comparable: BacktestComparableMetrics; extra: BacktestExtraMetrics } | null;
+}
+
+export interface BacktestRunRequestBody {
+  universe_symbol: string;
+  timeframe: string;
+  start: string;
+  end: string;
+  cost_multiplier: 1 | 2 | 3;
+  confirmation_token: string;
+}
+
+export interface StrategyVersionRow {
+  id: string;
+  name: string;
+  kind: string;
+  enabled: boolean;
+  status: StrategyStatusLabel;
+  version: number;
+  hypothesis: string;
+  supported_assets: string[];
+  supported_timeframes: string[];
+  params: Record<string, unknown>;
+  updated_at: string;
+  change_note: string;
 }
 
 export interface AlertRow {
@@ -410,6 +543,45 @@ export function pnlClass(value: string | null | undefined): string {
     return 'pnl-zero';
   }
   return n > 0 ? 'pnl-pos' : 'pnl-neg';
+}
+
+export interface FormatQuoteOptions {
+  /** Fixed decimal places. Omit to scale with magnitude (2 for >=1, more for small crypto prices). */
+  decimals?: number;
+  /** Optional unit/currency suffix appended after the number, e.g. 'USD'. */
+  currency?: string | null;
+}
+
+/**
+ * Formats a raw numeric string/number from the local engine into a short,
+ * locale-aware display value. Never renders unrounded floats
+ * (e.g. `5.357063999999999999999999906`) or blows up on `NaN`/`null`.
+ */
+export function formatQuote(value: string | number | null | undefined, options: FormatQuoteOptions = {}): string {
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) {
+    return '—';
+  }
+  const decimals = options.decimals ?? quoteDecimals(n);
+  const formatted = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(n);
+  return options.currency ? `${formatted} ${options.currency}` : formatted;
+}
+
+function quoteDecimals(n: number): number {
+  const abs = Math.abs(n);
+  if (abs === 0 || abs >= 1) {
+    return 2;
+  }
+  if (abs >= 0.01) {
+    return 4;
+  }
+  return 6;
 }
 
 export function isNarrowViewport(): boolean {

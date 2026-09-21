@@ -84,6 +84,85 @@ def swing_levels(bars: list[Bar], lookback: int = 20) -> tuple[Decimal | None, D
     return max(bar.high for bar in window), min(bar.low for bar in window)
 
 
+def donchian_channel(
+    bars: list[Bar], period: int = 20
+) -> tuple[Decimal, Decimal, Decimal] | None:
+    """Canal Donchian (high, low, mid) pe ultimele `period` bare. None dacă nu sunt destule."""
+    if period <= 1:
+        raise ValueError("donchian period must be > 1")
+    if len(bars) < period:
+        return None
+    window = bars[-period:]
+    high = max(bar.high for bar in window)
+    low = min(bar.low for bar in window)
+    mid = (high + low) / Decimal(2)
+    return high, low, mid
+
+
+def _wilder_smooth(values: list[Decimal], period: int) -> list[Decimal]:
+    """Smoothing Wilder: prima valoare e suma ferestrei, apoi recursiv (n-1)/n * prev + curent."""
+    if len(values) < period:
+        return []
+    smoothed = [sum(values[:period], Decimal("0"))]
+    for value in values[period:]:
+        previous = smoothed[-1]
+        smoothed.append(previous - (previous / Decimal(period)) + value)
+    return smoothed
+
+
+def adx(bars: list[Bar], period: int = 14) -> Decimal | None:
+    """Average Directional Index (Wilder). None dacă nu sunt destule bare (~2×period).
+
+    Măsoară tăria trendului (nu direcția). Valori orientative: <20 range, >25 trend.
+    Pur — folosește doar `bars` primite de apelant (fără look-ahead).
+    """
+    if period <= 0:
+        raise ValueError("adx period must be positive")
+    if len(bars) < period * 2 + 1:
+        return None
+    plus_dm: list[Decimal] = []
+    minus_dm: list[Decimal] = []
+    true_ranges: list[Decimal] = []
+    for previous, current in zip(bars, bars[1:]):
+        up_move = current.high - previous.high
+        down_move = previous.low - current.low
+        plus = up_move if (up_move > down_move and up_move > 0) else Decimal("0")
+        minus = down_move if (down_move > up_move and down_move > 0) else Decimal("0")
+        plus_dm.append(plus)
+        minus_dm.append(minus)
+        true_ranges.append(
+            max(
+                current.high - current.low,
+                abs(current.high - previous.close),
+                abs(current.low - previous.close),
+            )
+        )
+    plus_smooth = _wilder_smooth(plus_dm, period)
+    minus_smooth = _wilder_smooth(minus_dm, period)
+    tr_smooth = _wilder_smooth(true_ranges, period)
+    n = min(len(plus_smooth), len(minus_smooth), len(tr_smooth))
+    if n < period:
+        return None
+    dx_values: list[Decimal] = []
+    for index in range(n):
+        tr_value = tr_smooth[index]
+        if tr_value == 0:
+            dx_values.append(Decimal("0"))
+            continue
+        plus_di = Decimal("100") * plus_smooth[index] / tr_value
+        minus_di = Decimal("100") * minus_smooth[index] / tr_value
+        denom = plus_di + minus_di
+        dx_values.append(
+            Decimal("0") if denom == 0 else Decimal("100") * abs(plus_di - minus_di) / denom
+        )
+    if len(dx_values) < period:
+        return None
+    adx_value = sum(dx_values[:period], Decimal("0")) / Decimal(period)
+    for dx_value in dx_values[period:]:
+        adx_value = ((adx_value * Decimal(period - 1)) + dx_value) / Decimal(period)
+    return adx_value
+
+
 def aggregate_weekly(bars: list[Bar]) -> list[Bar]:
     """Agregare ISO-week din bare zilnice. Timestamp-ul e close-time-ul ultimei zile din săptămână."""
     grouped: dict[tuple[int, int], list[Bar]] = {}

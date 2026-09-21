@@ -5,10 +5,11 @@ import { InputText } from 'primeng/inputtext';
 import { Message } from 'primeng/message';
 import { ProgressBar } from 'primeng/progressbar';
 import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 
 import { AgentStateService } from '../core/agent-state.service';
 import { ApiService } from '../core/api.service';
-import { RiskLimitsView, StressReport, pnlClass } from '../core/models';
+import { RiskLimitsView, StressReport, formatQuote, pnlClass } from '../core/models';
 import { ConfirmDanger } from '../shared/confirm-danger';
 import { EmptyState } from '../shared/empty-state';
 import { MetricCard } from '../shared/metric-card';
@@ -27,6 +28,7 @@ import { PageSkeleton } from '../shared/page-skeleton';
     Message,
     ProgressBar,
     TableModule,
+    Tag,
     PageHeader,
     PageSkeleton,
   ],
@@ -37,14 +39,8 @@ import { PageSkeleton } from '../shared/page-skeleton';
         lede="Limits are the source of truth in YAML. Writes require typing MAX_DAILY_LOSS and a restart before they apply."
       />
       @if (state.halted()) {
-        <p-message
-          severity="error"
-          [text]="
-            'HALTED' +
-            (state.health().halt_reason ? ': ' + state.health().halt_reason : '') +
-            '. Clearing the flag does not restart the agent or resume orders.'
-          "
-        />
+        <!-- The HALTED reason is already surfaced by the global banner in app.html; this page only
+             adds the reset action so it isn't duplicated here (see docs/ux-ui/dashboard.md P1). -->
         <div class="toolbar">
           <p-button label="Clear halt flag" severity="danger" [disabled]="!state.canMutate()" (onClick)="askReset()" />
         </div>
@@ -55,23 +51,50 @@ import { PageSkeleton } from '../shared/page-skeleton';
         <app-empty-state icon="pi-shield" />
       } @else {
         <section class="metric-grid">
-          <app-metric-card label="Daily loss remaining" [value]="risk()!.remaining_daily_loss" />
-          <app-metric-card label="Drawdown remaining" [value]="risk()!.remaining_drawdown" />
-          <app-metric-card label="Orders remaining" [value]="'' + risk()!.remaining_orders_today" />
-          <app-metric-card label="Circuit breaker" [value]="risk()!.circuit_breaker.state" />
+          <app-metric-card label="Daily loss remaining" [value]="risk()!.remaining_daily_loss" [decimals]="2" hint="USD" />
+          <app-metric-card label="Drawdown remaining" [value]="risk()!.remaining_drawdown" [decimals]="2" hint="USD" />
+          <app-metric-card label="Orders remaining" [value]="risk()!.remaining_orders_today" [decimals]="0" />
+          <article class="metric">
+            <p class="metric-label">Circuit breaker</p>
+            <p class="metric-value">
+              <p-tag
+                [value]="risk()!.circuit_breaker.state"
+                [severity]="risk()!.circuit_breaker.state === 'HALTED' ? 'danger' : 'success'"
+              />
+            </p>
+          </article>
         </section>
         <div class="remain-row">
-          <span>Daily loss remaining</span>
-          <p-progressbar [value]="remainingPct(risk()!.remaining_daily_loss, risk()!.max_daily_loss)" [showValue]="false" />
+          <span
+            >Daily loss remaining · {{ fmt(risk()!.remaining_daily_loss, { decimals: 2 }) }} /
+            {{ fmt(risk()!.max_daily_loss, { decimals: 2 }) }} USD</span
+          >
+          <p-progressbar
+            [value]="remainingPct(risk()!.remaining_daily_loss, risk()!.max_daily_loss)"
+            [showValue]="true"
+            [styleClass]="riskBarClass(remainingPct(risk()!.remaining_daily_loss, risk()!.max_daily_loss))"
+          />
         </div>
         <div class="remain-row">
-          <span>Drawdown remaining</span>
-          <p-progressbar [value]="remainingPct(risk()!.remaining_drawdown, risk()!.max_drawdown)" [showValue]="false" />
+          <span
+            >Drawdown remaining · {{ fmt(risk()!.remaining_drawdown, { decimals: 2 }) }} /
+            {{ fmt(risk()!.max_drawdown, { decimals: 2 }) }} USD</span
+          >
+          <p-progressbar
+            [value]="remainingPct(risk()!.remaining_drawdown, risk()!.max_drawdown)"
+            [showValue]="true"
+            [styleClass]="riskBarClass(remainingPct(risk()!.remaining_drawdown, risk()!.max_drawdown))"
+          />
         </div>
         <div class="remain-row">
-          <span>Orders remaining</span>
-          <p-progressbar [value]="orderPct(risk()!.remaining_orders_today, risk()!.max_orders_per_day)" [showValue]="false" />
+          <span>Orders remaining · {{ risk()!.remaining_orders_today }} / {{ risk()!.max_orders_per_day }}</span>
+          <p-progressbar
+            [value]="orderPct(risk()!.remaining_orders_today, risk()!.max_orders_per_day)"
+            [showValue]="true"
+            [styleClass]="riskBarClass(orderPct(risk()!.remaining_orders_today, risk()!.max_orders_per_day))"
+          />
         </div>
+        <div class="table-scroll">
         <p-table [value]="limitRows()">
           <ng-template #header>
             <tr>
@@ -90,6 +113,8 @@ import { PageSkeleton } from '../shared/page-skeleton';
             </tr>
           </ng-template>
         </p-table>
+        </div>
+        <p class="muted">Max notional / order has no remaining counter — position sizing is engine-owned, not tracked here.</p>
         <form class="stack" (ngSubmit)="askSave()">
           <label>max_daily_loss <input pInputText [(ngModel)]="draft.max_daily_loss" name="max_daily_loss" /></label>
           <label>max_drawdown <input pInputText [(ngModel)]="draft.max_drawdown" name="max_drawdown" /></label>
@@ -112,8 +137,8 @@ import { PageSkeleton } from '../shared/page-skeleton';
             <p-message severity="warn" text="Portfolio reconstruction is incomplete. Treat shock PnL as an estimate." />
           }
           <section class="metric-grid">
-            <app-metric-card label="Total exposure" [value]="stress()!.total_exposure" />
-            <app-metric-card label="HHI" [value]="stress()!.hhi" />
+            <app-metric-card label="Total exposure" [value]="stress()!.total_exposure" [decimals]="2" hint="USD" />
+            <app-metric-card label="HHI" [value]="stress()!.hhi" [decimals]="4" />
             <app-metric-card label="Duplicated bets" [value]="stress()!.duplicated_bets" />
             <app-metric-card label="Hedge universe" [value]="stress()!.hedge_universe" />
           </section>
@@ -129,9 +154,9 @@ import { PageSkeleton } from '../shared/page-skeleton';
             <ng-template #body let-row>
               <tr>
                 <td>{{ row.name }}</td>
-                <td class="mono">{{ row.spot_shock }}</td>
-                <td class="mono" [class]="pnlClass(row.estimated_pnl)">{{ row.estimated_pnl }}</td>
-                <td class="mono">{{ row.estimated_equity_change_pct }}</td>
+                <td class="mono">{{ fmt(row.spot_shock) }}</td>
+                <td class="mono" [class]="pnlClass(row.estimated_pnl)">{{ fmt(row.estimated_pnl, { decimals: 2 }) }}</td>
+                <td class="mono">{{ fmt(row.estimated_equity_change_pct) }}</td>
               </tr>
             </ng-template>
           </p-table>
@@ -165,6 +190,7 @@ export class RiskPage implements OnInit {
   readonly stress = signal<StressReport | null>(null);
   readonly ready = signal(false);
   readonly pnlClass = pnlClass;
+  readonly fmt = formatQuote;
   draft = {
     max_notional_per_order: '',
     max_exposure_per_instrument: '',
@@ -212,6 +238,17 @@ export class RiskPage implements OnInit {
     return Math.max(0, Math.min(100, (remaining / max) * 100));
   }
 
+  /** Bar color reflects how close the remaining budget is to exhaustion (low remaining = danger). */
+  riskBarClass(pct: number): string {
+    if (pct <= 20) {
+      return 'risk-bar-danger';
+    }
+    if (pct <= 50) {
+      return 'risk-bar-warn';
+    }
+    return 'risk-bar-ok';
+  }
+
   limitRows(): { label: string; configured: string; consumed: string; remaining: string }[] {
     const risk = this.risk();
     if (!risk) {
@@ -220,15 +257,15 @@ export class RiskPage implements OnInit {
     return [
       {
         label: 'Max daily loss',
-        configured: risk.max_daily_loss,
-        consumed: risk.consumed_daily_loss,
-        remaining: risk.remaining_daily_loss,
+        configured: formatQuote(risk.max_daily_loss, { decimals: 2 }),
+        consumed: formatQuote(risk.consumed_daily_loss, { decimals: 2 }),
+        remaining: formatQuote(risk.remaining_daily_loss, { decimals: 2 }),
       },
       {
         label: 'Max drawdown',
-        configured: risk.max_drawdown,
-        consumed: risk.consumed_drawdown,
-        remaining: risk.remaining_drawdown,
+        configured: formatQuote(risk.max_drawdown, { decimals: 2 }),
+        consumed: formatQuote(risk.consumed_drawdown, { decimals: 2 }),
+        remaining: formatQuote(risk.remaining_drawdown, { decimals: 2 }),
       },
       {
         label: 'Max orders / day',
@@ -238,9 +275,9 @@ export class RiskPage implements OnInit {
       },
       {
         label: 'Max notional / order',
-        configured: risk.max_notional_per_order,
+        configured: formatQuote(risk.max_notional_per_order, { decimals: 2 }),
         consumed: '-',
-        remaining: 'position sizing is engine-owned',
+        remaining: '-',
       },
     ];
   }

@@ -47,6 +47,11 @@ class PortfolioState(BaseModel):
     orders_today: int = Field(ge=0)
     last_price: dict[str, PositiveDecimal] = Field(default_factory=dict)
     open_quantity: dict[str, NonNegativeDecimal] = Field(default_factory=dict)
+    # Opționale — implicit dict vid. Un instrument absent aici e tratat de RiskEngine ca
+    # "dată lipsă", nu ca "0 spread"/"volum infinit": verificarea corespunzătoare respinge
+    # explicit dacă limita e activă și instrumentul nu are o valoare cunoscută.
+    spread_bps: dict[str, NonNegativeDecimal] = Field(default_factory=dict)
+    bar_volume: dict[str, NonNegativeDecimal] = Field(default_factory=dict)
 
 
 def _optional_positive_decimal(raw: Any, default: Decimal, field_name: str) -> Decimal:

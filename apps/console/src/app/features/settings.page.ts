@@ -22,17 +22,27 @@ import { PageSkeleton } from '../shared/page-skeleton';
       @if (!ready()) {
         <app-page-skeleton />
       } @else if (settings(); as s) {
+        <p class="muted">Read-only. These flags reflect the running config; change them in the environment/config files, not here.</p>
         <dl class="facts">
           <div><dt>Environment</dt><dd>{{ s.environment }}</dd></div>
           <div>
             <dt>Trading mode</dt>
             <dd><p-tag [value]="s.trading_mode" [severity]="s.trading_mode === 'live' ? 'warn' : 'info'" /></dd>
           </div>
-          <div><dt>Live flag</dt><dd>{{ s.live_trading_enabled }}</dd></div>
-          <div><dt>Broker paper mode</dt><dd>{{ s.broker_paper_mode }}</dd></div>
+          <div>
+            <dt>Live flag</dt>
+            <dd><p-tag [value]="s.live_trading_enabled ? 'enabled' : 'disabled'" [severity]="s.live_trading_enabled ? 'danger' : 'success'" /></dd>
+          </div>
+          <div>
+            <dt>Broker paper mode</dt>
+            <dd><p-tag [value]="s.broker_paper_mode ? 'paper' : 'live'" [severity]="s.broker_paper_mode ? 'success' : 'danger'" /></dd>
+          </div>
           <div><dt>Kraken spot key</dt><dd>{{ s.kraken_spot_key_present ? 'present' : 'absent' }}</dd></div>
           <div><dt>Kraken spot secret</dt><dd>{{ s.kraken_spot_secret_present ? 'present' : 'absent' }}</dd></div>
-          <div><dt>Withdraw enabled</dt><dd>{{ s.withdraw_enabled }}</dd></div>
+          <div>
+            <dt>Withdraw enabled</dt>
+            <dd><p-tag [value]="s.withdraw_enabled ? 'enabled' : 'disabled'" [severity]="s.withdraw_enabled ? 'danger' : 'success'" /></dd>
+          </div>
           <div><dt>IP whitelist attested</dt><dd>{{ s.ip_whitelist_configured }}</dd></div>
           <div><dt>Dedicated subaccount</dt><dd>{{ s.subaccount }}</dd></div>
           <div><dt>Operator role</dt><dd>{{ s.operator_role }}</dd></div>
@@ -44,7 +54,20 @@ import { PageSkeleton } from '../shared/page-skeleton';
       <h2>Local operator token</h2>
       <p class="muted">Optional. Stored in this browser only. Matches CONTROL_OPERATOR_TOKEN if set.</p>
       <div class="toolbar">
-        <input pInputText [(ngModel)]="token" placeholder="Bearer token" aria-label="Operator token" />
+        <input
+          pInputText
+          [type]="showToken() ? 'text' : 'password'"
+          [(ngModel)]="token"
+          placeholder="Bearer token"
+          aria-label="Operator token"
+          autocomplete="off"
+        />
+        <p-button
+          [label]="showToken() ? 'Hide' : 'Show'"
+          severity="secondary"
+          [text]="true"
+          (onClick)="showToken.set(!showToken())"
+        />
         <p-button label="Save token" (onClick)="saveToken()" />
       </div>
     </div>
@@ -55,6 +78,7 @@ export class SettingsPage implements OnInit {
   readonly state = inject(AgentStateService);
   readonly settings = signal<SecuritySettings | null>(null);
   readonly ready = signal(false);
+  readonly showToken = signal(false);
   token = localStorage.getItem('control_operator_token') ?? '';
 
   ngOnInit(): void {

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -150,10 +151,24 @@ def main() -> None:
     cache_dir = REPO_ROOT / ".cache" / "market_data"
     now = datetime.now(timezone.utc)
 
+    # Default 'files' (rollback target); MARKET_DATA_STORE_BACKEND=postgres reads/
+    # writes ohlcv_candles instead (docs/database-cutover-playbook.md §Market data).
+    market_data_backend = os.environ.get("MARKET_DATA_STORE_BACKEND", "files")
+    market_data_database_url = os.environ.get("MARKET_DATA_DATABASE_URL")
     if args.csv:
-        market = make_cached_historical(cache_dir, csv_path=Path(args.csv))
+        market = make_cached_historical(
+            cache_dir,
+            csv_path=Path(args.csv),
+            backend=market_data_backend,
+            database_url=market_data_database_url,
+        )
     else:
-        market = make_cached_historical(cache_dir, args.history_source)
+        market = make_cached_historical(
+            cache_dir,
+            args.history_source,
+            backend=market_data_backend,
+            database_url=market_data_database_url,
+        )
     bars, dataset_hash = market.get_or_fetch(
         args.instrument, start, end, args.timeframe, now=now
     )

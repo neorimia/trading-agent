@@ -8,7 +8,7 @@ import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 
 import { ApiService } from '../core/api.service';
-import { MarketInstrument, pnlClass } from '../core/models';
+import { MarketInstrument, formatQuote, pnlClass } from '../core/models';
 import { EmptyState } from '../shared/empty-state';
 import { PageHeader } from '../shared/page-header';
 import { PageSkeleton } from '../shared/page-skeleton';
@@ -33,6 +33,7 @@ const WATCH_KEY = 'console_watchlist';
       } @else if (filtered().length === 0) {
         <app-empty-state title="No instruments" detail="Check universe.yaml and the control plane." icon="pi-search" />
       } @else {
+        <div class="table-scroll">
         <p-table [value]="filtered()" sortField="symbol" [sortOrder]="1">
           <ng-template #header>
             <tr>
@@ -44,7 +45,7 @@ const WATCH_KEY = 'console_watchlist';
               <th>Volume</th>
               <th>Vol.</th>
               <th>Spread</th>
-              <th>Age</th>
+              <th>Status</th>
             </tr>
           </ng-template>
           <ng-template #body let-row>
@@ -60,15 +61,16 @@ const WATCH_KEY = 'console_watchlist';
               </td>
               <td><a [routerLink]="['/market', row.symbol]">{{ row.symbol }}</a></td>
               <td>{{ row.venue }}</td>
-              <td class="mono">{{ row.price ?? '—' }}</td>
-              <td [class]="pnlClass(row.change_pct)">{{ row.change_pct ?? '—' }}</td>
-              <td class="mono">{{ row.volume ?? '—' }}</td>
-              <td class="mono est">{{ row.volatility ?? '—' }} <span class="est-label">est.</span></td>
-              <td>{{ row.spread ?? 'n/a' }}</td>
+              <td class="mono">{{ fmt(row.price) }}</td>
+              <td [class]="pnlClass(row.change_pct)">{{ fmt(row.change_pct) }}</td>
+              <td class="mono">{{ fmt(row.volume) }}</td>
+              <td class="mono est">{{ fmt(row.volatility) }} <span class="est-label">est.</span></td>
+              <td>{{ fmt(row.spread) }}</td>
               <td><app-stale-badge [stale]="row.stale" [reason]="row.status" /></td>
             </tr>
           </ng-template>
         </p-table>
+        </div>
       }
     </div>
   `,
@@ -79,6 +81,7 @@ export class MarketPage implements OnInit {
   readonly ready = signal(false);
   query = '';
   readonly watched = signal<Set<string>>(new Set(JSON.parse(localStorage.getItem(WATCH_KEY) || '[]')));
+  readonly fmt = formatQuote;
   readonly pnlClass = pnlClass;
 
   ngOnInit(): void {

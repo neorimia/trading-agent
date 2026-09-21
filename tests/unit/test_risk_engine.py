@@ -40,6 +40,10 @@ def _state(**overrides: object) -> PortfolioState:
         "orders_today": 0,
         "last_price": {"AAPL": Decimal("100")},
         "open_quantity": {"AAPL": Decimal("0")},
+        # Sub max_spread_bps / peste min_bar_volume din config/risk_limits.yaml — datele
+        # sunt "proaspete" implicit; testele de dată lipsă le suprascriu explicit.
+        "spread_bps": {"AAPL": Decimal("5")},
+        "bar_volume": {"AAPL": Decimal("100000")},
     }
     payload.update(overrides)
     return PortfolioState.model_validate(payload)

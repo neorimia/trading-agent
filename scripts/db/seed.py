@@ -133,6 +133,46 @@ def seed_reference_data(
             (instrument_id, exchange_id, symbol),
         )
 
+    # Vendors that supply OHLCV candles (distinct from research_sources above, which
+    # are news/filing sources — docs/database-design.md §8.3). csv_fixture has no
+    # exchange (used only by tests/local CSV backtests, src/data/sources.py
+    # CsvBarDataSource).
+    market_data_sources = (
+        ("kraken_public_ohlc", "KRAKEN", "rest_public", False, None),
+        ("binance_public_klines", "BINANCE", "rest_public", False, None),
+        ("csv_fixture", None, "vendor_bulk", False, None),
+    )
+    for name, exchange_code, kind, requires_auth, rate_limit in market_data_sources:
+        exchange_id = None
+        if exchange_code is not None:
+            exchange_row = connection.execute(
+                "SELECT exchange_id FROM exchanges WHERE code = %s",
+                (exchange_code,),
+            ).fetchone()
+            if exchange_row is None:
+                raise ValueError(
+                    f"unknown exchange code {exchange_code!r} for market data source {name!r}"
+                )
+            exchange_id = (
+                exchange_row["exchange_id"]
+                if isinstance(exchange_row, dict)
+                else exchange_row[0]
+            )
+        connection.execute(
+            """
+            INSERT INTO market_data_sources (
+                name, exchange_id, kind, requires_auth, rate_limit_per_min
+            ) VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (name) DO UPDATE SET
+                exchange_id = EXCLUDED.exchange_id,
+                kind = EXCLUDED.kind,
+                requires_auth = EXCLUDED.requires_auth,
+                rate_limit_per_min = EXCLUDED.rate_limit_per_min,
+                active = true
+            """,
+            (name, exchange_id, kind, requires_auth, rate_limit),
+        )
+
     sources = load_source_registry(sources_path)
     for source in sources:
         connection.execute(
@@ -191,7 +231,11 @@ def seed_reference_data(
                 json.dumps(source.notes),
             ),
         )
-    return {"instruments": len(instruments), "research_sources": len(sources)}
+    return {
+        "instruments": len(instruments),
+        "research_sources": len(sources),
+        "market_data_sources": len(market_data_sources),
+    }
 
 
 def main(argv: list[str] | None = None) -> int:

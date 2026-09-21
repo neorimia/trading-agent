@@ -16,3 +16,16 @@ circuit_breaker:
   max_consecutive_errors: 3
   max_consecutive_losses: 3
   halt_on_unknown_order_result: true
+
+# Extensii (Task "Strategies page overhaul", 2026-09-21). Toate strâng limitele de
+# mai sus, niciodată nu le lărgesc. Vezi docs/risk-management.md pentru justificare.
+max_risk_per_trade: 150
+min_reward_risk_ratio: 1
+# 50 bps acoperă spread-ul de cost model la multiplicator 3x (15 * 3 = 45 bps).
+max_spread_bps: 50
+# Proxy de lichiditate pe bară — mult sub volumele reale ETHUSD/BTCUSD 1h/1d observate,
+# blochează doar bare cu adevărat anormale (fixture-uri de test au 11000-23000).
+min_bar_volume: 1000
+# Între cap-ul per-instrument (2000) și cel per-clasă (5000) — vezi limitarea explicită
+# din docs/risk-management.md privind aproximarea "toate cripto = corelate 1".
+max_correlated_exposure: 3000

@@ -9,6 +9,7 @@ from uuid import UUID
 
 from src.audit.audit_log import AuditLog
 from src.data.sources import Bar, CsvBarDataSource
+from src.engine.cost_models import BASE_SPREAD_BPS
 from src.engine.paper_config import load_paper_trading_config
 from src.engine.portfolio_tracker import PortfolioTracker
 from src.engine.proposal_types import ParsedProposal, ProposalContext, RejectedProposal
@@ -69,7 +70,9 @@ def build_loop(
     rules, classes = load_instrument_rules(REPO_ROOT / "config" / "universe.yaml")
     risk = RiskEngine(limits, rules, classes, halt)
     breaker = CircuitBreaker(limits.circuit_breaker, halt)
-    tracker = PortfolioTracker(config.starting_cash, config.instrument, "crypto")
+    tracker = PortfolioTracker(
+        config.starting_cash, config.instrument, "crypto", spread_bps=BASE_SPREAD_BPS
+    )
     sim = broker if broker is not None else SimulatedBroker()
     gateway = OrderGateway(IdempotencyStore(tmp_path / "idemp.sqlite"), sim)
     audit = AuditLog(tmp_path / "audit.sqlite")

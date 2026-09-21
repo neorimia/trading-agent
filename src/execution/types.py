@@ -41,3 +41,7 @@ class OrderResult(BaseModel):
     filled_quantity: Decimal = Field(default=Decimal("0"), ge=0)
     fill_price: Decimal | None = None
     reason: str | None = None
+    # Comision estimat al fill-ului (aceeași unitate ca fill_price * filled_quantity).
+    # Implicit 0 pentru brokerii care nu modelează costuri (ex. kraken_live.py, unde
+    # comisionul real vine din exchange, nu e simulat aici).
+    fee: Decimal = Field(default=Decimal("0"), ge=0)

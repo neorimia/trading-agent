@@ -128,7 +128,7 @@ export function remainingRisk(value: unknown): LabeledValue[] {
     if (raw == null || raw === '') {
       return [];
     }
-    return [{ label, value: String(raw) }];
+    return [{ label, value: formatNumberish(raw) }];
   });
 }
 

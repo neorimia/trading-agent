@@ -1,14 +1,74 @@
-# Operator-facing registry. Engine still sizes via RiskEngine; UI cannot skip approval.
 strategies:
-  - id: baseline_ema_cross
-    name: Baseline EMA cross
-    kind: ema_cross
-    enabled: true
-    params:
-      fast_ema_period: 10
-      slow_ema_period: 20
-  - id: llm_assisted
-    name: LLM-assisted (proposal only)
-    kind: llm
-    enabled: true
-    params: {}
+- id: baseline_ema_cross
+  name: EMA trend filter
+  kind: ema_cross
+  enabled: true
+  status: experimental
+  version: 1
+  hypothesis: "On ETH/BTC, a trend confirmed by EMA(fast)>=EMA(slow) persists long
+    enough that a long-only position at current Kraken costs (maker 16bps/taker
+    26bps) isn't just noise \u2014 especially when ADX confirms it's an actual trend."
+  supported_assets:
+  - ETHUSD
+  - BTCUSD
+  supported_timeframes:
+  - 1h
+  - 4h
+  - 1d
+  params:
+    fast_ema_period: 10
+    slow_ema_period: 20
+    adx_period: 14
+    min_adx: '0'
+    atr_period: 14
+    atr_stop_mult: '2'
+    atr_target_mult: '3'
+- id: donchian_breakout
+  name: Donchian breakout + volume
+  kind: donchian_breakout
+  enabled: true
+  status: experimental
+  version: 1
+  hypothesis: "A breakout from the Donchian(N) channel confirmed by volume (z-score)
+    is a continuation, not a fake-out, only in a trending regime (minimum ADX). Does
+    not run in a ranging regime."
+  supported_assets:
+  - ETHUSD
+  - BTCUSD
+  supported_timeframes:
+  - 1h
+  - 4h
+  - 1d
+  params: {}
+- id: rsi_mean_reversion
+  name: RSI mean reversion (sideways)
+  kind: rsi_mean_reversion
+  enabled: true
+  status: experimental
+  version: 1
+  hypothesis: "In a ranging regime (low ADX), extreme RSI reverts to the mean on
+    ETH/BTC daily/hourly. Invalidated if ADX moves into a trend."
+  supported_assets:
+  - ETHUSD
+  - BTCUSD
+  supported_timeframes:
+  - 1h
+  - 4h
+  - 1d
+  params: {}
+- id: llm_assisted
+  name: LLM-assisted (proposal only)
+  kind: llm
+  enabled: true
+  status: experimental
+  version: 1
+  hypothesis: "LLM proposals (long/avoid/exit) from external context \u2014 not a
+    statistically testable rule, stays experimental until it beats the baseline on
+    OOS with 1x/2x/3x costs."
+  supported_assets:
+  - ETHUSD
+  - BTCUSD
+  supported_timeframes:
+  - 1h
+  - 1d
+  params: {}

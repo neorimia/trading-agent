@@ -8,6 +8,7 @@ import {
   AlertRow,
   AnalysisRunResponse,
   AnalysisType,
+  BacktestJobRow,
   BarsResponse,
   BrokerMonitorSnapshot,
   DailyPlan,
@@ -25,6 +26,8 @@ import {
   SignalResponse,
   StoredAnalysis,
   StrategyRow,
+  StrategyStatusLabel,
+  StrategyVersionRow,
   StressReport,
 } from './models';
 
@@ -140,6 +143,48 @@ export class ApiService {
       `/v1/strategies/${id}`,
       { enabled, confirmation_token: token },
       idempotent(`strategy-${id}-${enabled}`),
+    );
+  }
+
+  startBacktest(
+    id: string,
+    body: { universe_symbol: string; timeframe: string; start: string; end: string; cost_multiplier: 1 | 2 | 3 },
+  ): Observable<{ run_id: string; status: string }> {
+    return this.http.post<{ run_id: string; status: string }>(
+      `/v1/strategies/${id}/backtests`,
+      { ...body, confirmation_token: 'RUN_BACKTEST' },
+      idempotent(`backtest-${id}-${Date.now()}`),
+    );
+  }
+
+  listBacktests(id: string): Observable<BacktestJobRow[]> {
+    return this.http.get<BacktestJobRow[]>(`/v1/strategies/${id}/backtests`);
+  }
+
+  getBacktest(id: string, runId: string): Observable<BacktestJobRow> {
+    return this.http.get<BacktestJobRow>(`/v1/strategies/${id}/backtests/${runId}`);
+  }
+
+  listStrategyVersions(id: string): Observable<StrategyVersionRow[]> {
+    return this.http.get<StrategyVersionRow[]>(`/v1/strategies/${id}/versions`);
+  }
+
+  writeStrategyVersion(
+    id: string,
+    body: { params: Record<string, unknown>; change_note: string; status?: StrategyStatusLabel },
+  ): Observable<AckResponse> {
+    return this.http.post<AckResponse>(
+      `/v1/strategies/${id}/versions`,
+      { ...body, confirmation_token: 'EDIT_STRATEGY' },
+      idempotent(`strategy-version-${id}-${Date.now()}`),
+    );
+  }
+
+  cloneStrategy(id: string, newId: string): Observable<AckResponse> {
+    return this.http.post<AckResponse>(
+      `/v1/strategies/${id}/clone`,
+      { new_id: newId, confirmation_token: 'CLONE_STRATEGY' },
+      idempotent(`strategy-clone-${id}-${newId}`),
     );
   }
 

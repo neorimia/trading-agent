@@ -537,6 +537,289 @@ def test_strategy_toggle_requires_token(tmp_path: Path) -> None:
     assert ok.json()["restart_required"] is True
 
 
+def test_strategy_list_includes_version_status_and_hypothesis(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.get("/v1/strategies")
+    rows = response.json()
+    baseline = next(row for row in rows if row["id"] == "baseline_ema_cross")
+    assert baseline["status"] == "experimental"
+    assert baseline["version"] == 1
+    assert baseline["hypothesis"]
+    assert "ETHUSD" in baseline["supported_assets"]
+
+
+def test_strategy_backtest_start_requires_token(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        denied = client.post(
+            "/v1/strategies/baseline_ema_cross/backtests",
+            json={
+                "universe_symbol": "ETHUSD",
+                "timeframe": "1d",
+                "start": "2024-11-01T00:00:00Z",
+                "end": "2024-12-16T00:00:00Z",
+                "cost_multiplier": 1,
+                "confirmation_token": "nope",
+            },
+            headers={"Idempotency-Key": "bt-bad"},
+        )
+    assert denied.status_code == 422
+
+
+def test_strategy_backtest_start_unknown_strategy_returns_404(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/strategies/does-not-exist/backtests",
+            json={
+                "universe_symbol": "ETHUSD",
+                "timeframe": "1d",
+                "start": "2024-11-01T00:00:00Z",
+                "end": "2024-12-16T00:00:00Z",
+                "cost_multiplier": 1,
+                "confirmation_token": "RUN_BACKTEST",
+            },
+            headers={"Idempotency-Key": "bt-404"},
+        )
+    assert response.status_code == 404
+
+
+def test_strategy_backtest_start_rejects_llm_kind(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/strategies/llm_assisted/backtests",
+            json={
+                "universe_symbol": "ETHUSD",
+                "timeframe": "1d",
+                "start": "2024-11-01T00:00:00Z",
+                "end": "2024-12-16T00:00:00Z",
+                "cost_multiplier": 1,
+                "confirmation_token": "RUN_BACKTEST",
+            },
+            headers={"Idempotency-Key": "bt-llm"},
+        )
+    assert response.status_code == 422
+    assert "cannot run via the async backtest job" in response.json()["detail"]
+
+
+def test_strategy_backtest_full_lifecycle_queued_then_visible_in_list_and_status(
+    tmp_path: Path,
+) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        started = client.post(
+            "/v1/strategies/baseline_ema_cross/backtests",
+            json={
+                "universe_symbol": "ETHUSD",
+                "timeframe": "1d",
+                "start": "2024-11-01T00:00:00Z",
+                "end": "2024-12-16T00:00:00Z",
+                "cost_multiplier": 1,
+                "confirmation_token": "RUN_BACKTEST",
+            },
+            headers={"Idempotency-Key": "bt-run-1"},
+        )
+        assert started.status_code == 200
+        run_id = started.json()["run_id"]
+        assert started.json()["status"] == "queued"
+
+        # worker-ul e async; procesăm sincron ca să nu depindem de timing în test.
+        ctx.backtest_jobs().process_one(timeout_s=5)
+
+        status = client.get(f"/v1/strategies/baseline_ema_cross/backtests/{run_id}")
+        assert status.status_code == 200
+        record = status.json()
+        assert record["status"] == "done"
+        assert record["metrics"]["comparable"]["n_bars"] == 3
+
+        listing = client.get("/v1/strategies/baseline_ema_cross/backtests")
+        assert listing.status_code == 200
+        assert any(row["run_id"] == run_id for row in listing.json())
+
+        missing = client.get(f"/v1/strategies/baseline_ema_cross/backtests/{run_id}-nope")
+        assert missing.status_code == 404
+
+
+def test_strategy_backtest_status_mismatched_strategy_returns_404(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        started = client.post(
+            "/v1/strategies/baseline_ema_cross/backtests",
+            json={
+                "universe_symbol": "ETHUSD",
+                "timeframe": "1d",
+                "start": "2024-11-01T00:00:00Z",
+                "end": "2024-12-16T00:00:00Z",
+                "cost_multiplier": 1,
+                "confirmation_token": "RUN_BACKTEST",
+            },
+            headers={"Idempotency-Key": "bt-run-2"},
+        )
+        run_id = started.json()["run_id"]
+        wrong_strategy = client.get(f"/v1/strategies/donchian_breakout/backtests/{run_id}")
+    assert wrong_strategy.status_code == 404
+
+
+def test_strategy_version_write_requires_token(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        denied = client.post(
+            "/v1/strategies/baseline_ema_cross/versions",
+            json={
+                "params": {"fast_ema_period": 8, "slow_ema_period": 21},
+                "change_note": "tighten fast EMA",
+                "confirmation_token": "nope",
+            },
+            headers={"Idempotency-Key": "ver-bad"},
+        )
+    assert denied.status_code == 422
+
+
+def test_strategy_version_write_rejects_invalid_params(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/strategies/baseline_ema_cross/versions",
+            json={
+                "params": {"fast_ema_period": -1, "slow_ema_period": 20},
+                "change_note": "bad params",
+                "confirmation_token": "EDIT_STRATEGY",
+            },
+            headers={"Idempotency-Key": "ver-invalid"},
+        )
+    assert response.status_code == 422
+
+
+def test_strategy_version_write_creates_new_version_and_is_listed(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        first = client.post(
+            "/v1/strategies/baseline_ema_cross/versions",
+            json={
+                "params": {"fast_ema_period": 9, "slow_ema_period": 20},
+                "change_note": "initial snapshot in this fresh env",
+                "confirmation_token": "EDIT_STRATEGY",
+            },
+            headers={"Idempotency-Key": "ver-ok-1"},
+        )
+        assert first.status_code == 200
+        assert first.json()["restart_required"] is True
+
+        second = client.post(
+            "/v1/strategies/baseline_ema_cross/versions",
+            json={
+                "params": {"fast_ema_period": 8, "slow_ema_period": 21},
+                "change_note": "tighten fast EMA",
+                "confirmation_token": "EDIT_STRATEGY",
+            },
+            headers={"Idempotency-Key": "ver-ok-2"},
+        )
+        assert second.status_code == 200
+
+        versions = client.get("/v1/strategies/baseline_ema_cross/versions")
+        assert versions.status_code == 200
+        rows = versions.json()
+        assert [row["version"] for row in rows] == [1, 2]
+        assert rows[-1]["params"]["fast_ema_period"] == 8
+        assert rows[-1]["change_note"] == "tighten fast EMA"
+
+        listed = client.get("/v1/strategies")
+        row = next(item for item in listed.json() if item["id"] == "baseline_ema_cross")
+        assert row["version"] == 2
+        assert row["params"]["fast_ema_period"] == "8"
+
+
+def test_strategy_version_write_can_mark_status_without_changing_params(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        write = client.post(
+            "/v1/strategies/baseline_ema_cross/versions",
+            json={
+                "params": {"fast_ema_period": 10, "slow_ema_period": 20},
+                "status": "paper_candidate",
+                "change_note": "promoted after OOS review",
+                "confirmation_token": "EDIT_STRATEGY",
+            },
+            headers={"Idempotency-Key": "ver-status"},
+        )
+        assert write.status_code == 200
+
+        listed = client.get("/v1/strategies")
+        row = next(item for item in listed.json() if item["id"] == "baseline_ema_cross")
+        assert row["status"] == "paper_candidate"
+        assert row["version"] == 1
+
+
+def test_strategy_version_write_unknown_strategy_returns_404(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/strategies/does-not-exist/versions",
+            json={
+                "params": {},
+                "change_note": "x",
+                "confirmation_token": "EDIT_STRATEGY",
+            },
+            headers={"Idempotency-Key": "ver-404"},
+        )
+    assert response.status_code == 404
+
+
+def test_strategy_clone_requires_token(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/strategies/donchian_breakout/clone",
+            json={"new_id": "donchian_breakout_copy", "confirmation_token": "nope"},
+            headers={"Idempotency-Key": "clone-bad"},
+        )
+    assert response.status_code == 422
+
+
+def test_strategy_clone_creates_disabled_experimental_copy(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        cloned = client.post(
+            "/v1/strategies/donchian_breakout/clone",
+            json={"new_id": "donchian_breakout_copy", "confirmation_token": "CLONE_STRATEGY"},
+            headers={"Idempotency-Key": "clone-ok"},
+        )
+        assert cloned.status_code == 200
+
+        listed = client.get("/v1/strategies")
+        row = next(item for item in listed.json() if item["id"] == "donchian_breakout_copy")
+        assert row["enabled"] is False
+        assert row["status"] == "experimental"
+        assert row["version"] == 1
+
+        versions = client.get("/v1/strategies/donchian_breakout_copy/versions")
+        assert len(versions.json()) == 1
+
+
+def test_strategy_clone_duplicate_id_rejected(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/strategies/donchian_breakout/clone",
+            json={"new_id": "baseline_ema_cross", "confirmation_token": "CLONE_STRATEGY"},
+            headers={"Idempotency-Key": "clone-dup"},
+        )
+    assert response.status_code == 422
+
+
+def test_strategy_clone_unknown_source_returns_404(tmp_path: Path) -> None:
+    ctx = _ctx(tmp_path)
+    with _client(ctx) as client:
+        response = client.post(
+            "/v1/strategies/does-not-exist/clone",
+            json={"new_id": "whatever", "confirmation_token": "CLONE_STRATEGY"},
+            headers={"Idempotency-Key": "clone-404"},
+        )
+    assert response.status_code == 404
+
+
 def test_websocket_emits_health_channel(tmp_path: Path) -> None:
     ctx = _ctx(tmp_path)
     with _client(ctx) as client:

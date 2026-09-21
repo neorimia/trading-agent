@@ -95,7 +95,7 @@ Chrome (sus, pe toate paginile):
 |---|---|
 | Dashboard `/` | Equity, cash, P&L paper (simulat), broker monitor, plan zilnic. |
 | Market `/market` | Universe allowlist; prețuri = close de bar, nu bandă live. Click pe simbol → grafic. |
-| Strategies `/strategies` | Enable/disable. După schimbare e nevoie de **restart** (Stop + Start). Nu ocolește riscul și nici aprobarea umană. |
+| Strategies `/strategies` | Listă + detaliu (vezi §4.1). Enable/disable, editare parametri (creează versiune nouă), clone, backtest. După enable/disable/editare e nevoie de **restart** (Stop + Start). Nu ocolește riscul și nici aprobarea umană. |
 | Orders `/orders` | **Pending human approval**, poziții paper, istoric ordine. Aici aprobi sau respingi. |
 | Risk `/risk` | Limite din YAML, circuit breaker, halt reset. Scrierea limitelor cere confirmare tastată `MAX_DAILY_LOSS` și restart. |
 | Research `/research` | Documente externe (neîncredere implicită). Necesită procesul research. |
@@ -103,6 +103,26 @@ Chrome (sus, pe toate paginile):
 | Settings `/settings` | Flag-uri de securitate (secretele nu se afișează). Token opțional dacă `CONTROL_OPERATOR_TOKEN` e setat. |
 
 Rol `observer` (`CONTROL_OPERATOR_ROLE`): doar vizualizare, fără mutații.
+
+### 4.1 Pagina Strategies în detaliu
+
+Master-detail: tabel de strategii în stânga (status vizual — `experimental` / `testing` / `paper_candidate` / `disabled`, versiune, activ/inactiv), panou de detaliu în dreapta pentru strategia selectată.
+
+**În detaliu vezi:**
+- Ipoteza de piață, parametrii curenți, activele/timeframe-urile suportate.
+- Istoricul de versiuni (`config/strategy_versions/<id>/vN.json`, imutabil) — orice editare de parametri sau schimbare de status creează o versiune nouă, nu suprascrie una veche.
+- Backtest-uri rulate pentru strategie: status job (`queued`/`running`/`done`/`error`), metrici complete (return, Sharpe, drawdown, win rate — cu avertismentele de eșantion mic dacă e cazul), comparație cu buy-and-hold, performanță pe regim de piață (bull/bear/sideways, high/low vol), equity curve + drawdown curve (grafice `LineChart`), histogramă P&L per tranzacție.
+
+**Acțiuni (toate cer `ConfirmDanger` + token tastat, nicio acțiune nu trimite ordine pe Kraken):**
+
+| Acțiune | Token | Efect |
+|---|---|---|
+| Enable/disable | `DISABLE_STRATEGY` | Scrie `enabled` în YAML + versiune nouă. Cere restart. |
+| Editare parametri | (validare Pydantic strictă înainte de scriere) | Creează versiune nouă (`vN+1`), nu modifică versiunile anterioare. |
+| Clonare | `CLONE_STRATEGY` | Creează o strategie nouă, `disabled` + `experimental` implicit, cu id ales de operator. |
+| Rulare backtest | `RUN_BACKTEST` | `POST /v1/strategies/{id}/backtests` — job asincron, rezultat vizibil când `status=done`. |
+
+Nicio strategie nu trece automat din `experimental` în `paper_candidate` — schimbarea de status e tot o scriere de versiune, manuală, cu token.
 
 ---
 

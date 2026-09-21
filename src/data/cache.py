@@ -71,6 +71,10 @@ class MarketDataCache:
         self._source = source
         self._validator = DataValidator()
 
+    def close(self) -> None:
+        """No owned resources; matches `MarketDataRepository.close()` for parity with
+        the PostgreSQL-backed cache (src/data/postgres_store.py)."""
+
     def get_or_fetch(
         self,
         instrument: str,

@@ -34,7 +34,10 @@ const STATUS_OPTIONS = [
       />
       <div class="toolbar">
         <p-select [(ngModel)]="status" [options]="statusOptions" optionLabel="label" optionValue="value" placeholder="Status" (onChange)="load()" />
-        <p-inputnumber [(ngModel)]="minScore" placeholder="Min. opportunity score" [min]="0" [max]="1" [step]="0.05" (onInput)="load()" />
+        <label>
+          Min. score (0–1)
+          <p-inputnumber [(ngModel)]="minScore" placeholder="0.00–1.00" [min]="0" [max]="1" [step]="0.05" (onInput)="load()" />
+        </label>
         <p-button label="Load" (onClick)="load()" />
       </div>
       @if (!ready()) {

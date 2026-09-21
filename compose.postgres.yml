@@ -1,6 +1,11 @@
 services:
   postgres:
-    image: postgres:18
+    # TimescaleDB Community Edition (TSL, free for self-hosting) on PostgreSQL 18.
+    # Required starting with the market data slice: ohlcv_candles/order_book_snapshots/
+    # trades are hypertables (docs/database-design.md §7, §20 Faza 2). Vanilla postgres:18
+    # volumes are not compatible with this image — `docker compose down -v` (or a
+    # pg_dump/pg_restore) before switching if you have an existing local volume.
+    image: timescale/timescaledb:2.29.2-pg18
     environment:
       POSTGRES_DB: trading_research
       POSTGRES_USER: trading_migrator

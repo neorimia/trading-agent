@@ -6,7 +6,7 @@ import { Tag } from 'primeng/tag';
 
 import { AgentStateService } from '../core/agent-state.service';
 import { ApiService } from '../core/api.service';
-import { DailyPlan, PortfolioResponse, BrokerMonitorSnapshot, pnlClass } from '../core/models';
+import { DailyPlan, PortfolioResponse, BrokerMonitorSnapshot, formatQuote, pnlClass } from '../core/models';
 import { EmptyState } from '../shared/empty-state';
 import { MetricCard } from '../shared/metric-card';
 import { PageHeader } from '../shared/page-header';
@@ -32,22 +32,25 @@ import { PlanStatus } from '../shared/session-plan.util';
         }
         <h2>Paper book (simulated)</h2>
         <section class="pnl-strip">
-          <app-metric-card label="Equity" [value]="portfolio()!.equity" size="hero" />
+          <app-metric-card label="Equity" [value]="portfolio()!.equity" [decimals]="2" hint="USD" size="hero" />
           <section class="metric-grid">
-            <app-metric-card label="Cash" [value]="portfolio()!.cash" />
+            <app-metric-card label="Cash" [value]="portfolio()!.cash" [decimals]="2" hint="USD" />
             <app-metric-card
               label="Realized P&L"
               [value]="portfolio()!.realized_pnl"
+              [decimals]="2"
+              hint="USD"
               [valueClass]="pnlClass(portfolio()!.realized_pnl)"
             />
             <app-metric-card
               label="Unrealized P&L"
               [value]="portfolio()!.unrealized_pnl"
+              [decimals]="2"
+              hint="USD · est. from last bar"
               [valueClass]="pnlClass(portfolio()!.unrealized_pnl)"
-              hint="est. from last bar"
             />
-            <app-metric-card label="Drawdown" [value]="portfolio()!.drawdown" />
-            <app-metric-card label="Orders today" [value]="'' + portfolio()!.orders_today" />
+            <app-metric-card label="Drawdown" [value]="portfolio()!.drawdown" [decimals]="2" hint="USD" />
+            <app-metric-card label="Orders today" [value]="portfolio()!.orders_today" [decimals]="0" />
           </section>
         </section>
       }
@@ -148,7 +151,9 @@ export class DashboardPage implements OnInit {
   }
 
   krakenBalanceEntries(): [string, string][] {
-    return Object.entries(this.monitor().positions);
+    return Object.entries(this.monitor().positions).map(
+      ([asset, quantity]) => [asset, formatQuote(quantity)] as [string, string],
+    );
   }
 
   loadPlan(): void {
@@ -175,6 +180,8 @@ export class DashboardPage implements OnInit {
     if (!portfolio) {
       return [];
     }
-    return Object.entries(portfolio.exposure_per_instrument);
+    return Object.entries(portfolio.exposure_per_instrument).map(
+      ([key, notional]) => [key, formatQuote(notional, { decimals: 2 })] as [string, string],
+    );
   }
 }

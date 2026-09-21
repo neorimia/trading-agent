@@ -7,9 +7,12 @@ from pathlib import Path
 import pytest
 
 from scripts.dev.start_stack import (
+    _DEFAULT_POSTGRES_URL,
     assert_paper_start_allowed,
     isolated_service_env,
     live_flag_enabled,
+    postgres_backend_enabled,
+    postgres_database_urls,
     read_dotenv_value,
 )
 
@@ -66,3 +69,62 @@ def test_live_flag_process_env_wins_over_file(tmp_path: Path) -> None:
     (tmp_path / ".env.engine").write_text("LIVE_TRADING_ENABLED=true\n", encoding="utf-8")
     assert live_flag_enabled(tmp_path, {"LIVE_TRADING_ENABLED": "false"}) is False
     assert_paper_start_allowed(tmp_path, {"LIVE_TRADING_ENABLED": "false"})
+
+
+def test_postgres_backend_enabled_from_research_or_control(tmp_path: Path) -> None:
+    assert postgres_backend_enabled(tmp_path) is False
+    (tmp_path / ".env.research").write_text(
+        "RESEARCH_STORE_BACKEND=postgres\n", encoding="utf-8"
+    )
+    assert postgres_backend_enabled(tmp_path) is True
+    (tmp_path / ".env.research").write_text(
+        "RESEARCH_STORE_BACKEND=sqlite\n", encoding="utf-8"
+    )
+    (tmp_path / ".env.control").write_text(
+        "RESEARCH_STORE_BACKEND=postgres\n", encoding="utf-8"
+    )
+    assert postgres_backend_enabled(tmp_path) is True
+
+
+def test_postgres_database_urls_collects_research_and_control(tmp_path: Path) -> None:
+    (tmp_path / ".env.research").write_text(
+        "RESEARCH_STORE_BACKEND=postgres\n"
+        "RESEARCH_DATABASE_URL=postgresql://writer@127.0.0.1:5432/trading_research\n",
+        encoding="utf-8",
+    )
+    (tmp_path / ".env.control").write_text(
+        "RESEARCH_STORE_BACKEND=postgres\n"
+        "CONTROL_DATABASE_URL=postgresql://reader@127.0.0.1:5432/trading_research\n",
+        encoding="utf-8",
+    )
+    urls = postgres_database_urls(tmp_path)
+    assert urls == [
+        "postgresql://writer@127.0.0.1:5432/trading_research",
+        "postgresql://reader@127.0.0.1:5432/trading_research",
+    ]
+
+
+def test_postgres_database_urls_default_when_backend_without_url(tmp_path: Path) -> None:
+    (tmp_path / ".env.research").write_text(
+        "RESEARCH_STORE_BACKEND=postgres\n", encoding="utf-8"
+    )
+    assert postgres_database_urls(tmp_path) == [_DEFAULT_POSTGRES_URL]
+
+
+def test_postgres_backend_enabled_from_market_data_engine_file(tmp_path: Path) -> None:
+    assert postgres_backend_enabled(tmp_path) is False
+    (tmp_path / ".env.engine").write_text(
+        "MARKET_DATA_STORE_BACKEND=postgres\n", encoding="utf-8"
+    )
+    assert postgres_backend_enabled(tmp_path) is True
+
+
+def test_postgres_database_urls_includes_market_data_engine_url(tmp_path: Path) -> None:
+    (tmp_path / ".env.engine").write_text(
+        "MARKET_DATA_STORE_BACKEND=postgres\n"
+        "MARKET_DATA_DATABASE_URL=postgresql://market_data_writer@127.0.0.1:5432/trading_research\n",
+        encoding="utf-8",
+    )
+    assert postgres_database_urls(tmp_path) == [
+        "postgresql://market_data_writer@127.0.0.1:5432/trading_research"
+    ]

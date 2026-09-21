@@ -54,6 +54,8 @@ def _state(**overrides: object) -> PortfolioState:
         "orders_today": 0,
         "last_price": {"AAPL": Decimal("100")},
         "open_quantity": {"AAPL": Decimal("0")},
+        "spread_bps": {"AAPL": Decimal("5")},
+        "bar_volume": {"AAPL": Decimal("100000")},
     }
     payload.update(overrides)
     return PortfolioState.model_validate(payload)

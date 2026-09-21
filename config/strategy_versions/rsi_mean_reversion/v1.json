@@ -1,0 +1,21 @@
+{
+  "change_note": "initial version, seeded by strategies-page-overhaul plan",
+  "enabled": false,
+  "hypothesis": "In a ranging regime (low ADX), extreme RSI reverts to the mean on ETH/BTC daily/hourly. Invalidated if ADX moves into a trend.",
+  "id": "rsi_mean_reversion",
+  "kind": "rsi_mean_reversion",
+  "name": "RSI mean reversion (sideways)",
+  "params": {},
+  "status": "experimental",
+  "supported_assets": [
+    "ETHUSD",
+    "BTCUSD"
+  ],
+  "supported_timeframes": [
+    "1h",
+    "4h",
+    "1d"
+  ],
+  "updated_at": "2026-09-21T11:55:32.030077Z",
+  "version": 1
+}

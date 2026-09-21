@@ -1,0 +1,21 @@
+{
+  "change_note": "initial version, seeded by strategies-page-overhaul plan",
+  "enabled": false,
+  "hypothesis": "A breakout from the Donchian(N) channel confirmed by volume (z-score) is a continuation, not a fake-out, only in a trending regime (minimum ADX). Does not run in a ranging regime.",
+  "id": "donchian_breakout",
+  "kind": "donchian_breakout",
+  "name": "Donchian breakout + volume",
+  "params": {},
+  "status": "experimental",
+  "supported_assets": [
+    "ETHUSD",
+    "BTCUSD"
+  ],
+  "supported_timeframes": [
+    "1h",
+    "4h",
+    "1d"
+  ],
+  "updated_at": "2026-09-21T11:55:32.030072Z",
+  "version": 1
+}

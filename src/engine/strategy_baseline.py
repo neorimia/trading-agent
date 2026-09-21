@@ -69,10 +69,10 @@ class BaselineEMACross(Strategy):
             self._bar_index += 1
         if our_bar.timestamp < _from_ns(self.config.trade_start_ns) and self.config.trade_start_ns:
             self._history.append(our_bar)
-            self._tracker.on_bar(our_bar.timestamp, our_bar.close)
+            self._tracker.on_bar(our_bar.timestamp, our_bar.close, volume=our_bar.volume)
             return
         self._history.append(our_bar)
-        self._tracker.on_bar(our_bar.timestamp, our_bar.close)
+        self._tracker.on_bar(our_bar.timestamp, our_bar.close, volume=our_bar.volume)
         proposal = baseline_proposal(
             self._history,
             fast_period=int(self.config.fast_ema_period),

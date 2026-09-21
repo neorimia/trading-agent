@@ -1,4 +1,4 @@
-"""Start the local operator stack: LLM, research, control, console, then paper via API.
+"""Start the local operator stack: PostgreSQL (when configured), LLM, research, control, console, then paper via API.
 
 Does not source all .env files into the parent. Does not set LIVE_TRADING_ENABLED.
 Paper and the broker monitor sidecar are started by POST /v1/agent/start, not by this process.
@@ -8,12 +8,14 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import signal
 import socket
 import subprocess
 import sys
 import time
 from pathlib import Path
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 import httpx
@@ -22,6 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from src.db.pool import database_ready  # noqa: E402
 from src.execution.key_policy import (  # noqa: E402
     KRAKEN_TRADING_KEYS,
     LIVE_TRADING_FLAG,
@@ -37,6 +40,9 @@ OLLAMA_URL = "http://127.0.0.1:11434"
 
 _REQUIRED_ENV_FILES = (".env.llm", ".env.control", ".env.engine")
 _WAIT_TIMEOUT_S = 45.0
+_DEFAULT_POSTGRES_URL = (
+    "postgresql://research_writer:local-dev-only@127.0.0.1:5432/trading_research"
+)
 
 
 def isolated_service_env(source: dict[str, str] | None = None) -> dict[str, str]:
@@ -134,6 +140,152 @@ def assert_paper_start_allowed(root: Path, environ: dict[str, str] | None = None
         )
 
 
+def postgres_backend_enabled(root: Path) -> bool:
+    """True when research, control, or market data is configured to use PostgreSQL."""
+    for env_name, key in (
+        (".env.research", "RESEARCH_STORE_BACKEND"),
+        (".env.control", "RESEARCH_STORE_BACKEND"),
+        (".env.engine", "MARKET_DATA_STORE_BACKEND"),
+    ):
+        backend = read_dotenv_value(root / env_name, key).strip().lower()
+        if backend == "postgres":
+            return True
+    return False
+
+
+def postgres_database_urls(root: Path) -> list[str]:
+    """Application-role URLs used to verify PostgreSQL readiness before HTTP services."""
+    urls: list[str] = []
+    for env_name, key in (
+        (".env.research", "RESEARCH_DATABASE_URL"),
+        (".env.control", "CONTROL_DATABASE_URL"),
+        (".env.engine", "MARKET_DATA_DATABASE_URL"),
+    ):
+        value = read_dotenv_value(root / env_name, key).strip()
+        if value and value not in urls:
+            urls.append(value)
+    if not urls and postgres_backend_enabled(root):
+        urls.append(_DEFAULT_POSTGRES_URL)
+    return urls
+
+
+def postgres_any_ready(urls: list[str]) -> bool:
+    return any(database_ready(url) for url in urls)
+
+
+def _postgres_port_open(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.2)
+        return sock.connect_ex((host, port)) == 0
+
+
+def _wait_postgres(urls: list[str], *, timeout_s: float = _WAIT_TIMEOUT_S) -> None:
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        if postgres_any_ready(urls):
+            return
+        time.sleep(0.5)
+    raise SystemExit(
+        "timeout waiting for PostgreSQL; check RESEARCH_DATABASE_URL / CONTROL_DATABASE_URL "
+        "and that trading_research exists (see deploy/RUNBOOK.md §4)"
+    )
+
+
+def _brew_postgres_formula() -> str | None:
+    brew = shutil.which("brew")
+    if brew is None:
+        return None
+    for formula in ("postgresql@18", "postgresql@17", "postgresql@16", "postgresql"):
+        completed = subprocess.run(
+            [brew, "list", formula],
+            capture_output=True,
+            check=False,
+        )
+        if completed.returncode == 0:
+            return formula
+    return None
+
+
+def _start_postgres_brew() -> bool:
+    formula = _brew_postgres_formula()
+    if formula is None:
+        return False
+    brew = shutil.which("brew")
+    if brew is None:
+        return False
+    print(f"starting PostgreSQL via brew services ({formula})…")
+    completed = subprocess.run(
+        [brew, "services", "start", formula],
+        capture_output=True,
+        check=False,
+    )
+    return completed.returncode == 0
+
+
+def _start_postgres_docker(root: Path) -> bool:
+    docker = shutil.which("docker")
+    compose_file = root / "compose.postgres.yml"
+    if docker is None or not compose_file.is_file():
+        return False
+    if _postgres_port_open("127.0.0.1", 5432):
+        return False
+    print("starting PostgreSQL via docker compose (compose.postgres.yml)…")
+    completed = subprocess.run(
+        [
+            docker,
+            "compose",
+            "-f",
+            str(compose_file),
+            "-p",
+            "trading-agent",
+            "up",
+            "-d",
+        ],
+        cwd=str(root),
+        capture_output=True,
+        check=False,
+    )
+    return completed.returncode == 0
+
+
+def ensure_postgres(root: Path, *, timeout_s: float = _WAIT_TIMEOUT_S) -> None:
+    """Start PostgreSQL when configured and wait until an application URL answers."""
+    if not postgres_backend_enabled(root):
+        return
+    urls = postgres_database_urls(root)
+    if not urls:
+        raise SystemExit(
+            "RESEARCH_STORE_BACKEND=postgres but no RESEARCH_DATABASE_URL or "
+            "CONTROL_DATABASE_URL is set"
+        )
+    if postgres_any_ready(urls):
+        host = urlsplit(urls[0]).hostname or "127.0.0.1"
+        port = urlsplit(urls[0]).port or 5432
+        print(f"postgres ready ({host}:{port})")
+        return
+
+    started = _start_postgres_brew()
+    if not started:
+        started = _start_postgres_docker(root)
+    if not started and _postgres_port_open("127.0.0.1", 5432):
+        raise SystemExit(
+            "PostgreSQL port 127.0.0.1:5432 is in use but configured database URLs "
+            "are not reachable; check credentials, database name, and role grants "
+            "(deploy/postgres/create_roles.sql)"
+        )
+    if not started:
+        raise SystemExit(
+            "PostgreSQL is required (RESEARCH_STORE_BACKEND=postgres) but could not be "
+            "started; install Homebrew postgresql@18 or run "
+            "docker compose -f compose.postgres.yml up -d"
+        )
+
+    _wait_postgres(urls, timeout_s=timeout_s)
+    host = urlsplit(urls[0]).hostname or "127.0.0.1"
+    port = urlsplit(urls[0]).port or 5432
+    print(f"postgres ready ({host}:{port})")
+
+
 def _ensure_console_deps(root: Path) -> None:
     console = root / "apps" / "console"
     if (console / "node_modules").is_dir():
@@ -215,6 +367,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Start local trading-agent stack (dry-run)")
     parser.add_argument("--no-paper", action="store_true", help="do not POST /v1/agent/start")
     parser.add_argument("--no-console", action="store_true", help="skip Angular ng serve")
+    parser.add_argument(
+        "--no-db",
+        action="store_true",
+        help="do not start or wait for PostgreSQL (assume it is already running)",
+    )
     args = parser.parse_args(argv)
 
     root = REPO_ROOT
@@ -243,6 +400,9 @@ def main(argv: list[str] | None = None) -> int:
     signal.signal(signal.SIGTERM, request_stop)
 
     try:
+        if not args.no_db:
+            ensure_postgres(root)
+
         assert_port_free("127.0.0.1", 8765)
         children.append(
             (
@@ -273,7 +433,12 @@ def main(argv: list[str] | None = None) -> int:
                     ),
                 )
             )
-            wait_http(RESEARCH_URL)
+            research_ready_url = (
+                f"{RESEARCH_URL}/ready"
+                if postgres_backend_enabled(root)
+                else RESEARCH_URL
+            )
+            wait_http(research_ready_url)
         else:
             print("warning: .env.research missing; research stays down")
 
@@ -319,6 +484,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  llm      {LLM_URL}")
         if research_env.is_file():
             print(f"  research {RESEARCH_URL}")
+        if postgres_backend_enabled(root):
+            print(f"  postgres {postgres_database_urls(root)[0]}")
         if paper_started:
             print("  paper    started via /v1/agent/start (ApprovalGate still required)")
         print("Ctrl-C stops paper/monitor then the HTTP processes")

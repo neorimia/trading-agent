@@ -1,6 +1,6 @@
 # Design bază de date — trading agent
 
-**Status:** design aprobat, implementat pentru fundația PostgreSQL și primul cutover reversibil al domeniului research. Domeniile market data, execuție, risc, backtesting și audit rămân în rollout-ul etapizat.
+**Status:** design aprobat, implementat pentru fundația PostgreSQL, cutover-ul reversibil al domeniului research, și Faza 2 (market data — TimescaleDB, `ohlcv_candles`, backend `files`/`postgres` comutabil; `order_book_snapshots`/`trades` create dar neingerate). Domeniile execuție, risc, backtesting și audit rămân în rollout-ul etapizat.
 
 **Autor:** research + design arhitectural, 2026-09-21.
 **Bază de cod analizată:** commit `7006a27a` (branch `main`).

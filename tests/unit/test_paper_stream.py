@@ -25,7 +25,7 @@ def _bar_at(index: int, close: str = "2500") -> Bar:
         high=price + Decimal("10"),
         low=price - Decimal("10"),
         close=price,
-        volume=Decimal("100"),
+        volume=Decimal("10000"),
     )
 
 

@@ -28,6 +28,7 @@ def _decimal_from_yaml(value: Any) -> Decimal:
 
 
 PositiveDecimal = Annotated[Decimal, BeforeValidator(_decimal_from_yaml), Field(gt=0)]
+NonNegativeDecimal = Annotated[Decimal, BeforeValidator(_decimal_from_yaml), Field(ge=0)]
 
 
 class CircuitBreakerLimits(BaseModel):
@@ -46,7 +47,14 @@ class CircuitBreakerLimits(BaseModel):
 
 
 class RiskLimits(BaseModel):
-    """Limite imutabile pe durata rulării. Extra fields interzise."""
+    """Limite imutabile pe durata rulării. Extra fields interzise.
+
+    Câmpurile noi (risc/tranzacție, R:R, spread, lichiditate, expunere corelată) sunt
+    opționale — `None` dezactivează verificarea, păstrând compatibilitate cu fișiere
+    `risk_limits.yaml` mai vechi care nu le au. Când sunt setate, strâng limitele
+    existente; nu le pot niciodată lărgi (nu există cale de a crește un cap global
+    printr-un câmp nou).
+    """
 
     model_config = _STRICT
 
@@ -57,6 +65,22 @@ class RiskLimits(BaseModel):
     max_drawdown: PositiveDecimal
     max_orders_per_day: int = Field(gt=0)
     circuit_breaker: CircuitBreakerLimits
+    # Plafon suplimentar de risc pe o singură tranzacție (aceeași unitate ca max_daily_loss).
+    # Dacă e setat, `risk_budget` e min(daily, drawdown, max_risk_per_trade).
+    max_risk_per_trade: PositiveDecimal | None = None
+    # Reward/risk minim cerut. Verificat doar când apelantul furnizează un raport
+    # (strategiile noi îl calculează din stop/target; EMA/LLM legacy nu-l furnizează,
+    # deci verificarea e omisă pentru ele — vezi docs/risk-management.md).
+    min_reward_risk_ratio: PositiveDecimal | None = None
+    # Spread maxim acceptat (bps) pentru a deschide o poziție nouă. Lipsa datei de spread
+    # pentru instrument e tratată ca dată incompletă -> respins, nu aproximat.
+    max_spread_bps: PositiveDecimal | None = None
+    # Volum minim pe bară (proxy de lichiditate, nu order-book L2). Lipsa datei e tratată
+    # la fel ca mai sus.
+    min_bar_volume: NonNegativeDecimal | None = None
+    # Expunere maximă pentru instrumente corelate (aproximat azi prin gruparea pe clasă de
+    # active — vezi docs/risk-management.md pentru limitare explicită).
+    max_correlated_exposure: PositiveDecimal | None = None
 
 
 def load_risk_limits(path: str | Path) -> RiskLimits:

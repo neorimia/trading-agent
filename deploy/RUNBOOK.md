@@ -60,6 +60,23 @@ sudo apt install -y postgresql-18
 sudo systemctl enable --now postgresql.service
 ```
 
+**TimescaleDB extension (required once the market data domain is cut over —
+`docs/database-cutover-playbook.md` §"Market data"; `ohlcv_candles` is a
+hypertable).** Add the Timescale apt repo and the matching PG18 package, then
+preload the extension before the migration that runs `CREATE EXTENSION
+timescaledb`:
+
+```bash
+curl -fsSL https://packagecloud.io/install/repositories/timescale/timescaledb/script.deb.sh | sudo bash
+sudo apt install -y timescaledb-2-postgresql-18
+sudo timescaledb-tune --quiet --yes   # sets shared_preload_libraries + tuning
+sudo systemctl restart postgresql.service
+```
+
+Local/CI use the `timescale/timescaledb:2.29.2-pg18` Docker image instead
+(`compose.postgres.yml`, `.github/workflows/ci.yml`) — same extension, packaged
+differently; do not skip this step here just because it "already works" in CI.
+
 In `/etc/postgresql/18/main/postgresql.conf`, require:
 
 ```ini
@@ -71,11 +88,16 @@ In `/etc/postgresql/18/main/pg_hba.conf`, allow only the two application roles o
 loopback using SCRAM. Put these entries before broader `host` entries:
 
 ```text
-host  trading_research  research_writer  127.0.0.1/32  scram-sha-256
-host  trading_research  control_reader   127.0.0.1/32  scram-sha-256
-host  trading_research  research_writer  ::1/128       scram-sha-256
-host  trading_research  control_reader   ::1/128       scram-sha-256
+host  trading_research  research_writer     127.0.0.1/32  scram-sha-256
+host  trading_research  control_reader      127.0.0.1/32  scram-sha-256
+host  trading_research  market_data_writer  127.0.0.1/32  scram-sha-256
+host  trading_research  research_writer     ::1/128       scram-sha-256
+host  trading_research  control_reader      ::1/128       scram-sha-256
+host  trading_research  market_data_writer  ::1/128       scram-sha-256
 ```
+
+(`market_data_writer` is only exercised once the market data domain is cut over —
+skip its rows until then if you prefer, but adding them now is harmless.)
 
 Create a schema owner used only for migrations, then provision separate application
 roles. Keep all three passwords distinct and out of shell history:
@@ -100,12 +122,14 @@ unset MIGRATION_DATABASE_URL PGPASSWORD MIGRATOR_DB_PASSWORD
 # grants after migrations have created the tables.
 read -rsp 'research writer password: ' RESEARCH_DB_PASSWORD; echo
 read -rsp 'control reader password: ' CONTROL_DB_PASSWORD; echo
+read -rsp 'market data writer password: ' MARKET_DATA_DB_PASSWORD; echo
 sudo -u postgres psql --dbname=trading_research \
   -v database_name=trading_research \
   -v research_password="$RESEARCH_DB_PASSWORD" \
   -v control_password="$CONTROL_DB_PASSWORD" \
+  -v market_data_password="$MARKET_DATA_DB_PASSWORD" \
   -f /opt/trading-agent/deploy/postgres/create_roles.sql
-unset RESEARCH_DB_PASSWORD CONTROL_DB_PASSWORD
+unset RESEARCH_DB_PASSWORD CONTROL_DB_PASSWORD MARKET_DATA_DB_PASSWORD
 sudo systemctl restart postgresql.service
 ```
 
@@ -163,7 +187,14 @@ Edit each `.env.*` (as the `trading` user):
   "Empty operator token + tunnel/proxy → anyone on the path can halt/approve"). Add
   the tailnet hostname you'll browse from to `CONTROL_CORS_ORIGINS`.
 - `.env.engine`: leave `LIVE_TRADING_ENABLED=false`. Leave `KRAKEN_*` trading keys
-  empty. `BROKER_PAPER_MODE=true`. **Never copy laptop live keys here.**
+  empty. `BROKER_PAPER_MODE=true`. **Never copy laptop live keys here.** Before the
+  market data cutover, leave `MARKET_DATA_STORE_BACKEND=files` (backtest CLI only —
+  paper/control still poll live OHLC directly, they do not write candles this
+  slice). At that cutover, set it to `postgres` and set
+  `MARKET_DATA_DATABASE_URL=postgresql://market_data_writer:<percent-encoded-password>@127.0.0.1:5432/trading_research`
+  — role `market_data_writer`, never `research_writer`/`control_reader`'s
+  credentials. See `docs/database-cutover-playbook.md` §"Market data" for the
+  backfill/reconciliation steps (`scripts/db/import_market_data.py`).
 - `.env.llm`: confirm `OLLAMA_HOST=http://127.0.0.1:11434`.
 - `.env.research`: fill research API keys. Before cutover, keep
   `RESEARCH_STORE_BACKEND=sqlite`. At the switch, set it to `postgres` and set

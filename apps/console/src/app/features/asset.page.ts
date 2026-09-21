@@ -19,6 +19,7 @@ import {
   ResearchDocumentView,
   SignalResponse,
   StoredAnalysis,
+  formatQuote,
 } from '../core/models';
 import { CandleChart } from '../shared/candle-chart';
 import { EmptyState } from '../shared/empty-state';
@@ -84,11 +85,14 @@ const TIMEFRAMES = ['1h', '4h', '1d'];
             <p class="muted">{{ signal()!.sources.join(', ') }}</p>
           }
           <h2>Position / orders</h2>
+          @if (positions().length === 0 && orders().length === 0) {
+            <app-empty-state [title]="'No open position on ' + symbol" detail="No orders recorded for this instrument either." icon="pi-wallet" />
+          }
           @for (pos of positions(); track pos.instrument) {
-            <p>Qty {{ pos.quantity }} · last {{ pos.last_price }} · stop {{ pos.stop_loss }} ({{ pos.stop_source }})</p>
+            <p>Qty {{ fmt(pos.quantity) }} · last {{ fmt(pos.last_price) }} · stop {{ fmt(pos.stop_loss) }} ({{ pos.stop_source }})</p>
           }
           @for (order of orders(); track order.correlation_id) {
-            <p class="mono">{{ order.status }} {{ order.side }} {{ order.quantity }} @ {{ order.fill_price ?? '-' }}</p>
+            <p class="mono">{{ order.status }} {{ order.side }} {{ fmt(order.quantity) }} @ {{ fmt(order.fill_price) }}</p>
           }
         </article>
       </section>
@@ -194,6 +198,7 @@ export class AssetPage implements OnInit {
   readonly running = signal(false);
   readonly stored = signal<StoredAnalysis[]>([]);
   readonly ready = signal(false);
+  readonly fmt = formatQuote;
 
   ngOnInit(): void {
     this.symbol = this.route.snapshot.paramMap.get('symbol') ?? '';
@@ -229,14 +234,16 @@ export class AssetPage implements OnInit {
       return [];
     }
     return [
-      ['close', snap.close],
-      ['EMA fast', snap.ema_fast],
-      ['EMA slow', snap.ema_slow],
-      ['RSI 14', snap.rsi_14],
-      ['ATR 14', snap.atr_14],
-      ['volume z', snap.volume_z_20],
-      ['swing high', snap.swing_high],
-      ['swing low', snap.swing_low],
+      ['close', formatQuote(snap.close)],
+      ['EMA fast', formatQuote(snap.ema_fast)],
+      ['EMA slow', formatQuote(snap.ema_slow)],
+      ['RSI 14', formatQuote(snap.rsi_14)],
+      ['ATR 14', formatQuote(snap.atr_14)],
+      ['volume z', formatQuote(snap.volume_z_20)],
+      ['swing high', formatQuote(snap.swing_high)],
+      ['swing low', formatQuote(snap.swing_low)],
+      // funding/open_interest are the literal string "unknown" until a derivatives adapter
+      // exists — leave untouched rather than formatting to a numeric placeholder.
       ['funding', snap.funding],
       ['open interest', snap.open_interest],
     ];

@@ -24,18 +24,25 @@ from nautilus_trader.model.objects import Money
 from nautilus_trader.persistence.wranglers import BarDataWrangler, QuoteTickDataWrangler
 
 from src.data.sources import Bar
+from src.engine import baselines
+from src.engine import metrics as backtest_metrics
+from src.engine import regime as regime_mod
 from src.engine.cost_models import VenueCostConfig, build_fee_model, build_fill_model
 from src.engine.instruments import NAUTILUS_VENUE, make_spot_instrument, nautilus_symbol
 from src.engine.portfolio_tracker import PortfolioTracker
 from src.engine.proposal_cache import ProposalClient
 from src.engine.research_client import ResearchClient
+from src.engine.strategy_adapter import GenericSignalStrategy, GenericSignalStrategyConfig
 from src.engine.strategy_baseline import BaselineEMACross, BaselineEMACrossConfig
 from src.engine.strategy_llm_assisted import LLMAssistedStrategy, LLMAssistedStrategyConfig
+from src.engine.strategy_registry import RULE_BASED_KINDS, default_params_for_kind
 from src.risk.circuit_breaker import CircuitBreaker
 from src.risk.config_schema import load_risk_limits
 from src.risk.kill_switch import KillSwitch
 from src.risk.portfolio_state import load_instrument_rules
 from src.risk.risk_engine import RiskEngine
+
+REGIME_DIMENSIONS = ("trend", "direction", "volatility", "volume", "shock")
 
 BAR_SPEC = {
     "1m": "1-MINUTE",
@@ -46,7 +53,11 @@ BAR_SPEC = {
     "1d": "1-DAY",
 }
 
-StrategyKind = Literal["baseline", "llm"]
+StrategyKind = Literal[
+    "baseline", "llm", "ema_cross", "donchian_breakout", "rsi_mean_reversion"
+]
+# Kind-uri rulate prin adaptorul generic (StrategySpec), nu prin clase Nautilus dedicate.
+GENERIC_SPEC_KINDS = frozenset(RULE_BASED_KINDS)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_STARTING_USDT = Decimal("10000")
 DEFAULT_FAST_EMA = 10
@@ -156,6 +167,7 @@ def run_backtest(
     fast_ema_period: int = DEFAULT_FAST_EMA,
     slow_ema_period: int = DEFAULT_SLOW_EMA,
     lookback_bars: int = DEFAULT_LOOKBACK,
+    strategy_params: dict[str, object] | None = None,
 ) -> BacktestMetrics:
     if not bars:
         raise ValueError("cannot backtest an empty series")
@@ -163,7 +175,9 @@ def run_backtest(
         raise ValueError("llm strategy requires a proposal_client")
 
     risk_engine, breaker, _kill = build_risk_stack(halt_flag)
-    tracker = PortfolioTracker(starting_usdt, universe_symbol, "crypto")
+    tracker = PortfolioTracker(
+        starting_usdt, universe_symbol, "crypto", spread_bps=costs.spread_bps
+    )
     instrument = make_spot_instrument(universe_symbol, costs)
     bar_type = _bar_type(universe_symbol, timeframe)
 
@@ -209,6 +223,25 @@ def run_backtest(
             tracker=tracker,
         )
         strategy.set_source_bars(bars)
+    elif strategy_kind in GENERIC_SPEC_KINDS:
+        raw_params = strategy_params if strategy_params is not None else default_params_for_kind(
+            strategy_kind
+        )
+        strat_config_generic = GenericSignalStrategyConfig(
+            instrument_id=instrument.id,
+            bar_type=bar_type,
+            universe_symbol=universe_symbol,
+            strategy_kind=strategy_kind,
+            params={key: str(value) for key, value in raw_params.items()},
+            trade_start_ns=trade_ns,
+        )
+        strategy = GenericSignalStrategy(
+            strat_config_generic,
+            risk_engine=risk_engine,
+            circuit_breaker=breaker,
+            tracker=tracker,
+        )
+        strategy.set_source_bars(bars)
     else:
         strat_config_llm = LLMAssistedStrategyConfig(
             instrument_id=instrument.id,
@@ -240,6 +273,16 @@ def run_backtest(
     ending = _ending_usdt(account, starting_usdt)
     decisions = list(getattr(strategy, "decisions", []))
     engine.dispose()
+
+    extra = _build_extra_metrics(
+        bars=bars,
+        tracker=tracker,
+        starting_usdt=starting_usdt,
+        timeframe=timeframe,
+        spread_bps=costs.spread_bps,
+        n_fills=int(n_fills),
+    )
+
     return BacktestMetrics(
         strategy=strategy_kind,
         cost_multiplier=costs.cost_multiplier,
@@ -250,7 +293,77 @@ def run_backtest(
         ending_usdt=format(ending, "f"),
         commissions_usdt=format(commissions, "f"),
         decisions=decisions,
+        extra=extra,
     )
+
+
+def _build_extra_metrics(
+    *,
+    bars: list[Bar],
+    tracker: PortfolioTracker,
+    starting_usdt: Decimal,
+    timeframe: str,
+    spread_bps: Decimal,
+    n_fills: int,
+) -> dict[str, Any]:
+    """Metrici complete + baseline-uri + regime slices. Izolat într-o funcție separată ca
+    să poată fi testat/reutilizat fără a rula din nou întregul motor Nautilus."""
+    performance = backtest_metrics.compute_performance_metrics(
+        tracker.equity_curve,
+        tracker.closed_trades,
+        total_fees=tracker.total_fees,
+        total_turnover=tracker.total_turnover,
+        starting_cash=starting_usdt,
+        timeframe=timeframe,
+        spread_bps=spread_bps,
+    )
+
+    buy_hold_pct = baselines.buy_and_hold_return_pct(bars)
+    trade_rate = (n_fills / len(bars)) if bars else 0.0
+    random_pct = (
+        baselines.random_control_return_pct(bars, trade_rate=trade_rate)
+        if trade_rate > 0
+        else None
+    )
+
+    tags = regime_mod.tag_regimes(bars)
+    regime_breakdown = {
+        dimension: backtest_metrics.slice_by_regime(
+            tracker.equity_curve, tags, dimension=dimension
+        )
+        for dimension in REGIME_DIMENSIONS
+    }
+
+    equity_curve = [
+        {"t": ts.isoformat(), "equity": format(eq, "f"), "exposure": format(exp, "f")}
+        for ts, eq, exp in tracker.equity_curve
+    ]
+    peak = None
+    drawdown_curve: list[dict[str, str]] = []
+    for ts, eq, _exp in tracker.equity_curve:
+        peak = eq if peak is None or eq > peak else peak
+        dd_pct = ((peak - eq) / peak * Decimal("100")) if peak and peak > 0 else Decimal("0")
+        drawdown_curve.append({"t": ts.isoformat(), "drawdown_pct": format(dd_pct, "f")})
+    buy_hold_curve = [
+        {"t": ts.isoformat(), "equity": format(eq, "f")}
+        for ts, eq in baselines.buy_and_hold_equity_curve(bars, starting_usdt)
+    ]
+
+    return {
+        "performance": performance.to_dict(),
+        "baselines": {
+            "buy_and_hold_pct": format(buy_hold_pct, "f") if buy_hold_pct is not None else None,
+            "cash_pct": format(baselines.cash_return_pct(), "f"),
+            "random_control_pct": (
+                format(random_pct, "f") if random_pct is not None else None
+            ),
+        },
+        "regime": regime_breakdown,
+        "equity_curve": equity_curve,
+        "drawdown_curve": drawdown_curve,
+        "buy_and_hold_curve": buy_hold_curve,
+        "trade_pnls": [format(t, "f") for t in tracker.closed_trades],
+    }
 
 
 def _parse_money_cell(value: object) -> Decimal:

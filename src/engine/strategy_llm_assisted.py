@@ -79,7 +79,7 @@ class LLMAssistedStrategy(Strategy):
             our_bar = self._source_bars[self._bar_index]
             self._bar_index += 1
         self._history.append(our_bar)
-        self._tracker.on_bar(our_bar.timestamp, our_bar.close)
+        self._tracker.on_bar(our_bar.timestamp, our_bar.close, volume=our_bar.volume)
         if self.config.trade_start_ns and our_bar.timestamp < _from_ns(self.config.trade_start_ns):
             return
         if len(self._history) < int(self.config.lookback_bars):

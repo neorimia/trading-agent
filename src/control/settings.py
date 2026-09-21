@@ -13,6 +13,9 @@ DEFAULT_CORS = ("http://127.0.0.1:4200", "http://localhost:4200")
 RISK_CONFIRMATION_TOKEN = "MAX_DAILY_LOSS"
 STRATEGY_ENABLE_TOKEN = "ENABLE_STRATEGY"
 STRATEGY_DISABLE_TOKEN = "DISABLE_STRATEGY"
+STRATEGY_EDIT_TOKEN = "EDIT_STRATEGY"
+STRATEGY_CLONE_TOKEN = "CLONE_STRATEGY"
+BACKTEST_RUN_TOKEN = "RUN_BACKTEST"
 
 
 def validate_bind_host(host: str) -> str:
@@ -47,11 +50,13 @@ class RuntimePaths:
     broker_monitor: Path
     broker_monitor_pid: Path
     strategies: Path
+    strategy_versions: Path
     risk_limits: Path
     universe: Path
     paper_config: Path
     research_db: Path
     backtest_reports: Path
+    backtest_jobs: Path
     discovery_store: Path
 
 
@@ -105,6 +110,9 @@ def build_paths(
         broker_monitor=runtime / "control" / "broker_monitor.json",
         broker_monitor_pid=runtime / "control" / "broker_monitor.pid",
         strategies=Path(env.get("STRATEGIES_PATH", str(base / "config" / "strategies.yaml"))),
+        strategy_versions=Path(
+            env.get("STRATEGY_VERSIONS_PATH", str(base / "config" / "strategy_versions"))
+        ),
         risk_limits=Path(env.get("RISK_LIMITS_PATH", str(base / "config" / "risk_limits.yaml"))),
         universe=Path(env.get("UNIVERSE_PATH", str(base / "config" / "universe.yaml"))),
         paper_config=Path(
@@ -114,6 +122,7 @@ def build_paths(
             env.get("RESEARCH_METADATA_DB_PATH", str(base / "data" / "research" / "metadata.db"))
         ),
         backtest_reports=base / "backtests" / "reports",
+        backtest_jobs=base / "backtests" / "jobs",
         discovery_store=Path(env.get("DISCOVERY_STORE_PATH", str(base / "data" / "discovery"))),
     )
 
