@@ -114,11 +114,47 @@ silent best-effort dual writes are prohibited.
 
 ### 4. Backtest and paper runs
 
-- Sources: `backtests/reports/**/manifest.json`, trade reports, and each
-  `runtime/paper*` directory.
+- Sources: `backtests/jobs/*.json`, `backtests/reports/**/manifest.json`, trade
+  reports, and each `runtime/paper*` directory.
 - Targets: backtest runs/trades and paper-trading runs.
 - Gate: run IDs, dataset hashes, seeds, strategy versions, metrics, and on-disk report
   pointers reproduce the legacy manifests.
+- **Status: implemented, not yet switched.** Migrated by `migrations/versions/
+  0004_backtest_paper_runs.py` (`backtest_run_id`/`backtest_run_id` FK into
+  `strategy_versions`/`instruments`; `paper_trading_runs` adds `UNIQUE
+  (portfolio_id)` — the four `runtime/paper*` directories are long-lived runs, not
+  one row per session). `BACKTEST_STORE_BACKEND=files|postgres` (default `files`,
+  `BACKTEST_DATABASE_URL` for role `backtest_writer`) gates
+  `src/control/backtest_jobs.py::BacktestJobManager` and `scripts/backtest/
+  run_backtest.py`'s CLI suite; `paper_trading_runs` piggy-backs on the existing
+  `EXECUTION_STORE_BACKEND=json|postgres` (domain 2) instead of a third flag. JSON/
+  report files stay the unconditional rollback target in every case — the Postgres
+  write is strictly additive. `PortfolioTracker` (`src/engine/portfolio_tracker.py`)
+  now records structured round-trip trades (`ClosedTrade`: entry/exit time, price,
+  quantity, pnl, fees, exit_reason) alongside the legacy PnL-only `closed_trades`
+  list, fed by `timestamp=` now required on every `on_fill` call site (`strategy_
+  adapter`/`strategy_baseline`/`strategy_llm_assisted`/`strategy_paper`). Importer:
+  `scripts/db/import_backtests.py --backtests-root <frozen copy> [--runtime-root
+  <frozen copy> --paper-strategy-id <id>]` — job/CLI-suite rows use a deterministic
+  primary key (`run_id` verbatim; `uuid5(suite_run_id, kind, multiplier)` for CLI
+  children) with `ON CONFLICT DO NOTHING`; paper runs `UPSERT` on `portfolio_id`
+  with an explicit `sessions_count` (never incremented on a rerun, unlike the
+  going-forward writer). Quarantines (JSONL, truncated per run):
+  `unmapped_symbol`, `unmapped_strategy_version`, `unmapped_portfolio`, and
+  `dataset_hash_missing` — `backtest_runs.dataset_hash` is `NOT NULL` and job JSON
+  only ever carries it on the `done` success path, so `queued`/`running`/`error`
+  job records are always quarantined rather than inserted with a guessed hash.
+  Documented, unreconstructable gaps (never fabricated): job/CLI-suite JSON never
+  recorded `universe_sha256` before this phase, so the importer hashes the
+  *current* `config/universe.yaml` and reports it under
+  `universe_sha256_reconstructed_count`; `metrics_{kind}_{Nx}.json` (CLI suite)
+  never carried per-trade records, so those runs' `backtest_trades` are always
+  `trades_not_reconstructable: N` (zero rows inserted, never guessed from PnL);
+  `paper_trading_runs.config_snapshot` for an imported run is built from the
+  *current* `paper_trading.yaml`/`risk_limits.yaml` (the config in effect when a
+  frozen directory last ran is not persisted anywhere), flagged
+  `reconstructed_from_current_config: true`. Cutover itself (stopping writers,
+  flipping the backend flag, resuming) has not happened.
 
 ### 5. Audit, approvals, and system events
 
@@ -128,6 +164,57 @@ silent best-effort dual writes are prohibited.
 - Cut this domain over last.
 - Gate: correlation chains remain complete, pagination is stable, append-only grants
   are enforced, and no approval decision is orphaned.
+- **Status: implemented, not yet switched.** Migrated by `migrations/versions/
+  0005_audit_agent_approvals.py`: `agent_runs`, `audit_log` (CHECK `event_type`
+  against the 14 values already live in `src/audit/events.py::AuditEventType`,
+  no separate placeholder list), `agent_actions` (`CREATE VIEW`, six narrative
+  event types), `system_events`, `human_approvals`, `alerts`.
+  `AUDIT_STORE_BACKEND=files|postgres` (default `files`, `AUDIT_DATABASE_URL`)
+  gates both `.env.control` and `.env.engine` identically — control and engine
+  write the same `audit_log` through one shared role, `audit_writer` (unlike
+  every prior domain's single-owning-process role split), which is granted
+  INSERT-only on `audit_log` (`REVOKE UPDATE, DELETE` enforced at the role level,
+  not just by omission) and INSERT+UPDATE on the other four tables.
+  `audit.sqlite`/the approval JSON files stay the unconditional rollback target
+  in every case — `open_audit_log()` (`src/audit/postgres_store.py`) is a
+  drop-in `AuditLog` subclass, so every existing call site
+  (`src/control/runtime_state.py::_audit`, `src/control/agent_process.py`,
+  `scripts/paper_trading/run_paper_session.py`) just swaps the constructor.
+  Documented deviations (never fabricated): `human_approvals.order_id` is
+  nullable (still `UNIQUE`) — a denied/timed-out approval never produces an
+  `orders` row, since `order_submitted` only fires after approval succeeds;
+  `decided_by`/`reason` are nullable — unknown at request (INSERT) time, only
+  known at decision (UPDATE) time. `human_approvals` has a single writer,
+  `ApprovalGate.request()` (engine): it is the one call that observes both the
+  request and the eventual decision, whichever process wrote the `.decision.json`
+  file, so `write_approval()` (control) never needs its own Postgres write —
+  avoiding a second, racier writer for the same row. `order_id` links only when
+  `EXECUTION_STORE_BACKEND=postgres` too (that backend is what actually inserts
+  the `orders` row `order_id` references — `orders.order_id = correlation_id`),
+  otherwise left NULL. `agent_runs` (INSERT at engine start, UPDATE
+  `stopped_at`/`stop_reason` at graceful shutdown) is gated on both
+  `AUDIT_STORE_BACKEND=postgres` and `EXECUTION_STORE_BACKEND=postgres` (the
+  latter is what resolves `strategy_version_id`, `NOT NULL` in the schema — never
+  guessed when unresolvable). `system_events` is instrumented at agent
+  start/stop and broker-monitor start (`src/control/agent_process.py`) and the
+  heartbeat-stale halt watchdog (`runtime_state.py::halt_if_heartbeat_stale`) —
+  not exhaustively, only at existing clear hook points. `alerts` stays
+  fully ephemeral for reads (`build_alerts()`); `record_alerts()` additionally
+  persists a new row only when no unresolved row of the same title already
+  exists (dedup, no poll-driven duplicate spam), with two new operator-only
+  endpoints, `POST /v1/alerts/{alert_id}/ack` and `.../resolve`.
+  `system_events`/`agent_runs`/`alerts` have no legacy on-disk source at all —
+  new instrumentation, not a migration; the importer's report says so
+  explicitly rather than silently skipping them. Importer:
+  `scripts/db/import_audit.py --runtime-root <frozen copy> [--runtime-root ...]`
+  for `audit_log` (dedup on `(correlation_id, event_type, "timestamp")`) and
+  `human_approvals` (`approval_id = correlation_id`, `ON CONFLICT DO NOTHING` +
+  a re-applied `UPDATE` for the decision fields). Documented, unreconstructable
+  gap: `human_approvals.expires_at` (`NOT NULL`) was never persisted per-request
+  on disk — reconstructed as `requested_at + approval_timeout_s` from the same
+  `paper_trading.yaml` source `ApprovalGate.request()` itself reads, flagged
+  `expires_at_reconstructed` in the report. Cutover itself (stopping writers,
+  flipping the backend flag, resuming) has not happened.
 
 ## Operations after all paper domains are cut over
 

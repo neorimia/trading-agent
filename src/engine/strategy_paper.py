@@ -452,8 +452,17 @@ class PaperTradingLoop:
                 payload=_payload(result),
             )
         )
+        # human_approvals.order_id links only when EXECUTION_STORE_BACKEND=postgres
+        # too — that backend is what inserts the `orders` row `order_id` references
+        # (PostgresIdempotencyStore.reserve keys orders.order_id = correlation_id).
+        # On the files/rollback execution path there is no `orders` row to link to,
+        # so this stays a no-op rather than fabricating a foreign key target.
+        if self._postgres is not None and self._approval.approval_store is not None:
+            self._approval.approval_store.link_order(
+                correlation_id=correlation, order_id=correlation
+            )
         record.order_status = result.status
-        self._apply_order_result(correlation, decision.side, result)
+        self._apply_order_result(correlation, decision.side, result, bar.timestamp)
         if self._kill.is_active():
             record.halted = True
         self._persist_local_state()
@@ -473,7 +482,9 @@ class PaperTradingLoop:
             record.halted = True
         return record
 
-    def _apply_order_result(self, correlation: UUID, side: str, result: OrderResult) -> None:
+    def _apply_order_result(
+        self, correlation: UUID, side: str, result: OrderResult, bar_timestamp: datetime
+    ) -> None:
         order_id = str(result.client_order_id)
         if result.status in {"unknown", "timeout"}:
             if order_id not in self._in_flight:
@@ -496,6 +507,7 @@ class PaperTradingLoop:
                     quantity=result.filled_quantity,
                     price=result.fill_price,
                     commission=result.fee,
+                    timestamp=bar_timestamp,
                 )
                 self._audit.record(
                     AuditEvent.now(

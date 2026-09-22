@@ -62,10 +62,16 @@ def clean_database() -> None:
     close_database_pools()
     with psycopg.connect(url) as connection:
         # Child-to-parent order respects FKs; CASCADE would also work but being
-        # explicit documents the dependency graph for readers.
+        # explicit documents the dependency graph for readers. backtest_runs/
+        # backtest_trades/paper_trading_runs (Phase 6, tests/integration/
+        # test_postgres_backtests.py) are also FK children of strategy_versions/
+        # portfolios, so CASCADE would truncate them either way — listed here
+        # explicitly so this stays correct if that FK relationship ever changes.
         connection.execute(
             """
             TRUNCATE
+                alerts, human_approvals, system_events, audit_log, agent_runs,
+                backtest_trades, backtest_runs, paper_trading_runs,
                 risk_events, executions, order_events, orders, signals,
                 positions, balances, strategy_versions, strategies, risk_limits,
                 portfolios

@@ -164,6 +164,7 @@ class GenericSignalStrategy(Strategy):
             quantity=Decimal(str(event.last_qty)),
             price=Decimal(str(event.last_px)),
             commission=commission,
+            timestamp=unix_nanos_to_dt(event.ts_event).replace(tzinfo=timezone.utc),
         )
         if side == "sell":
             self._bars_since_exit = 0

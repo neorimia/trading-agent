@@ -363,6 +363,25 @@ def _build_extra_metrics(
         "drawdown_curve": drawdown_curve,
         "buy_and_hold_curve": buy_hold_curve,
         "trade_pnls": [format(t, "f") for t in tracker.closed_trades],
+        # Structured round-trip trades (design §8.6 `backtest_trades`) — same order
+        # as `trade_pnls` above, serialized (not live Decimal/datetime) so this dict
+        # stays a plain JSON-able payload like the rest of `extra`. Consumed by
+        # `src/engine/backtest_store.py::insert_trades_from_extra` when
+        # BACKTEST_STORE_BACKEND=postgres; ignored by the files-only path.
+        "closed_trade_records": [
+            {
+                "side": t.side,
+                "entry_time": t.entry_time.isoformat(),
+                "entry_price": format(t.entry_price, "f"),
+                "exit_time": t.exit_time.isoformat(),
+                "exit_price": format(t.exit_price, "f"),
+                "quantity": format(t.quantity, "f"),
+                "pnl": format(t.pnl, "f"),
+                "fees": format(t.fees, "f"),
+                "exit_reason": t.exit_reason,
+            }
+            for t in tracker.closed_trade_records
+        ],
     }
 
 

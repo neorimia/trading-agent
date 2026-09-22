@@ -62,6 +62,8 @@ jobs:
       CONTROL_DATABASE_URL: postgresql://control_reader:test-reader-only@127.0.0.1:5432/trading_agent_test
       MARKET_DATA_DATABASE_URL: postgresql://market_data_writer:test-market-data-writer-only@127.0.0.1:5432/trading_agent_test
       EXECUTION_DATABASE_URL: postgresql://execution_writer:test-execution-writer-only@127.0.0.1:5432/trading_agent_test
+      BACKTEST_DATABASE_URL: postgresql://backtest_writer:test-backtest-writer-only@127.0.0.1:5432/trading_agent_test
+      AUDIT_DATABASE_URL: postgresql://audit_writer:test-audit-writer-only@127.0.0.1:5432/trading_agent_test
     steps:
       - uses: actions/checkout@v4
 
@@ -90,6 +92,8 @@ jobs:
             -v control_password=test-reader-only \
             -v market_data_password=test-market-data-writer-only \
             -v execution_password=test-execution-writer-only \
+            -v backtest_password=test-backtest-writer-only \
+            -v audit_password=test-audit-writer-only \
             -f deploy/postgres/create_roles.sql
 
       - name: Run PostgreSQL integration tests

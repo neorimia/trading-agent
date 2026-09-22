@@ -24,15 +24,20 @@ from concurrent.futures import TimeoutError as FutureTimeoutError
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Literal
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 from src.data.cache import canonical_dataset_hash
 from src.data.sources import Bar
 from src.engine.backtest_runner import run_backtest
+from src.engine.backtest_store import compute_universe_sha256
 from src.engine.cost_models import VenueCostConfig
 from src.engine.strategy_registry import RULE_BASED_KINDS
 
+if TYPE_CHECKING:
+    from src.engine.backtest_store import PostgresBacktestStore
+
 _LOG = logging.getLogger(__name__)
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 BacktestJobStatus = Literal["queued", "running", "done", "error"]
 FetchBarsFn = Callable[[str, datetime, datetime, str], list[Bar]]
@@ -84,12 +89,18 @@ class BacktestJobManager:
         fetch_bars: FetchBarsFn,
         timeout_s: float = DEFAULT_JOB_TIMEOUT_S,
         start_worker: bool = True,
+        store: "PostgresBacktestStore | None" = None,
+        universe_path: Path = REPO_ROOT / "config" / "universe.yaml",
     ) -> None:
         self._jobs_dir = jobs_dir
         self._reports_dir = reports_dir
         self._halt_flag = halt_flag
         self._fetch_bars = fetch_bars
         self._timeout_s = timeout_s
+        # None = files-only (BACKTEST_STORE_BACKEND=files, the default/rollback
+        # target) — JSON job/report writes below are unconditional either way.
+        self._store = store
+        self._universe_path = universe_path
         self._queue: queue.Queue[str] = queue.Queue()
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="backtest-run")
         self._worker: threading.Thread | None = None
@@ -187,7 +198,9 @@ class BacktestJobManager:
 
         req = record["request"]
         try:
-            future = self._executor.submit(self._execute, req, run_id)
+            future = self._executor.submit(
+                self._execute, req, run_id, record["strategy_id"]
+            )
             result = future.result(timeout=self._timeout_s)
             record["status"] = "done"
             record["metrics"] = result
@@ -207,7 +220,7 @@ class BacktestJobManager:
                 self._reports_dir / f"{run_id}.json", {**record, "report_kind": "backtest_job"}
             )
 
-    def _execute(self, req: dict[str, Any], run_id: str) -> dict[str, Any]:
+    def _execute(self, req: dict[str, Any], run_id: str, strategy_id: str) -> dict[str, Any]:
         start = datetime.fromisoformat(req["start"])
         end = datetime.fromisoformat(req["end"])
         bars = self._fetch_bars(req["universe_symbol"], start, end, req["timeframe"])
@@ -216,14 +229,50 @@ class BacktestJobManager:
         dataset_hash = canonical_dataset_hash(bars)
         halt_flag = self._halt_flag.parent / f"backtest-job-{run_id}.flag"
         halt_flag.parent.mkdir(parents=True, exist_ok=True)
-        metrics = run_backtest(
-            bars,
-            universe_symbol=req["universe_symbol"],
-            timeframe=req["timeframe"],
-            strategy_kind=req["strategy_kind"],
-            costs=VenueCostConfig.for_multiplier(req["cost_multiplier"]),
-            dataset_hash=dataset_hash,
-            halt_flag=halt_flag,
-            strategy_params=req.get("strategy_params") or None,
-        )
+
+        # Postgres row created here, not in submit() — dataset_hash (NOT NULL) is
+        # only known once bars are fetched (src/engine/backtest_store.py module
+        # docstring "Deviation from the Phase 6 plan text"). None when the store is
+        # disabled (files backend) or the strategy has no active strategy_version.
+        backtest_run_id = None
+        if self._store is not None:
+            strategy_version_id = self._store.resolve_active_strategy_version_id(strategy_id)
+            if strategy_version_id is not None:
+                backtest_run_id = self._store.insert_run(
+                    strategy_version_id=strategy_version_id,
+                    instrument=req["universe_symbol"],
+                    timeframe=req["timeframe"],
+                    period_start=start,
+                    period_end=end,
+                    dataset_hash=dataset_hash,
+                    universe_sha256=compute_universe_sha256(self._universe_path),
+                    status="running",
+                    report_path=str(self._reports_dir / f"{run_id}.json"),
+                )
+
+        try:
+            metrics = run_backtest(
+                bars,
+                universe_symbol=req["universe_symbol"],
+                timeframe=req["timeframe"],
+                strategy_kind=req["strategy_kind"],
+                costs=VenueCostConfig.for_multiplier(req["cost_multiplier"]),
+                dataset_hash=dataset_hash,
+                halt_flag=halt_flag,
+                strategy_params=req.get("strategy_params") or None,
+            )
+        except Exception:
+            if backtest_run_id is not None:
+                self._store.update_run_status(backtest_run_id, status="failed")
+            raise
+
+        if backtest_run_id is not None:
+            records = metrics.extra.get("closed_trade_records", [])
+            self._store.insert_trades(backtest_run_id, req["universe_symbol"], records)
+            self._store.update_run_status(
+                backtest_run_id,
+                status="completed",
+                metrics={"comparable": metrics.comparable()},
+            )
+
         return {"comparable": metrics.comparable(), "extra": metrics.extra}

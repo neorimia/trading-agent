@@ -17,7 +17,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from src.data.kraken import KrakenPublicOHLCSource
 from src.data.sources import CsvBarDataSource, timeframe_delta
-from src.audit.audit_log import AuditLog
+from src.audit.postgres_store import open_audit_log
 from src.engine.cost_models import BASE_SPREAD_BPS
 from src.engine.adapters.kraken_paper import (
     assert_no_kraken_trading_keys,
@@ -154,6 +154,16 @@ def _dt(raw: str) -> datetime:
     return moment.astimezone(timezone.utc)
 
 
+def _load_yaml_snapshot(path: Path) -> dict:
+    """Best-effort config snapshot for agent_runs/paper_trading_runs — an empty
+    dict when the file is missing, never fabricated."""
+    if not path.is_file():
+        return {}
+    import yaml
+
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+
 def build_loop(runtime: Path, config, proposal_client, operator) -> tuple[PaperTradingLoop, SimulatedBroker]:
     halt_flag = runtime / "control" / "halt.flag"
     kill = KillSwitch(halt_flag)
@@ -212,7 +222,26 @@ def build_loop(runtime: Path, config, proposal_client, operator) -> tuple[PaperT
         risk_limits_version_id=risk_limits_version_id,
     )
     gateway = OrderGateway(store, broker)
-    audit = AuditLog(runtime / "audit" / "audit.sqlite")
+    # AUDIT_STORE_BACKEND=files|postgres (Faza 7, docs/database-cutover-playbook.md
+    # domain 5). SQLite write is unconditional either way (open_audit_log's `files`
+    # branch is the plain AuditLog); postgres additionally INSERTs into audit_log.
+    # Must match .env.control's AUDIT_STORE_BACKEND — both processes write the same
+    # audit_log table.
+    audit_backend = os.environ.get("AUDIT_STORE_BACKEND", "files").strip().lower()
+    audit_database_url = os.environ.get("AUDIT_DATABASE_URL")
+    audit = open_audit_log(
+        runtime / "audit" / "audit.sqlite",
+        backend=audit_backend,
+        database_url=audit_database_url,
+    )
+    approval_store = None
+    if audit_backend == "postgres":
+        from src.audit.postgres_store import PostgresApprovalStore
+        from src.db.config import require_database_url
+
+        approval_store = PostgresApprovalStore(
+            require_database_url(audit_database_url, variable="AUDIT_DATABASE_URL")
+        )
     heartbeat = Heartbeat(runtime / "heartbeat" / "paper-engine.json")
     last_bar = runtime / "control" / "last_bar.json"
     recon_path = runtime / "control" / "reconciliation.json"
@@ -228,6 +257,7 @@ def build_loop(runtime: Path, config, proposal_client, operator) -> tuple[PaperT
         timeout_s=config.approval_timeout_s,
         poll_interval_s=0.01,
         operator=operator,
+        approval_store=approval_store,
     )
     loop = PaperTradingLoop(
         config=config,
@@ -279,62 +309,107 @@ def main() -> None:
         else None
     )
     loop, broker = build_loop(runtime, config, client, operator)
+
+    # agent_runs (Faza 7): one row per engine process lifetime. Gated on BOTH
+    # AUDIT_STORE_BACKEND=postgres (the writer role/table) AND
+    # EXECUTION_STORE_BACKEND=postgres (loop._strategy_version_id is only ever a
+    # resolved UUID on that path — agent_runs.strategy_version_id is NOT NULL, so
+    # this never guesses a value when it can't be resolved).
+    agent_run_store = None
+    agent_run_id = None
+    audit_backend = os.environ.get("AUDIT_STORE_BACKEND", "files").strip().lower()
+    if (
+        audit_backend == "postgres"
+        and loop._postgres is not None  # noqa: SLF001
+        and loop._strategy_version_id is not None  # noqa: SLF001
+    ):
+        import socket
+
+        from src.audit.postgres_store import PostgresAgentRunStore, current_git_commit
+        from src.db.config import require_database_url
+
+        audit_database_url = require_database_url(
+            os.environ.get("AUDIT_DATABASE_URL"), variable="AUDIT_DATABASE_URL"
+        )
+        agent_run_store = PostgresAgentRunStore(audit_database_url)
+        agent_run_id = agent_run_store.start_run(
+            portfolio_id=loop._postgres.portfolio_id,  # noqa: SLF001
+            strategy_version_id=loop._strategy_version_id,  # noqa: SLF001
+            trading_mode="paper",
+            config_snapshot={
+                "paper_trading": _load_yaml_snapshot(Path(args.config)),
+                "risk_limits": _load_yaml_snapshot(REPO_ROOT / "config" / "risk_limits.yaml"),
+            },
+            git_commit=current_git_commit(REPO_ROOT),
+            host=socket.gethostname(),
+            pid=os.getpid(),
+        )
+
     started = time.perf_counter()
     n_bars = 0
     data_source = "kraken_public_ohlc"
+    stop_reason = "completed"
 
-    if args.mode == "stream":
-        if args.csv:
-            raise SystemExit("stream mode does not accept --csv; use batch for replay")
-        source = KrakenPublicOHLCSource()
-        data_source = "kraken_public_ohlc_stream"
+    try:
+        if args.mode == "stream":
+            if args.csv:
+                raise SystemExit("stream mode does not accept --csv; use batch for replay")
+            source = KrakenPublicOHLCSource()
+            data_source = "kraken_public_ohlc_stream"
 
-        def poll(_after: datetime | None) -> list:
-            now = datetime.now(timezone.utc)
-            delta = timeframe_delta(config.timeframe)
-            start = now - delta * (config.lookback_bars + 2)
-            return source.closed_bars(
-                config.instrument, start, config.timeframe, now=now
-            )
+            def poll(_after: datetime | None) -> list:
+                now = datetime.now(timezone.utc)
+                delta = timeframe_delta(config.timeframe)
+                start = now - delta * (config.lookback_bars + 2)
+                return source.closed_bars(
+                    config.instrument, start, config.timeframe, now=now
+                )
 
-        flag = _StopFlag()
-        signal.signal(signal.SIGTERM, flag.request)
-        signal.signal(signal.SIGINT, flag.request)
-        try:
-            result = loop.run_stream(
-                poll,
-                poll_interval_s=args.poll_interval_s,
-                should_stop=flag,
-            )
-        finally:
-            source.close()
-        n_bars = len(loop._history)  # noqa: SLF001 — summary only
-        restart_ok = None
-    else:
-        if args.csv:
-            bars = CsvBarDataSource(Path(args.csv)).fetch_bars(
-                config.instrument, _dt(args.start), _dt(args.end), config.timeframe
-            )
-            data_source = f"csv:{args.csv}"
+            flag = _StopFlag()
+            signal.signal(signal.SIGTERM, flag.request)
+            signal.signal(signal.SIGINT, flag.request)
+            try:
+                result = loop.run_stream(
+                    poll,
+                    poll_interval_s=args.poll_interval_s,
+                    should_stop=flag,
+                )
+            finally:
+                source.close()
+            n_bars = len(loop._history)  # noqa: SLF001 — summary only
+            restart_ok = None
+            stop_reason = "signal_stopped" if flag.stopped else "stream_ended"
         else:
-            bars = KrakenPublicOHLCSource().fetch_bars(
-                config.instrument, _dt(args.start), _dt(args.end), config.timeframe
-            )
-            data_source = "kraken_public_ohlc"
-        n_bars = len(bars)
-        max_sessions = args.max_sessions or config.session_count_target
-        result = loop.run_bars(bars, max_sessions=max_sessions)
-        restart_ok = None
-        if args.simulate_restart:
-            snapshot = broker.snapshot()
-            restored = SimulatedBroker()
-            restored.restore(snapshot)
-            report = loop._reconciliation.reconcile(  # noqa: SLF001 — restart check in CLI
-                loop._local_snapshot(),  # noqa: SLF001
-                restored.snapshot(),
-            )
-            restart_ok = report.matched
-            result.restart_reconciled = restart_ok
+            if args.csv:
+                bars = CsvBarDataSource(Path(args.csv)).fetch_bars(
+                    config.instrument, _dt(args.start), _dt(args.end), config.timeframe
+                )
+                data_source = f"csv:{args.csv}"
+            else:
+                bars = KrakenPublicOHLCSource().fetch_bars(
+                    config.instrument, _dt(args.start), _dt(args.end), config.timeframe
+                )
+                data_source = "kraken_public_ohlc"
+            n_bars = len(bars)
+            max_sessions = args.max_sessions or config.session_count_target
+            result = loop.run_bars(bars, max_sessions=max_sessions)
+            restart_ok = None
+            if args.simulate_restart:
+                snapshot = broker.snapshot()
+                restored = SimulatedBroker()
+                restored.restore(snapshot)
+                report = loop._reconciliation.reconcile(  # noqa: SLF001 — restart check in CLI
+                    loop._local_snapshot(),  # noqa: SLF001
+                    restored.snapshot(),
+                )
+                restart_ok = report.matched
+                result.restart_reconciled = restart_ok
+    except BaseException as exc:
+        stop_reason = f"error:{type(exc).__name__}"
+        raise
+    finally:
+        if agent_run_store is not None and agent_run_id is not None:
+            agent_run_store.finish_run(agent_run_id, stop_reason=stop_reason)
 
     elapsed_s = time.perf_counter() - started
 
@@ -376,6 +451,37 @@ def main() -> None:
     out.write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
     print(json.dumps({k: v for k, v in summary.items() if k != "sessions"}, indent=2))
     print(f"Wrote {out} ({len(result.sessions)} sessions)")
+
+    # Faza 6: paper_trading_runs upsert, piggy-backing on EXECUTION_STORE_BACKEND
+    # (no separate flag — docs/database-design.md §8.6). loop._postgres is the same
+    # PostgresPortfolioStore constructed in build_loop() when EXECUTION_STORE_BACKEND=
+    # postgres; None on the json (rollback) path, so this is skipped entirely then.
+    if loop._postgres is not None and loop._strategy_version_id is not None:  # noqa: SLF001
+        from src.execution.postgres_store import PostgresPaperRunStore
+
+        database_url = os.environ["EXECUTION_DATABASE_URL"]
+        risk_limits_raw = _load_yaml_snapshot(REPO_ROOT / "config" / "risk_limits.yaml")
+        paper_config_raw = _load_yaml_snapshot(Path(args.config))
+        paper_run_store = PostgresPaperRunStore(database_url)
+        try:
+            paper_run_store.upsert_run(
+                portfolio_id=loop._postgres.portfolio_id,  # noqa: SLF001
+                strategy_version_id=loop._strategy_version_id,  # noqa: SLF001
+                instrument=config.instrument,
+                config_snapshot={
+                    "paper_trading": paper_config_raw,
+                    "risk_limits": risk_limits_raw,
+                },
+                status="halted" if summary["halted"] else "running",
+                halt_reason=(
+                    next((s.notes for s in result.sessions if s.halted), None)
+                    if summary["halted"]
+                    else None
+                ),
+                summary=summary,
+            )
+        finally:
+            paper_run_store.close()
 
 
 if __name__ == "__main__":

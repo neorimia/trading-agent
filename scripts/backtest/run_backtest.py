@@ -14,7 +14,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.data.historical import make_cached_historical
+from src.engine.backtest_repository import open_backtest_store
 from src.engine.backtest_runner import write_json, run_backtest, REPO_ROOT
+from src.engine.backtest_store import compute_universe_sha256
 from src.engine.cost_models import VenueCostConfig
 from src.engine.proposal_cache import CachingLLMProposalClient
 from src.engine.llm_client import LLMProposalClient
@@ -225,6 +227,20 @@ def main() -> None:
     comparison = []
     kinds = ["baseline"] + (["llm"] if llm_ready else [])
     frozen = CachingLLMProposalClient(proposal_dir, inner=None, read_only=True)
+
+    # Faza 6 (docs/database-design.md §8.6): default 'files' (rollback target, the
+    # manifest.json/metrics_*.json writes below are unconditional). postgres inserts
+    # one backtest_runs row per metrics_{kind}_{Nx}.json — one suite run has no
+    # single strategy_version_id/instrument row of its own in the design, so
+    # metrics.suite_run_id links siblings instead of a dedicated suite table.
+    backtest_store_backend = os.environ.get("BACKTEST_STORE_BACKEND", "files")
+    backtest_database_url = os.environ.get("BACKTEST_DATABASE_URL")
+    backtest_store = open_backtest_store(
+        backend=backtest_store_backend, database_url=backtest_database_url
+    )
+    universe_sha256 = compute_universe_sha256(REPO_ROOT / "config" / "universe.yaml")
+    strategy_ids = {"baseline": "baseline_ema_cross", "llm": "llm_assisted"}
+
     for multiplier in (1, 2, 3):
         costs = VenueCostConfig.for_multiplier(multiplier)
         row: dict = {"cost_multiplier": multiplier}
@@ -245,7 +261,32 @@ def main() -> None:
                 metrics.comparable(),
             )
             row[kind] = metrics.comparable()
+            if backtest_store is not None:
+                strategy_version_id = backtest_store.resolve_active_strategy_version_id(
+                    strategy_ids[kind]
+                )
+                if strategy_version_id is not None:
+                    backtest_run_id = backtest_store.insert_run(
+                        strategy_version_id=strategy_version_id,
+                        instrument=args.instrument,
+                        timeframe=args.timeframe,
+                        period_start=holdout_start,
+                        period_end=end,
+                        dataset_hash=dataset_hash,
+                        universe_sha256=universe_sha256,
+                        random_seed=42,
+                        status="completed",
+                        metrics={"suite_run_id": run_id, **metrics.comparable()},
+                        report_path=str(report_dir / f"metrics_{kind}_{multiplier}x.json"),
+                    )
+                    backtest_store.insert_trades(
+                        backtest_run_id,
+                        args.instrument,
+                        metrics.extra.get("closed_trade_records", []),
+                    )
         comparison.append(row)
+    if backtest_store is not None:
+        backtest_store.close()
 
     manifest = {
         "run_id": run_id,
@@ -266,7 +307,7 @@ def main() -> None:
         "random_seed": 42,
         "git_commit": _git_commit(),
         "risk_limits_sha256": _file_hash(REPO_ROOT / "config" / "risk_limits.yaml"),
-        "universe_sha256": _file_hash(REPO_ROOT / "config" / "universe.yaml"),
+        "universe_sha256": universe_sha256,
         "llm_cache_ready": llm_ready,
         "data_source": "csv" if args.csv else "binance_public_klines",
         "data_source_note": (

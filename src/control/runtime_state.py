@@ -18,6 +18,7 @@ from pydantic import ValidationError
 
 from src.audit.audit_log import AuditLog
 from src.audit.events import AuditEvent
+from src.audit.postgres_store import open_audit_log, record_alerts, record_system_event
 from src.control.models import (
     AgentEventRow,
     AgentEventsResponse,
@@ -277,11 +278,24 @@ def halt_if_heartbeat_stale(
     if health.heartbeat_age_s <= settings.heartbeat_threshold_s:
         return False
     trigger_halt(settings, "stale_heartbeat")
+    if settings.audit_store_backend == "postgres" and settings.audit_database_url:
+        record_system_event(
+            settings.audit_database_url,
+            severity="warning",
+            component="control",
+            event_type="heartbeat_stale_halt",
+            message=f"heartbeat stale for {health.heartbeat_age_s:.0f}s; halt triggered",
+            payload={"heartbeat_age_s": health.heartbeat_age_s},
+        )
     return True
 
 
-def _audit(paths) -> AuditLog:
-    return AuditLog(paths.audit_db)
+def _audit(settings: ControlSettings) -> AuditLog:
+    return open_audit_log(
+        settings.paths.audit_db,
+        backend=settings.audit_store_backend,
+        database_url=settings.audit_database_url,
+    )
 
 
 def _postgres_execution_snapshot(
@@ -334,7 +348,7 @@ def build_portfolio(settings: ControlSettings, *, now: datetime | None = None) -
     incomplete = True
     if settings.paths.audit_db.is_file():
         incomplete = False
-        log = _audit(settings.paths)
+        log = _audit(settings)
         for event in log.list_events():
             if event.timestamp.date().isoformat() == today and event.event_type in {
                 "order_submitted",
@@ -573,7 +587,7 @@ def build_signal(
         )
     latest_llm = None
     if settings.paths.audit_db.is_file():
-        for event in reversed(_audit(settings.paths).list_events()):
+        for event in reversed(_audit(settings).list_events()):
             payload = event.payload
             if event.event_type == "proposal" and payload.get("instrument") == symbol:
                 latest_llm = event
@@ -636,7 +650,7 @@ def list_pending(settings: ControlSettings, *, now: datetime | None = None) -> l
             blocked = "approval_timeout"
         rationale = None
         if settings.paths.audit_db.is_file():
-            for event in reversed(_audit(settings.paths).list_events()):
+            for event in reversed(_audit(settings).list_events()):
                 if str(event.correlation_id) == cid and event.event_type == "proposal":
                     rationale = str(event.payload.get("rationale") or "")
                     break
@@ -701,7 +715,7 @@ def write_approval(
         write_text_exclusive(decision_path, json.dumps(payload, indent=2))
     except FileExistsError as exc:
         raise FileExistsError(f"approval already decided {correlation_id}") from exc
-    _audit(settings.paths).record(
+    _audit(settings).record(
         AuditEvent.now(
             correlation_id=correlation_id,
             event_type="operator_action",
@@ -716,7 +730,7 @@ def list_orders(settings: ControlSettings) -> list[OrderRow]:
     mode = trading_mode(settings)
     rows: list[OrderRow] = []
     instrument_by_correlation: dict[str, str] = {}
-    for event in _audit(settings.paths).list_events():
+    for event in _audit(settings).list_events():
         if event.event_type not in {"order_submitted", "fill", "risk_decision"}:
             continue
         payload = event.payload
@@ -872,7 +886,7 @@ def write_risk_limits(settings: ControlSettings, body, *, correlation_id: UUID) 
     }
     path = settings.paths.risk_limits
     path.write_text(yaml.safe_dump(dumped, sort_keys=False), encoding="utf-8")
-    _audit(settings.paths).record(
+    _audit(settings).record(
         AuditEvent.now(
             correlation_id=correlation_id,
             event_type="operator_action",
@@ -883,7 +897,7 @@ def write_risk_limits(settings: ControlSettings, body, *, correlation_id: UUID) 
 
 def trigger_halt(settings: ControlSettings, reason: str) -> None:
     KillSwitch(settings.paths.halt_flag).trigger(reason)
-    _audit(settings.paths).record(
+    _audit(settings).record(
         AuditEvent.now(
             correlation_id=uuid4(),
             event_type="operator_action",
@@ -894,7 +908,7 @@ def trigger_halt(settings: ControlSettings, reason: str) -> None:
 
 def reset_halt(settings: ControlSettings) -> None:
     KillSwitch(settings.paths.halt_flag).reset()
-    _audit(settings.paths).record(
+    _audit(settings).record(
         AuditEvent.now(
             correlation_id=uuid4(),
             event_type="operator_action",
@@ -908,7 +922,7 @@ def list_agent_events(
 ) -> AgentEventsResponse:
     if not settings.paths.audit_db.is_file():
         return AgentEventsResponse(events=[], next_cursor=None)
-    rows = _audit(settings.paths).list_event_rows(after_id=cursor, limit=limit)
+    rows = _audit(settings).list_event_rows(after_id=cursor, limit=limit)
     events = [
         AgentEventRow(
             id=row_id,
@@ -1140,7 +1154,7 @@ def set_strategy_enabled(
         yaml.safe_dump({"strategies": items}, sort_keys=False),
         encoding="utf-8",
     )
-    _audit(settings.paths).record(
+    _audit(settings).record(
         AuditEvent.now(
             correlation_id=uuid4(),
             event_type="operator_action",
@@ -1188,7 +1202,7 @@ def write_strategy_version(
     write_version_snapshot(settings.paths.strategy_versions, updated, change_note=change_note)
     new_definitions = [updated if d.id == strategy_id else d for d in definitions]
     write_strategy_definitions(settings.paths.strategies, new_definitions)
-    _audit(settings.paths).record(
+    _audit(settings).record(
         AuditEvent.now(
             correlation_id=uuid4(),
             event_type="operator_action",
@@ -1238,7 +1252,7 @@ def clone_strategy(
         change_note=f"cloned from {strategy_id} v{source.version}",
     )
     write_strategy_definitions(settings.paths.strategies, [*definitions, clone])
-    _audit(settings.paths).record(
+    _audit(settings).record(
         AuditEvent.now(
             correlation_id=uuid4(),
             event_type="operator_action",
@@ -1317,6 +1331,12 @@ def build_alerts(settings: ControlSettings, *, now: datetime | None = None) -> l
                 detail="Proposal layer is down. Baseline may still run if enabled.",
             )
         )
+    # Additive persisted trail only (Faza 7) — this function stays the live/
+    # ephemeral read path either way. Dedup on `title` happens inside
+    # record_alerts() so polling this endpoint/WS channel repeatedly does not
+    # spam new rows for an alert that is already open and unresolved.
+    if settings.audit_store_backend == "postgres" and settings.audit_database_url and alerts:
+        record_alerts(settings.audit_database_url, alerts)
     return alerts
 
 
@@ -1482,7 +1502,7 @@ def run_operator_analysis(
     payload = analysis.model_dump(mode="json") if analysis is not None else (
         rejected.model_dump(mode="json") if rejected is not None else {}
     )
-    _audit(settings.paths).record(
+    _audit(settings).record(
         AuditEvent.now(
             correlation_id=uuid4(),
             event_type="analysis",
@@ -1508,7 +1528,7 @@ def list_analyses(
     if not settings.paths.audit_db.is_file():
         return []
     rows = []
-    for event in _audit(settings.paths).list_events():
+    for event in _audit(settings).list_events():
         if event.event_type != "analysis":
             continue
         payload = event.payload
@@ -1610,7 +1630,7 @@ def run_discovery_summary(
         DiscoveryRun(run_at=moment, exchange=updated.exchange, candidates=[updated], rejected=[]),
         settings.paths.discovery_store,
     )
-    _audit(settings.paths).record(
+    _audit(settings).record(
         AuditEvent.now(
             correlation_id=uuid4(),
             event_type="discovery_summary",

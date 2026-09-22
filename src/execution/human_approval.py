@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import json
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.risk.risk_engine import RiskDecision
+
+if TYPE_CHECKING:
+    from src.audit.postgres_store import PostgresApprovalStore
 
 _STRICT = ConfigDict(extra="forbid")
 
@@ -64,6 +67,7 @@ class ApprovalGate:
         timeout_s: float = 3600.0,
         poll_interval_s: float = 0.05,
         operator: ApprovalOperator | None = None,
+        approval_store: "PostgresApprovalStore | None" = None,
     ) -> None:
         if timeout_s <= 0:
             raise ValueError("timeout_s must be positive")
@@ -72,33 +76,66 @@ class ApprovalGate:
         self._timeout_s = timeout_s
         self._poll_interval_s = poll_interval_s
         self._operator = operator if operator is not None else FileApprovalOperator()
+        # AUDIT_STORE_BACKEND=postgres only (None on the files/rollback path). This
+        # is the single writer for `human_approvals` — it is the one call that
+        # observes both the request and the eventual decision, whichever process
+        # (this one via ScriptedApprovalOperator, or control via write_approval())
+        # wrote the decision file — so there is no second, racier writer. Exposed
+        # publicly (not name-mangled) so PaperTradingLoop can reach it to link
+        # `order_id` after a later, separate `order_submitted` step.
+        self.approval_store = approval_store
 
     def request(self, order_intent: RiskDecision, correlation_id: UUID) -> ApprovalResult:
         request_path = self._dir / f"{correlation_id}.request.json"
         decision_path = self._dir / f"{correlation_id}.decision.json"
+        requested_at = datetime.now(timezone.utc)
+        risk_decision_payload = json.loads(order_intent.model_dump_json())
         request_path.write_text(
             json.dumps(
                 {
                     "correlation_id": str(correlation_id),
-                    "requested_at": datetime.now(timezone.utc).isoformat(),
-                    "risk_decision": json.loads(order_intent.model_dump_json()),
+                    "requested_at": requested_at.isoformat(),
+                    "risk_decision": risk_decision_payload,
                 },
                 indent=2,
             ),
             encoding="utf-8",
         )
+        expires_at = requested_at + timedelta(seconds=self._timeout_s)
+        if self.approval_store is not None:
+            self.approval_store.record_request(
+                correlation_id=correlation_id,
+                requested_at=requested_at,
+                expires_at=expires_at,
+                request_payload={"risk_decision": risk_decision_payload},
+            )
         self._operator.decide(request_path, decision_path)
         deadline = time.monotonic() + self._timeout_s
         while time.monotonic() < deadline:
             if decision_path.is_file():
-                return self._load_decision(decision_path, correlation_id)
+                result = self._load_decision(decision_path, correlation_id)
+                self._record_decision(result)
+                return result
             time.sleep(self._poll_interval_s)
-        return ApprovalResult(
+        result = ApprovalResult(
             approved=False,
             correlation_id=correlation_id,
             decided_by="timeout",
             reason="approval_timeout",
             decided_at=datetime.now(timezone.utc),
+        )
+        self._record_decision(result)
+        return result
+
+    def _record_decision(self, result: ApprovalResult) -> None:
+        if self.approval_store is None:
+            return
+        self.approval_store.record_decision(
+            correlation_id=result.correlation_id,
+            approved=result.approved,
+            decided_by=result.decided_by,
+            reason=result.reason,
+            decided_at=result.decided_at,
         )
 
     @staticmethod

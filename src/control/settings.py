@@ -75,6 +75,10 @@ class ControlSettings:
     control_database_url: str | None
     execution_store_backend: str
     execution_portfolio_name: str
+    backtest_store_backend: str
+    backtest_database_url: str | None
+    audit_store_backend: str
+    audit_database_url: str | None
     ollama_url: str
     live_trading_enabled: bool
     broker_paper_mode: bool
@@ -160,6 +164,20 @@ def load_control_settings(
             "CONTROL_DATABASE_URL is required when EXECUTION_STORE_BACKEND=postgres"
         )
     execution_portfolio_name = env.get("EXECUTION_PORTFOLIO_NAME", "paper").strip() or "paper"
+    backtest_backend = env.get("BACKTEST_STORE_BACKEND", "files").strip().lower()
+    if backtest_backend not in {"files", "postgres"}:
+        raise ValueError("BACKTEST_STORE_BACKEND must be 'files' or 'postgres'")
+    backtest_database_url = env.get("BACKTEST_DATABASE_URL", "").strip() or None
+    if backtest_backend == "postgres" and backtest_database_url is None:
+        raise ValueError(
+            "BACKTEST_DATABASE_URL is required when BACKTEST_STORE_BACKEND=postgres"
+        )
+    audit_backend = env.get("AUDIT_STORE_BACKEND", "files").strip().lower()
+    if audit_backend not in {"files", "postgres"}:
+        raise ValueError("AUDIT_STORE_BACKEND must be 'files' or 'postgres'")
+    audit_database_url = env.get("AUDIT_DATABASE_URL", "").strip() or None
+    if audit_backend == "postgres" and audit_database_url is None:
+        raise ValueError("AUDIT_DATABASE_URL is required when AUDIT_STORE_BACKEND=postgres")
     timeout_s = 3600.0
     stale_s = 172800.0
     heartbeat_s = 30.0
@@ -187,6 +205,10 @@ def load_control_settings(
         control_database_url=control_database_url,
         execution_store_backend=execution_backend,
         execution_portfolio_name=execution_portfolio_name,
+        backtest_store_backend=backtest_backend,
+        backtest_database_url=backtest_database_url,
+        audit_store_backend=audit_backend,
+        audit_database_url=audit_database_url,
         ollama_url=env.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/"),
         live_trading_enabled=_flag(env.get(LIVE_TRADING_FLAG), default=False),
         broker_paper_mode=_flag(env.get("BROKER_PAPER_MODE"), default=True),

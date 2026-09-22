@@ -160,7 +160,7 @@ Toate 3 rămân `experimental` — **niciuna nu trece criteriul „minimum de tr
 
 ## 8. API job de backtest (control plane)
 
-`POST /v1/strategies/{id}/backtests` (cere `confirmation_token=RUN_BACKTEST`) → `202` cu `run_id`, `status=queued`. Worker single-thread FIFO ([src/control/backtest_jobs.py](../src/control/backtest_jobs.py)), un job la un moment dat, timeout configurabil, fără rețea de trading (doar `run_backtest` pe date deja disponibile/cache). `GET /v1/strategies/{id}/backtests` / `GET /v1/strategies/{id}/backtests/{run_id}` pentru listare/status. Rezultatele sunt persistate ca JSON (nu Postgres — `backtests/reports/`), consistent cu restul persistenței proiectului (YAML + JSON, fără DB nouă).
+`POST /v1/strategies/{id}/backtests` (cere `confirmation_token=RUN_BACKTEST`) → `202` cu `run_id`, `status=queued`. Worker single-thread FIFO ([src/control/backtest_jobs.py](../src/control/backtest_jobs.py)), un job la un moment dat, timeout configurabil, fără rețea de trading (doar `run_backtest` pe date deja disponibile/cache). `GET /v1/strategies/{id}/backtests` / `GET /v1/strategies/{id}/backtests/{run_id}` pentru listare/status. Rezultatele rămân persistate necondiționat ca JSON (`backtests/jobs/`, `backtests/reports/`) — targetul de rollback. `BACKTEST_STORE_BACKEND=postgres` (opt-in, default `files`) adaugă în plus câte un rând `backtest_runs`/`backtest_trades` per job/fișier `metrics_{kind}_{Nx}.json`, fără să schimbe scrierea JSON existentă (design Faza 6, [docs/database-design.md](database-design.md) §8.6).
 
 ---
 

@@ -2,11 +2,36 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
 from src.risk.portfolio_state import PortfolioState
+
+
+@dataclass(frozen=True)
+class ClosedTrade:
+    """Round-trip long-only entry->exit — the structured shape `backtest_trades`
+    (docs/database-design.md §8.6) needs, in parallel with the legacy PnL-only
+    `closed_trades` list (kept for `src/engine/metrics.py` compatibility).
+
+    `entry_time`/`entry_price` are the position's weighted-average entry (set on
+    the fill that opened the position from flat; unchanged by later same-direction
+    adds). `fees` is only the closing fill's commission — opening-fill commissions
+    already reduced cash but are not attributable to one specific closed lot once
+    multiple buys have blended into a single average price (documented
+    simplification, not a fabricated split)."""
+
+    side: str
+    entry_time: datetime
+    entry_price: Decimal
+    exit_time: datetime
+    exit_price: Decimal
+    quantity: Decimal
+    pnl: Decimal
+    fees: Decimal
+    exit_reason: str | None = None
 
 
 class PortfolioTracker:
@@ -37,6 +62,8 @@ class PortfolioTracker:
         # Fiecare punct: (timestamp, equity, exposure_absolută_la_bara_respectivă).
         self._equity_curve: list[tuple[datetime, Decimal, Decimal]] = []
         self._closed_trades: list[Decimal] = []
+        self._closed_trade_records: list[ClosedTrade] = []
+        self._entry_time: datetime | None = None
         self._total_fees = Decimal("0")
         self._total_turnover = Decimal("0")
 
@@ -70,6 +97,8 @@ class PortfolioTracker:
         quantity: Decimal,
         price: Decimal,
         commission: Decimal,
+        timestamp: datetime,
+        exit_reason: str | None = None,
     ) -> None:
         qty = quantity
         if qty <= 0:
@@ -80,6 +109,8 @@ class PortfolioTracker:
         if side == "buy":
             cost = qty * price
             self._cash -= cost
+            if self._open_qty == 0:
+                self._entry_time = timestamp
             new_qty = self._open_qty + qty
             if new_qty > 0:
                 self._avg_price = (
@@ -95,9 +126,24 @@ class PortfolioTracker:
             trade_pnl = (price - self._avg_price) * closed
             self._realized_pnl_today += trade_pnl
             self._closed_trades.append(trade_pnl)
+            entry_time = self._entry_time if self._entry_time is not None else timestamp
+            self._closed_trade_records.append(
+                ClosedTrade(
+                    side="buy",
+                    entry_time=entry_time,
+                    entry_price=self._avg_price,
+                    exit_time=timestamp,
+                    exit_price=price,
+                    quantity=closed,
+                    pnl=trade_pnl,
+                    fees=commission,
+                    exit_reason=exit_reason,
+                )
+            )
             self._open_qty -= closed
             if self._open_qty == 0:
                 self._avg_price = Decimal("0")
+                self._entry_time = None
 
     def snapshot(self, last_price: Decimal) -> PortfolioState:
         exposure = abs(self._open_qty * last_price)
@@ -137,6 +183,14 @@ class PortfolioTracker:
         return list(self._closed_trades)
 
     @property
+    def closed_trade_records(self) -> list[ClosedTrade]:
+        """Structured round-trip trades (design §8.6 `backtest_trades`), one per
+        `closed_trades` entry in the same order — going-forward only, never
+        reconstructed from legacy PnL-only history (see `scripts/db/
+        import_backtests.py` module docstring)."""
+        return list(self._closed_trade_records)
+
+    @property
     def total_fees(self) -> Decimal:
         return self._total_fees
 
@@ -165,6 +219,21 @@ class PortfolioTracker:
             "total_fees": str(self._total_fees),
             "total_turnover": str(self._total_turnover),
             "closed_trades": [str(v) for v in self._closed_trades],
+            "entry_time": self._entry_time.isoformat() if self._entry_time is not None else None,
+            "closed_trade_records": [
+                {
+                    "side": t.side,
+                    "entry_time": t.entry_time.isoformat(),
+                    "entry_price": str(t.entry_price),
+                    "exit_time": t.exit_time.isoformat(),
+                    "exit_price": str(t.exit_price),
+                    "quantity": str(t.quantity),
+                    "pnl": str(t.pnl),
+                    "fees": str(t.fees),
+                    "exit_reason": t.exit_reason,
+                }
+                for t in self._closed_trade_records
+            ],
         }
 
     def restore(self, state: dict[str, Any]) -> None:
@@ -185,6 +254,22 @@ class PortfolioTracker:
         self._total_fees = Decimal(str(state.get("total_fees", "0")))
         self._total_turnover = Decimal(str(state.get("total_turnover", "0")))
         self._closed_trades = [Decimal(str(v)) for v in state.get("closed_trades", [])]
+        entry_time = state.get("entry_time")
+        self._entry_time = datetime.fromisoformat(entry_time) if entry_time else None
+        self._closed_trade_records = [
+            ClosedTrade(
+                side=str(record["side"]),
+                entry_time=datetime.fromisoformat(record["entry_time"]),
+                entry_price=Decimal(str(record["entry_price"])),
+                exit_time=datetime.fromisoformat(record["exit_time"]),
+                exit_price=Decimal(str(record["exit_price"])),
+                quantity=Decimal(str(record["quantity"])),
+                pnl=Decimal(str(record["pnl"])),
+                fees=Decimal(str(record["fees"])),
+                exit_reason=record.get("exit_reason"),
+            )
+            for record in state.get("closed_trade_records", [])
+        ]
 
     def _equity(self, last_price: Decimal) -> Decimal:
         return self._cash + (self._open_qty * last_price)

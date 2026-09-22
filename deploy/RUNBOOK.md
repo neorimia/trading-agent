@@ -84,23 +84,31 @@ listen_addresses = '127.0.0.1,::1'
 password_encryption = 'scram-sha-256'
 ```
 
-In `/etc/postgresql/18/main/pg_hba.conf`, allow only the two application roles over
+In `/etc/postgresql/18/main/pg_hba.conf`, allow only the application roles over
 loopback using SCRAM. Put these entries before broader `host` entries:
 
 ```text
 host  trading_research  research_writer     127.0.0.1/32  scram-sha-256
 host  trading_research  control_reader      127.0.0.1/32  scram-sha-256
 host  trading_research  market_data_writer  127.0.0.1/32  scram-sha-256
+host  trading_research  execution_writer    127.0.0.1/32  scram-sha-256
+host  trading_research  backtest_writer     127.0.0.1/32  scram-sha-256
+host  trading_research  audit_writer        127.0.0.1/32  scram-sha-256
 host  trading_research  research_writer     ::1/128       scram-sha-256
 host  trading_research  control_reader      ::1/128       scram-sha-256
 host  trading_research  market_data_writer  ::1/128       scram-sha-256
+host  trading_research  execution_writer    ::1/128       scram-sha-256
+host  trading_research  backtest_writer     ::1/128       scram-sha-256
+host  trading_research  audit_writer        ::1/128       scram-sha-256
 ```
 
-(`market_data_writer` is only exercised once the market data domain is cut over —
-skip its rows until then if you prefer, but adding them now is harmless.)
+(`market_data_writer`, `execution_writer`, `backtest_writer`, and `audit_writer` are
+only exercised once their respective domain is cut over — skip those rows until then
+if you prefer, but adding them now is harmless. `deploy/postgres/create_roles.sql`
+always creates all six roles regardless of which domains are currently switched.)
 
 Create a schema owner used only for migrations, then provision separate application
-roles. Keep all three passwords distinct and out of shell history:
+roles. Keep all six passwords distinct and out of shell history:
 
 ```bash
 sudo -u postgres createuser --pwprompt --no-superuser --createdb --no-createrole trading_migrator
@@ -119,17 +127,27 @@ sudo -u trading --preserve-env=MIGRATION_DATABASE_URL,PGPASSWORD uv run python s
 unset MIGRATION_DATABASE_URL PGPASSWORD MIGRATOR_DB_PASSWORD
 
 # Read application passwords without echo, then execute the reviewed least-privilege
-# grants after migrations have created the tables.
+# grants after migrations have created the tables. All six roles are created every
+# time regardless of which domains are switched yet (create_roles.sql is idempotent —
+# CREATE ROLE IF NOT EXISTS-style guard — so rerunning it as later domains cut over
+# is safe and expected).
 read -rsp 'research writer password: ' RESEARCH_DB_PASSWORD; echo
 read -rsp 'control reader password: ' CONTROL_DB_PASSWORD; echo
 read -rsp 'market data writer password: ' MARKET_DATA_DB_PASSWORD; echo
+read -rsp 'execution writer password: ' EXECUTION_DB_PASSWORD; echo
+read -rsp 'backtest writer password: ' BACKTEST_DB_PASSWORD; echo
+read -rsp 'audit writer password: ' AUDIT_DB_PASSWORD; echo
 sudo -u postgres psql --dbname=trading_research \
   -v database_name=trading_research \
   -v research_password="$RESEARCH_DB_PASSWORD" \
   -v control_password="$CONTROL_DB_PASSWORD" \
   -v market_data_password="$MARKET_DATA_DB_PASSWORD" \
+  -v execution_password="$EXECUTION_DB_PASSWORD" \
+  -v backtest_password="$BACKTEST_DB_PASSWORD" \
+  -v audit_password="$AUDIT_DB_PASSWORD" \
   -f /opt/trading-agent/deploy/postgres/create_roles.sql
-unset RESEARCH_DB_PASSWORD CONTROL_DB_PASSWORD MARKET_DATA_DB_PASSWORD
+unset RESEARCH_DB_PASSWORD CONTROL_DB_PASSWORD MARKET_DATA_DB_PASSWORD \
+      EXECUTION_DB_PASSWORD BACKTEST_DB_PASSWORD AUDIT_DB_PASSWORD
 sudo systemctl restart postgresql.service
 ```
 
@@ -185,7 +203,37 @@ Edit each `.env.*` (as the `trading` user):
 - `.env.control`: set `CONTROL_OPERATOR_TOKEN` to a real random value
   (`openssl rand -hex 32`) — **mandatory** before any remote UI (audit risk register:
   "Empty operator token + tunnel/proxy → anyone on the path can halt/approve"). Add
-  the tailnet hostname you'll browse from to `CONTROL_CORS_ORIGINS`.
+  the tailnet hostname you'll browse from to `CONTROL_CORS_ORIGINS`. Before the
+  backtest cutover, leave `BACKTEST_STORE_BACKEND=files` — `BacktestJobManager`
+  keeps writing `backtests/jobs/*.json`/`backtests/reports/*.json` unconditionally
+  either way. At that cutover, set it to `postgres` and set
+  `BACKTEST_DATABASE_URL=postgresql://backtest_writer:<percent-encoded-password>@127.0.0.1:5432/trading_research`
+  — role `backtest_writer`, never `execution_writer`/`control_reader`'s
+  credentials. Import history first with `scripts/db/import_backtests.py
+  --backtests-root <frozen copy of backtests/>` (`--runtime-root <frozen copy of
+  runtime/> --paper-strategy-id <id>` too, if paper history should be imported in
+  the   same pass). See `docs/database-cutover-playbook.md` §"Backtest and paper
+  runs" for the full quarantine/reconciliation contract. Rollback: set
+  `BACKTEST_STORE_BACKEND=files` again and restart `trading-control` — the JSON
+  files were never stopped, so nothing to replay.
+- `.env.control` + `.env.engine` (**must be set identically in both** — control
+  and engine write the same `audit_log` through one shared role): before the
+  audit cutover, leave `AUDIT_STORE_BACKEND=files` in both files —
+  `AuditLog`/`ApprovalGate` keep writing `audit.sqlite` and
+  `control/approvals/*.json` unconditionally either way. At that cutover, set it
+  to `postgres` in both `.env.control` and `.env.engine` and set the same
+  `AUDIT_DATABASE_URL=postgresql://audit_writer:<percent-encoded-password>@127.0.0.1:5432/trading_research`
+  in both — role `audit_writer`, never `backtest_writer`/`execution_writer`/
+  `control_reader`'s credentials. Import history first with
+  `scripts/db/import_audit.py --runtime-root <frozen copy of runtime/> [--runtime-root ...]`
+  (repeatable, one per frozen `runtime/paper*` directory). See
+  `docs/database-cutover-playbook.md` §"Audit, approvals, and system events" for
+  the full quarantine/reconciliation contract, including the `human_approvals`
+  single-writer note and the `system_events`/`agent_runs`/`alerts`
+  no-legacy-source caveat. Rollback: set `AUDIT_STORE_BACKEND=files` again in
+  both `.env.control` and `.env.engine`, then restart `trading-control` and the
+  paper engine — the SQLite/JSON files were never stopped, so nothing to
+  replay.
 - `.env.engine`: leave `LIVE_TRADING_ENABLED=false`. Leave `KRAKEN_*` trading keys
   empty. `BROKER_PAPER_MODE=true`. **Never copy laptop live keys here.** Before the
   market data cutover, leave `MARKET_DATA_STORE_BACKEND=files` (backtest CLI only —
@@ -194,7 +242,10 @@ Edit each `.env.*` (as the `trading` user):
   `MARKET_DATA_DATABASE_URL=postgresql://market_data_writer:<percent-encoded-password>@127.0.0.1:5432/trading_research`
   — role `market_data_writer`, never `research_writer`/`control_reader`'s
   credentials. See `docs/database-cutover-playbook.md` §"Market data" for the
-  backfill/reconciliation steps (`scripts/db/import_market_data.py`).
+  backfill/reconciliation steps (`scripts/db/import_market_data.py`). `paper_trading_runs`
+  has no separate flag — it piggy-backs on `EXECUTION_STORE_BACKEND` (domain 2's
+  cutover), so `scripts/paper_trading/run_paper_session.py` starts upserting it the
+  moment that switch flips, with no extra `.env.engine` change here.
 - `.env.llm`: confirm `OLLAMA_HOST=http://127.0.0.1:11434`.
 - `.env.research`: fill research API keys. Before cutover, keep
   `RESEARCH_STORE_BACKEND=sqlite`. At the switch, set it to `postgres` and set
@@ -338,6 +389,139 @@ If any PostgreSQL writes occurred after cron was resumed, first export/replay th
 writes into SQLite or accept the documented data-loss boundary. Never silently point
 the service at the old SQLite snapshot. Preserve the failed PostgreSQL database and
 reconciliation report for diagnosis; do not drop or mutate them during rollback.
+
+## 12.1 Paper execution + audit rehearsal (local, non-production)
+
+Same gates as §12, run against a **local** PostgreSQL and a **frozen copy** of one
+`runtime/paper*` directory — no `.env.*` file on any production host is touched by
+this section. Scope is deliberately narrow: one tree (`runtime/paper`), two domains
+(execution, then audit, per `docs/database-cutover-playbook.md` domain order),
+`EXECUTION_STORE_BACKEND` left at `json`. This is a rehearsal to prove the importers,
+role grants, and the audit dual-write path before any production backend flip — it
+is not itself a production cutover.
+
+**Rehearsal run:** 2026-09-22, `runtime/paper`, frozen to
+`/tmp/paper-frozen-20260922` (local temp dir, never committed).
+`audit.sqlite` sha256: `e63ce5eec69d1f4cdb2f0e4ab430dbbaee6c11efb63df92d009fed6c10db4ef6`.
+`--strategy-id baseline_ema_cross`, `--portfolio-name paper`.
+
+### Preflight
+
+1. Stop the local control process (`kill -TERM <pid>` on port `8767`); confirm no
+   `run_paper_session.py` process is running.
+2. Checkpoint the audit SQLite WAL into the main file so the freeze captures
+   everything: `sqlite3 runtime/paper/audit/audit.sqlite "PRAGMA
+   wal_checkpoint(TRUNCATE);"`.
+3. Freeze: `cp -a runtime/paper /tmp/paper-frozen-YYYYMMDD` — never import the live
+   tree. Record source counts and the `audit.sqlite` hash from the **frozen copy**.
+
+Source snapshot (frozen copy): 141 `audit_events` (51 `operator_action`, 31
+`risk_decision`, 31 `proposal`, 15 `reconciliation_ok`, 6 `analysis`, 2
+`order_submitted`, 2 `human_approval`, 2 `fill`, 1 `discovery_summary`); 3 approval
+request/decision file pairs (2 approved, 1 denied — the denied one correctly has no
+`order_submitted`/`fill`); 2 `idempotency.sqlite` reservations.
+
+Pre-import destination baseline (`trading_research`, `paper` portfolio): `orders=1`
+— a pre-existing row unrelated to this freeze (different `client_order_id`, imported
+before this rehearsal). Recorded, not deleted, so the post-import count is
+explainable as leftover + imported.
+
+### Import execution, then audit (each: dry-run, commit, identical rerun)
+
+```bash
+export MIGRATION_DATABASE_URL="postgresql://trading_migrator:<password>@127.0.0.1:5432/trading_research"
+uv run python scripts/db/seed.py
+
+uv run python scripts/db/import_execution.py \
+  --runtime-root /tmp/paper-frozen-YYYYMMDD --portfolio-name paper \
+  --strategy-id baseline_ema_cross \
+  --report runtime/migrations/execution-import-paper.json
+
+uv run python scripts/db/import_audit.py \
+  --runtime-root /tmp/paper-frozen-YYYYMMDD \
+  --report runtime/migrations/audit-import-paper.json
+```
+
+Run each command a second time and require identical `destination` counts; a
+non-zero exit or a changed count aborts the rehearsal. Reports and quarantine files
+live under gitignored `runtime/migrations/`.
+
+**Results (this run):**
+
+| Table | Pre-import | 1st commit | 2nd commit (rerun) | Match? |
+|---|---|---|---|---|
+| `orders` (execution) | 1 (leftover) | 3 | 3 | yes |
+| `order_events` | 0 | 4 | 4 | yes |
+| `executions` | 0 | 2 | 2 | yes |
+| `positions` | 0 | 1 | 1 | yes |
+| `balances` | 0 | 3 | 3 | yes |
+| `risk_events_for_portfolio_orders` | 0 | 2 | 2 | yes |
+| `risk_events_standalone_system_wide` | 0 | 29 | 29 | yes |
+| `audit_log` | 0 | 141 | 141 | yes |
+| `human_approvals` | 0 | 3 | 3 | yes |
+
+Execution quarantine: 0. `unresolved_history: true` (expected — no
+version-at-timestamp tracking yet; every imported row links to the current
+strategy/risk version, per the cutover playbook gate). Audit quarantine: 0.
+`order_id_resolved: 2`, `order_id_unresolved: 0` (execution imported first, so both
+`order_submitted` correlations resolve). `expires_at_reconstructed: 3` (approval
+timeout was never persisted per-request on disk — honesty flag, not a failure). On
+rerun, `history_imported`/`audit_log_imported` are all `0` (except
+`human_approvals_imported: 3`, which is expected — decision fields are re-applied on
+every rerun by design, always with the same values).
+
+### Role isolation (`deploy/postgres/create_roles.sql`)
+
+Checked with tagged throwaway rows, cleaned up as `trading_migrator` immediately
+after (verified counts returned to the post-import baseline):
+
+| Check | Result |
+|---|---|
+| `audit_writer` INSERT `audit_log` | succeeded |
+| `audit_writer` UPDATE `audit_log` | blocked, `42501 insufficient_privilege` |
+| `audit_writer` DELETE `audit_log` | blocked, `42501 insufficient_privilege` |
+| `audit_writer` INSERT + UPDATE `human_approvals` | succeeded |
+| `control_reader` SELECT `audit_log`/`orders` | succeeded |
+| `control_reader` INSERT `audit_log` | blocked, `42501 insufficient_privilege` |
+| `execution_writer` INSERT `order_events` | succeeded |
+| `execution_writer` UPDATE/DELETE `order_events` | blocked, `42501 insufficient_privilege` |
+| `execution_writer` UPDATE `orders.status` | succeeded (orders is mutable by design) |
+
+### Enable `AUDIT_STORE_BACKEND=postgres` locally, smoke test, do not flip production
+
+In local (gitignored) `.env.control` **and** `.env.engine`, identically:
+
+```text
+AUDIT_STORE_BACKEND=postgres
+AUDIT_DATABASE_URL=postgresql://audit_writer:<password>@127.0.0.1:5432/trading_research
+```
+
+`EXECUTION_STORE_BACKEND` stays `json` in both files — deliberately not flipped in
+this rehearsal.
+
+Restarted the local control process; `GET /v1/health` returned `200`. Triggered
+`POST /v1/risk/halt/reset` (a real operator action, idempotency-keyed) to exercise
+the audit write path: `audit_log` went `141 → 142` and `runtime/paper/audit/audit.sqlite`
+went `141 → 142` in the same call — confirming `DualWriteAuditLog` writes both stores
+unconditionally, matching `src/audit/postgres_store.py::open_audit_log`. The new
+`audit_log` row is a genuine `operator_action`/`halt_reset` event, kept (not deleted)
+per the append-only, never-fabricate-or-delete-real-history policy already applied
+to `audit_log`'s grants. Side effect: `runtime/paper/control/halt.flag` was genuinely
+cleared by this action; no paper engine process was running at the time, so this had
+no operational effect, but note it if you reuse this exact runtime tree.
+
+**Do not flip production `.env.control`/`.env.engine`** and **do not flip
+`EXECUTION_STORE_BACKEND`** as a result of this rehearsal — those remain separate,
+later steps gated on the restart-reconciliation work called out in
+`docs/database-cutover-playbook.md` domain 2. Rollback (not exercised beyond what's
+already true): set `AUDIT_STORE_BACKEND=files` again in both files and restart — the
+SQLite/JSON files were never stopped, so nothing to replay.
+
+### Not in scope for this rehearsal
+
+- `paper-kraken`, `paper-csv`, `paper-faza5` — only `paper` was frozen/imported.
+- `import_backtests.py` — the requested sequence was execution → audit only.
+- Any production host — this section runs entirely against local PostgreSQL.
 
 ## 13. Start paper
 

@@ -292,6 +292,13 @@ class PostgresPortfolioStore:
     def close(self) -> None:
         """Pool lifetime belongs to the process, not an individual request."""
 
+    @property
+    def portfolio_id(self) -> UUID:
+        """The fixed portfolio this store's process was constructed for — read by
+        `scripts/paper_trading/run_paper_session.py` to upsert `paper_trading_runs`
+        without re-resolving the name -> id lookup a second time."""
+        return self._portfolio_id
+
     @staticmethod
     def _instrument_id(connection: Any, canonical_symbol: str) -> UUID:
         row = connection.execute(
@@ -551,6 +558,88 @@ def _risk_event_type(decision: RiskDecision) -> str:
         "halted": "kill_switch",
     }
     return mapping.get(decision.reject_reason or "", "order_rejected")
+
+
+class PostgresPaperRunStore:
+    """`paper_trading_runs` upsert (design §8.6, `0004_backtest_paper_runs.py`
+    deviations note: `UNIQUE (portfolio_id)` — one long-lived row per
+    `runtime/paper*` directory, not one per session). Uses `execution_writer`
+    (the engine process already holds `EXECUTION_DATABASE_URL`); piggy-backs on
+    `EXECUTION_STORE_BACKEND=postgres`, no separate flag."""
+
+    def __init__(self, database_url: str) -> None:
+        self._pool = get_database_pool(database_url)
+
+    def close(self) -> None:
+        """Pool lifetime belongs to the process, not an individual request."""
+
+    @staticmethod
+    def _instrument_id(connection: Any, canonical_symbol: str) -> UUID:
+        row = connection.execute(
+            "SELECT instrument_id FROM instruments WHERE canonical_symbol = %s",
+            (canonical_symbol,),
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"unknown instrument symbol {canonical_symbol!r}")
+        return row["instrument_id"]
+
+    def upsert_run(
+        self,
+        *,
+        portfolio_id: UUID,
+        strategy_version_id: UUID,
+        instrument: str,
+        config_snapshot: dict[str, Any],
+        status: str = "running",
+        halt_reason: str | None = None,
+        summary: dict[str, Any] | None = None,
+        sessions_count: int | None = None,
+    ) -> None:
+        """`sessions_count=None` (the going-forward writer,
+        `scripts/paper_trading/run_paper_session.py`) increments the existing row's
+        `sessions_count` by 1 on every call — one paper session per call. Passing an
+        explicit `sessions_count` (the importer, `scripts/db/import_backtests.py`)
+        sets it verbatim instead, so a rerun on the same frozen
+        `paper_run_summary.json` never inflates the count."""
+        with self._pool.connection() as connection:
+            with connection.transaction():
+                instrument_id = self._instrument_id(connection, instrument)
+                sessions_expr = (
+                    "%s" if sessions_count is not None else "paper_trading_runs.sessions_count + 1"
+                )
+                params: list[Any] = [
+                    portfolio_id,
+                    strategy_version_id,
+                    instrument_id,
+                    json.dumps(config_snapshot, default=str),
+                    status,
+                    halt_reason,
+                    json.dumps(summary, default=str) if summary is not None else None,
+                    sessions_count if sessions_count is not None else 1,
+                ]
+                if sessions_count is not None:
+                    params.append(sessions_count)
+                connection.execute(
+                    f"""
+                    INSERT INTO paper_trading_runs (
+                        portfolio_id, strategy_version_id, instrument_id, config_snapshot,
+                        status, halt_reason, summary, sessions_count
+                    ) VALUES (%s, %s, %s, %s::jsonb, %s, %s, %s::jsonb, %s)
+                    ON CONFLICT (portfolio_id) DO UPDATE SET
+                        strategy_version_id = EXCLUDED.strategy_version_id,
+                        instrument_id = EXCLUDED.instrument_id,
+                        config_snapshot = EXCLUDED.config_snapshot,
+                        status = EXCLUDED.status,
+                        halt_reason = EXCLUDED.halt_reason,
+                        summary = COALESCE(EXCLUDED.summary, paper_trading_runs.summary),
+                        sessions_count = {sessions_expr},
+                        stopped_at = CASE
+                            WHEN EXCLUDED.status = 'running' THEN NULL
+                            ELSE now()
+                        END
+                    """,
+                    params,
+                )
 
 
 def resolve_portfolio_id(database_url: str, portfolio_name: str) -> UUID:

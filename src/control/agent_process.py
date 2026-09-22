@@ -14,6 +14,7 @@ from uuid import uuid4
 
 from src.audit.audit_log import AuditLog
 from src.audit.events import AuditEvent
+from src.audit.postgres_store import open_audit_log, record_system_event
 from src.control.runtime_state import llm_strategy_enabled, process_running, read_pid
 from src.control.settings import ControlSettings
 from src.execution.key_policy import (
@@ -27,6 +28,30 @@ from src.monitor.broker_monitor import BrokerMonitorSnapshot, write_broker_monit
 from src.runtime_io import write_text_atomic
 
 _CHILD_READY_S = 0.3
+
+
+def _audit(settings: ControlSettings) -> AuditLog:
+    return open_audit_log(
+        settings.paths.audit_db,
+        backend=settings.audit_store_backend,
+        database_url=settings.audit_database_url,
+    )
+
+
+def _system_event(
+    settings: ControlSettings, *, event_type: str, message: str, payload: dict | None = None
+) -> None:
+    """Operational (not trading) event — no-op on the files/rollback backend."""
+    if settings.audit_store_backend != "postgres" or not settings.audit_database_url:
+        return
+    record_system_event(
+        settings.audit_database_url,
+        severity="info",
+        component="control",
+        event_type=event_type,
+        message=message,
+        payload=payload,
+    )
 
 
 class AgentProcessController(Protocol):
@@ -121,12 +146,18 @@ class SubprocessAgentProcess:
                 log_path=settings.paths.runtime_dir / "logs" / "paper.log",
             )
             write_text_atomic(settings.paths.agent_pid, str(process.pid))
-            AuditLog(settings.paths.audit_db).record(
+            _audit(settings).record(
                 AuditEvent.now(
                     correlation_id=uuid4(),
                     event_type="operator_action",
                     payload={"action": "agent_start", "pid": process.pid, "mode": "stream"},
                 )
+            )
+            _system_event(
+                settings,
+                event_type="agent_start",
+                message=f"paper engine started (pid {process.pid})",
+                payload={"pid": process.pid, "mode": "stream"},
             )
             self._ensure_monitor(settings, env_src)
             return process.pid
@@ -167,18 +198,24 @@ class SubprocessAgentProcess:
                 log_path=settings.paths.runtime_dir / "logs" / "monitor.log",
             )
             write_text_atomic(settings.paths.broker_monitor_pid, str(process.pid))
-            AuditLog(settings.paths.audit_db).record(
+            _audit(settings).record(
                 AuditEvent.now(
                     correlation_id=uuid4(),
                     event_type="operator_action",
                     payload={"action": "broker_monitor_start", "pid": process.pid},
                 )
             )
+            _system_event(
+                settings,
+                event_type="broker_monitor_start",
+                message=f"broker monitor started (pid {process.pid})",
+                payload={"pid": process.pid},
+            )
 
     def stop(self, settings: ControlSettings) -> None:
         paper_pid = _stop_pid_file(settings.paths.agent_pid)
         monitor_pid = _stop_pid_file(settings.paths.broker_monitor_pid)
-        AuditLog(settings.paths.audit_db).record(
+        _audit(settings).record(
             AuditEvent.now(
                 correlation_id=uuid4(),
                 event_type="operator_action",
@@ -188,6 +225,12 @@ class SubprocessAgentProcess:
                     "monitor_pid": monitor_pid,
                 },
             )
+        )
+        _system_event(
+            settings,
+            event_type="agent_stop",
+            message=f"paper engine stop requested (pid {paper_pid})",
+            payload={"pid": paper_pid, "monitor_pid": monitor_pid},
         )
 
 

@@ -31,6 +31,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.audit.postgres_store import ack_alert, resolve_alert
 from src.control.agent_process import AgentProcessController, SubprocessAgentProcess
 from src.control.backtest_jobs import BacktestJobManager, BacktestJobRequest
 from src.control.replay_cache import ReplayCache, run_idempotent
@@ -130,11 +131,19 @@ class ControlContext:
     def backtest_jobs(self) -> BacktestJobManager:
         """Lazy — un singur `BacktestJobManager` (deci un singur worker thread) per context."""
         if self._backtest_jobs is None:
+            from src.engine.backtest_repository import open_backtest_store
+
+            store = open_backtest_store(
+                backend=self.settings.backtest_store_backend,
+                database_url=self.settings.backtest_database_url,
+            )
             self._backtest_jobs = BacktestJobManager(
                 jobs_dir=self.settings.paths.backtest_jobs,
                 reports_dir=self.settings.paths.backtest_reports,
                 halt_flag=self.settings.paths.halt_flag,
                 fetch_bars=self.fetch_bars,
+                store=store,
+                universe_path=self.settings.paths.universe,
             )
         return self._backtest_jobs
 
@@ -248,6 +257,46 @@ def create_app(ctx: ControlContext | None = None) -> FastAPI:
     @app.get("/v1/alerts")
     def alerts(ctx: ControlContext = Depends(require_auth)):
         return build_alerts(ctx.settings, now=ctx.now())
+
+    @app.post("/v1/alerts/{alert_id}/ack")
+    def ack_alert_endpoint(
+        alert_id: UUID,
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+        ctx: ControlContext = Depends(require_operator),
+    ):
+        key = require_idempotency_key(idempotency_key)
+
+        def _act() -> dict:
+            if ctx.settings.audit_store_backend != "postgres" or not ctx.settings.audit_database_url:
+                raise HTTPException(
+                    status_code=409, detail="alerts are not persisted (AUDIT_STORE_BACKEND=files)"
+                )
+            found = ack_alert(ctx.settings.audit_database_url, alert_id, acknowledged_by=None)
+            if not found:
+                raise HTTPException(status_code=404, detail="alert not found or already acknowledged")
+            return AckResponse(ok=True, detail="alert acknowledged").model_dump()
+
+        return run_idempotent(ctx.replay, key, _act)
+
+    @app.post("/v1/alerts/{alert_id}/resolve")
+    def resolve_alert_endpoint(
+        alert_id: UUID,
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+        ctx: ControlContext = Depends(require_operator),
+    ):
+        key = require_idempotency_key(idempotency_key)
+
+        def _act() -> dict:
+            if ctx.settings.audit_store_backend != "postgres" or not ctx.settings.audit_database_url:
+                raise HTTPException(
+                    status_code=409, detail="alerts are not persisted (AUDIT_STORE_BACKEND=files)"
+                )
+            found = resolve_alert(ctx.settings.audit_database_url, alert_id)
+            if not found:
+                raise HTTPException(status_code=404, detail="alert not found or already resolved")
+            return AckResponse(ok=True, detail="alert resolved").model_dump()
+
+        return run_idempotent(ctx.replay, key, _act)
 
     @app.get("/v1/market")
     def market(
