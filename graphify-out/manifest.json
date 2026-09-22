@@ -220,8 +220,8 @@
     "semantic_hash": "c60ea116c7785c90c371712df862f7de"
   },
   "scripts/backtest/run_backtest.py": {
-    "mtime": 1789999076.3995044,
-    "ast_hash": "79d2a894d5bc8e220c728a4add0694cc",
+    "mtime": 1790005471.3118992,
+    "ast_hash": "e3422a6786459bf4a9947ec684ee8b78",
     "semantic_hash": ""
   },
   "src/data/__init__.py": {
@@ -245,8 +245,8 @@
     "semantic_hash": "28f43f30e47498fcdcfa384593f9546d"
   },
   "src/engine/backtest_runner.py": {
-    "mtime": 1789999076.4043753,
-    "ast_hash": "9ebb688c4a0145300dc09497dc722d09",
+    "mtime": 1790005166.7991369,
+    "ast_hash": "09ed3e07cf85c403c050aa8ca3d19762",
     "semantic_hash": ""
   },
   "src/engine/cost_models.py": {
@@ -260,8 +260,8 @@
     "semantic_hash": "f2c3388dc9a247a5ada5cdf976fee5a4"
   },
   "src/engine/portfolio_tracker.py": {
-    "mtime": 1789999076.4051447,
-    "ast_hash": "291239fd764589a10103b0edfb32d6bd",
+    "mtime": 1790004964.7067592,
+    "ast_hash": "970310c4ac4c9e4720cb23ec57a1f1bd",
     "semantic_hash": ""
   },
   "src/engine/proposal_cache.py": {
@@ -280,13 +280,13 @@
     "semantic_hash": "21a06d5d0e27c0e422292007dc833291"
   },
   "src/engine/strategy_baseline.py": {
-    "mtime": 1789999076.406266,
-    "ast_hash": "d02af558b4cfde819d63b5f6016101e0",
+    "mtime": 1790004974.9661043,
+    "ast_hash": "5c0d4482e348b742ffdc08f329eb67e7",
     "semantic_hash": ""
   },
   "src/engine/strategy_llm_assisted.py": {
-    "mtime": 1789999076.4064507,
-    "ast_hash": "a79cf62b658bda3692b0f4a2c54ad851",
+    "mtime": 1790004979.5735817,
+    "ast_hash": "abf920ba7eb39e840d478c26b53fd937",
     "semantic_hash": ""
   },
   "tests/adversarial/test_lookahead_bias.py": {
@@ -385,9 +385,9 @@
     "semantic_hash": ""
   },
   "src/execution/human_approval.py": {
-    "mtime": 1789741413.0751667,
-    "ast_hash": "4c48892b2f17ad83543137afed355764",
-    "semantic_hash": "4c48892b2f17ad83543137afed355764"
+    "mtime": 1790065129.302679,
+    "ast_hash": "14b5d3e1edb1c1842fe302e2d3149b19",
+    "semantic_hash": ""
   },
   "src/execution/idempotency_store.py": {
     "mtime": 1789999858.009847,
@@ -445,13 +445,13 @@
     "semantic_hash": "809baad5ee649d02ee060d4b36aedc08"
   },
   "scripts/paper_trading/run_paper_session.py": {
-    "mtime": 1790000198.184461,
-    "ast_hash": "148e1c769bddb98dfca5683870edc196",
+    "mtime": 1790065248.3675227,
+    "ast_hash": "b962a98ec99e76c45de05f000843be80",
     "semantic_hash": ""
   },
   "src/engine/strategy_paper.py": {
-    "mtime": 1790000148.8521516,
-    "ast_hash": "96ee807cca63b9467dd3d7aa0835934a",
+    "mtime": 1790065135.4115424,
+    "ast_hash": "aea3760d97fab9bdc5514395d22a260f",
     "semantic_hash": ""
   },
   "src/research/__init__.py": {
@@ -865,9 +865,9 @@
     "semantic_hash": "4bb98a2529425a47ec95e8f13879945f"
   },
   "src/control/agent_process.py": {
-    "mtime": 1789852250.572336,
-    "ast_hash": "c14136ba3a15eb4dc75469b9440da05e",
-    "semantic_hash": "c14136ba3a15eb4dc75469b9440da05e"
+    "mtime": 1790065381.8488638,
+    "ast_hash": "7b3adb9bd73155bdf07dd7d4126e1af0",
+    "semantic_hash": ""
   },
   "src/control/models.py": {
     "mtime": 1789999076.4025328,
@@ -875,18 +875,18 @@
     "semantic_hash": ""
   },
   "src/control/runtime_state.py": {
-    "mtime": 1790000276.9187431,
-    "ast_hash": "c87d95798d67fea0c901b51a11a9ccd4",
+    "mtime": 1790065327.2386296,
+    "ast_hash": "8b17aeaa651a29cc13b539ffcd9dc143",
     "semantic_hash": ""
   },
   "src/control/server.py": {
-    "mtime": 1789999076.4030344,
-    "ast_hash": "5445409629e6ac780d13f018d4d19e4b",
+    "mtime": 1790065349.1702707,
+    "ast_hash": "965360afc553fca3ace4000781bce0e7",
     "semantic_hash": ""
   },
   "src/control/settings.py": {
-    "mtime": 1790000243.115823,
-    "ast_hash": "59cd6ec546780aff5a48904ad29f2741",
+    "mtime": 1790065279.9580343,
+    "ast_hash": "fc63c724a0627a0e9d058c648a084d98",
     "semantic_hash": ""
   },
   "tests/adversarial/test_control_isolation.py": {
@@ -920,8 +920,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1790002064.6480868,
-    "ast_hash": "83005e0b719785ae76b32f75fc2efb2e",
+    "mtime": 1790064840.3876457,
+    "ast_hash": "605279754f7fce466aedf018bf11df3a",
     "semantic_hash": ""
   },
   "src/engine/analysis_client.py": {
@@ -1075,8 +1075,8 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "scripts/dev/start_stack.py": {
-    "mtime": 1790000290.263646,
-    "ast_hash": "2a428977a71f37ee9c3462891b4131ad",
+    "mtime": 1790064879.24,
+    "ast_hash": "40601e4ee14b2280915ce43162c91718",
     "semantic_hash": ""
   },
   "tests/unit/test_start_stack.py": {
@@ -1285,8 +1285,8 @@
     "semantic_hash": "c838b7b65da605854c947a110c66693a"
   },
   "deploy/RUNBOOK.md": {
-    "mtime": 1789999076.3286176,
-    "ast_hash": "e31b55c03c0b1bb4b2252b88001a75ea",
+    "mtime": 1790065898.9440444,
+    "ast_hash": "e4bc07dc312ba62e7f9285c3258c2a7d",
     "semantic_hash": ""
   },
   "deploy/backup/README.md": {
@@ -1295,8 +1295,8 @@
     "semantic_hash": ""
   },
   "docs/database-design.md": {
-    "mtime": 1789999076.330152,
-    "ast_hash": "9db3e52903150fd52802ef1a6431a3ff",
+    "mtime": 1790065846.9033318,
+    "ast_hash": "0cea8359b7543da349756a6de94e1055",
     "semantic_hash": ""
   },
   "deploy/backup/postgres-backup.sh": {
@@ -1305,8 +1305,8 @@
     "semantic_hash": ""
   },
   "deploy/postgres/create_roles.sql": {
-    "mtime": 1789999705.2008243,
-    "ast_hash": "dcd7d2e242a965c95396f62d6151174a",
+    "mtime": 1790064010.153092,
+    "ast_hash": "937b93cac62f709dced8588c2de6f7a4",
     "semantic_hash": ""
   },
   "migrations/env.py": {
@@ -1370,8 +1370,8 @@
     "semantic_hash": ""
   },
   "docs/database-cutover-playbook.md": {
-    "mtime": 1790002320.7727647,
-    "ast_hash": "214ae79ba7b11f90af393bb682ee65d2",
+    "mtime": 1790065877.9870574,
+    "ast_hash": "11651c1fc18603e31fcc721321fd2001",
     "semantic_hash": ""
   },
   "src/engine/regime.py": {
@@ -1400,8 +1400,8 @@
     "semantic_hash": ""
   },
   "src/engine/strategy_adapter.py": {
-    "mtime": 1789999076.4060872,
-    "ast_hash": "16c3f5ae9ee4cbb26a61890a485b21ee",
+    "mtime": 1790004969.8506598,
+    "ast_hash": "e1239d34db53c64b043692d03e94b8e4",
     "semantic_hash": ""
   },
   "src/engine/strategy_registry.py": {
@@ -1475,8 +1475,8 @@
     "semantic_hash": ""
   },
   "src/control/backtest_jobs.py": {
-    "mtime": 1789999076.4023373,
-    "ast_hash": "7c3616b9617cf98f10a1dc6148022355",
+    "mtime": 1790005415.00452,
+    "ast_hash": "29434f11bb576baff519396a77051d1a",
     "semantic_hash": ""
   },
   "src/engine/baselines.py": {
@@ -1530,8 +1530,8 @@
     "semantic_hash": ""
   },
   "docs/backtesting-methodology.md": {
-    "mtime": 1789999076.3289728,
-    "ast_hash": "ae7e7f9cfdb0e25b2d5ce9cd2f2295ee",
+    "mtime": 1790006439.0624602,
+    "ast_hash": "174b85fe5087bcba608e7c245269a7fa",
     "semantic_hash": ""
   },
   "docs/risk-management.md": {
@@ -1640,8 +1640,8 @@
     "semantic_hash": ""
   },
   "src/execution/postgres_store.py": {
-    "mtime": 1790001456.1100404,
-    "ast_hash": "f3828d89ff7aed0c8b90262bb1634093",
+    "mtime": 1790005528.834838,
+    "ast_hash": "01dbf77aa0d32dec7886f9baccf2c02f",
     "semantic_hash": ""
   },
   "src/execution/repository.py": {
@@ -1650,8 +1650,78 @@
     "semantic_hash": ""
   },
   "tests/integration/test_postgres_execution.py": {
-    "mtime": 1790002238.7216768,
-    "ast_hash": "026d2adced1625346494e2f4134fc82e",
+    "mtime": 1790065665.0118968,
+    "ast_hash": "c9f4ea962e8bd36d9c52c84ff90dff5d",
+    "semantic_hash": ""
+  },
+  "migrations/versions/0004_backtest_paper_runs.py": {
+    "mtime": 1790005033.5405648,
+    "ast_hash": "6b02d19edc4d6dbb9da1216a08be2475",
+    "semantic_hash": ""
+  },
+  "scripts/db/import_backtests.py": {
+    "mtime": 1790005840.4926572,
+    "ast_hash": "5d643e2c4a29b89b3d4e0fb981a631bd",
+    "semantic_hash": ""
+  },
+  "src/engine/backtest_repository.py": {
+    "mtime": 1790005280.9236462,
+    "ast_hash": "c6569a3e71d394a5f228add2503d969e",
+    "semantic_hash": ""
+  },
+  "src/engine/backtest_store.py": {
+    "mtime": 1790005486.0348794,
+    "ast_hash": "385675b0c6c41abe9e3af7340984e704",
+    "semantic_hash": ""
+  },
+  "tests/integration/test_postgres_backtests.py": {
+    "mtime": 1790065669.6457043,
+    "ast_hash": "f0d830a5c50c83acff733a0b1d8c9a0d",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_backtest_jobs_postgres_store.py": {
+    "mtime": 1790005973.1388986,
+    "ast_hash": "085947b30620961697c973760b587a25",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_portfolio_tracker.py": {
+    "mtime": 1790005944.5607283,
+    "ast_hash": "a30317e009c47c0c7dd2d4f0ed340f36",
+    "semantic_hash": ""
+  },
+  "migrations/versions/0005_audit_agent_approvals.py": {
+    "mtime": 1790063957.4480088,
+    "ast_hash": "f7eab50043ba959387587097bedc05a1",
+    "semantic_hash": ""
+  },
+  "scripts/db/import_audit.py": {
+    "mtime": 1790065566.8827813,
+    "ast_hash": "503aa4dfa86c098d6aed22dadc5248c3",
+    "semantic_hash": ""
+  },
+  "src/audit/postgres_store.py": {
+    "mtime": 1790065077.2969987,
+    "ast_hash": "46f6edab90269d6977ce63506bea4619",
+    "semantic_hash": ""
+  },
+  "tests/integration/test_postgres_audit.py": {
+    "mtime": 1790065762.7401075,
+    "ast_hash": "1194f495c243f3995dbc3859b640f9c9",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_audit_postgres_store.py": {
+    "mtime": 1790065704.907574,
+    "ast_hash": "22c2eec426f8e90a631d5138ecb523bd",
+    "semantic_hash": ""
+  },
+  "claudedocs/Alpaca Paper Trading.md": {
+    "mtime": 1790065894.5226064,
+    "ast_hash": "f076d553757cece721e3712d20342839",
+    "semantic_hash": ""
+  },
+  "claudedocs/design-alpaca-paper-trading.md": {
+    "mtime": 1790066404.680998,
+    "ast_hash": "8c620b5e00496f0b508ed924fe430e7a",
     "semantic_hash": ""
   }
 }
